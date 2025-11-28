@@ -1151,21 +1151,22 @@
             const searchValue = searchInput.value.trim().toLowerCase();
 
             return window.vehicleData.filter(vehicle => {
-                // Filtro por status
+                // Filtro por status - CORRIGIDO
                 let statusMatch = true;
                 if (statusValue !== 'all') {
+                    const statusLower = vehicle.status.toLowerCase();
                     switch(statusValue) {
                         case 'valid':
-                            statusMatch = vehicle.status.includes('válido');
+                            statusMatch = statusLower.includes('checklist válido');
                             break;
                         case 'invalid':
-                            statusMatch = vehicle.status.includes('inválido');
+                            statusMatch = statusLower.includes('checklist inválido');
                             break;
                         case 'expired':
-                            statusMatch = vehicle.status.includes('vencido') || isExpired(vehicle.validade);
+                            statusMatch = statusLower.includes('checklist vencido') || isExpired(vehicle.validade);
                             break;
                         case 'expiring':
-                            statusMatch = isExpiringSoon(vehicle.validade);
+                            statusMatch = isExpiringSoon(vehicle.validade) && !statusLower.includes('checklist vencido');
                             break;
                     }
                 }
@@ -1190,7 +1191,7 @@
 
         function getCriticalData() {
             return window.vehicleData.filter(vehicle => 
-                vehicle.status.includes('vencido') || 
+                vehicle.status.toLowerCase().includes('checklist vencido') || 
                 isExpiringSoon(vehicle.validade) ||
                 (vehicle.dispositivos && vehicle.dispositivos !== '')
             );
@@ -1293,10 +1294,15 @@
             return dateValue;
         }
 
+        // 🎯 CORREÇÃO: Função updateSummaryCards CORRIGIDA
         function updateSummaryCards() {
             const total = window.vehicleData.length;
-            const valid = window.vehicleData.filter(v => v.status.includes('válido')).length;
-            const expired = window.vehicleData.filter(v => v.status.includes('vencido')).length;
+            const valid = window.vehicleData.filter(v => 
+                v.status.toLowerCase().includes('checklist válido')
+            ).length;
+            const expired = window.vehicleData.filter(v => 
+                v.status.toLowerCase().includes('checklist vencido')
+            ).length;
             
             const today = new Date();
             const warning = window.vehicleData.filter(v => {
@@ -1304,7 +1310,7 @@
                 const validadeDate = new Date(v.validade);
                 const diffTime = validadeDate - today;
                 const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                return diffDays <= 7 && diffDays > 0;
+                return diffDays <= 7 && diffDays > 0 && !v.status.toLowerCase().includes('checklist vencido');
             }).length;
 
             totalVehicles.textContent = total;
@@ -1425,10 +1431,21 @@
             filteredCount.textContent = dataToRender.length;
         }
 
+        // 🎯 CORREÇÃO PRINCIPAL: Função getStatusClass CORRIGIDA
         function getStatusClass(status) {
-            if (status.includes('válido')) return 'status-valid';
-            if (status.includes('inválido')) return 'status-invalid';
-            if (status.includes('vencido')) return 'status-expired';
+            if (!status) return 'status-valid';
+            
+            const statusLower = status.toLowerCase().trim();
+            
+            if (statusLower === 'checklist válido') return 'status-valid';
+            if (statusLower === 'checklist inválido') return 'status-invalid';
+            if (statusLower === 'checklist vencido') return 'status-expired';
+            
+            // Fallback para casos diferentes
+            if (statusLower.includes('válido')) return 'status-valid';
+            if (statusLower.includes('inválido')) return 'status-invalid';
+            if (statusLower.includes('vencido')) return 'status-expired';
+            
             return 'status-valid';
         }
 
@@ -1549,8 +1566,12 @@
 
         function generateSummaryPDF(doc) {
             const total = window.vehicleData.length;
-            const valid = window.vehicleData.filter(v => v.status.includes('válido')).length;
-            const expired = window.vehicleData.filter(v => v.status.includes('vencido')).length;
+            const valid = window.vehicleData.filter(v => 
+                v.status.toLowerCase().includes('checklist válido')
+            ).length;
+            const expired = window.vehicleData.filter(v => 
+                v.status.toLowerCase().includes('checklist vencido')
+            ).length;
             const warning = window.vehicleData.filter(v => isExpiringSoon(v.validade)).length;
             
             const percentValid = total > 0 ? ((valid / total) * 100).toFixed(1) : 0;
@@ -1586,7 +1607,7 @@
                     doc.setTextColor(100, 100, 100);
                     
                     let statusText = '';
-                    if (vehicle.status.includes('vencido')) {
+                    if (vehicle.status.toLowerCase().includes('vencido')) {
                         statusText = 'VENCIDO';
                         doc.setTextColor(255, 0, 0);
                     } else if (isExpiringSoon(vehicle.validade)) {
