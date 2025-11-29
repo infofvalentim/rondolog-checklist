@@ -31,11 +31,19 @@
         }
 
         .dark-mode {
-            --bg-primary: #1a202c;
-            --bg-secondary: #2d3748;
-            --text-primary: #f7fafc;
-            --text-secondary: #e2e8f0;
-            --border-color: #4a5568;
+            --bg-primary: #1a1d23;
+            --bg-secondary: #252a33;
+            --text-primary: #e2e8f0;
+            --text-secondary: #a0aec0;
+            --border-color: #3a4556;
+            
+            --green: #48bb78;
+            --green-dark: #38a169;
+            --yellow: #ecc94b;
+            --yellow-dark: #d69e2e;
+            --orange: #ed8936;
+            --orange-dark: #dd6b20;
+            --red-light: #fc8181;
         }
 
         * {
@@ -188,7 +196,7 @@
             color: var(--primary-black);
         }
 
-        /* 🎯 CORREÇÃO: Dropdown com suporte ao modo escuro */
+        /* Dropdown */
         .export-dropdown {
             position: relative;
             display: inline-block;
@@ -262,7 +270,7 @@
             100% { opacity: 1; }
         }
 
-        /* Modal - CORRIGIDO */
+        /* Modal */
         .modal {
             display: none;
             position: fixed;
@@ -321,6 +329,17 @@
         .form-control:focus {
             border-color: var(--primary-red);
             outline: none;
+        }
+
+        .form-control.error {
+            border-color: var(--primary-red);
+        }
+
+        .error-message {
+            color: var(--primary-red);
+            font-size: 12px;
+            margin-top: 5px;
+            display: none;
         }
 
         .modal-actions {
@@ -520,6 +539,11 @@
             vertical-align: middle;
         }
 
+        tbody tr {
+            border-left: 3px solid transparent;
+            transition: all 0.2s ease;
+        }
+
         tbody tr:hover {
             background: var(--bg-secondary);
         }
@@ -642,6 +666,90 @@
             border: 1px solid var(--border-color);
         }
 
+        /* Modo Escuro Específico */
+        .dark-mode tbody tr {
+            border-left: 3px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .dark-mode tbody tr:hover {
+            background: #2d3748 !important;
+            transform: translateX(2px);
+        }
+
+        .dark-mode tbody tr.expiring-soon {
+            background: #2d2a22 !important;
+            border-left-color: #ecc94b;
+        }
+
+        .dark-mode tbody tr.expiring-soon:hover {
+            background: #3d382a !important;
+        }
+
+        .dark-mode tbody tr.expired {
+            background: #2d2526 !important;
+            border-left-color: #fc8181;
+        }
+
+        .dark-mode tbody tr.expired:hover {
+            background: #3d2c2e !important;
+        }
+
+        .dark-mode .status-badge {
+            font-weight: 600;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .dark-mode .status-valid {
+            background: var(--green);
+            color: #1a202c;
+        }
+
+        .dark-mode .status-invalid {
+            background: #e53e3e;
+            color: white;
+        }
+
+        .dark-mode .status-expired {
+            background: var(--yellow);
+            color: #1a202c;
+        }
+
+        .dark-mode thead th {
+            background: #2d3748;
+            color: var(--text-primary);
+            border-bottom: 2px solid #4a5568;
+        }
+
+        .dark-mode .summary-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        .dark-mode .filters {
+            background: #252a33;
+            border-bottom: 1px solid #3a4556;
+        }
+
+        .dark-mode .btn-edit {
+            background: #ed8936;
+            color: #1a202c;
+        }
+
+        .dark-mode .btn-edit:hover {
+            background: #dd6b20;
+        }
+
+        .dark-mode .btn-delete {
+            background: #e53e3e;
+            color: white;
+        }
+
+        .dark-mode .btn-delete:hover {
+            background: #c53030;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             .header-content {
@@ -680,7 +788,7 @@
         <div class="header">
             <div class="header-content">
                 <div class="header-titles">
-                    <h1>RONDOLOG - SISTEMA DE CHECKLIST</h1>
+                    <h1>RONDOLOG - SISTEMA DE GESTÃO DE FROTAS</h1>
                     <div class="header-subtitle">Importe, visualize e edite os dados dos veículos</div>
                 </div>
                 <div class="controls">
@@ -692,7 +800,6 @@
                     </label>
                     <input type="file" id="fileInput" class="file-input" accept=".xlsx, .xls">
                     
-                    <!-- CORREÇÃO: Dropdown com clique -->
                     <div class="export-dropdown" id="exportDropdown">
                         <button class="btn btn-warning" type="button" id="btnExport">
                             <span>📊</span> Exportar
@@ -715,9 +822,15 @@
                             </button>
                         </div>
                     </div>
+
+                    <!-- 🆕 BOTÃO: Limpar Duplicados -->
+                    <button class="btn btn-danger" id="btnCleanDuplicates" type="button">
+                        <span>🧹</span> Limpar Duplicados
+                    </button>
                     
-                    <button class="btn btn-info" id="btnBackup" type="button">
-                        <span>💾</span> Backup Agora
+                    <!-- 🆕 BOTÃO: Padronizar Dados -->
+                    <button class="btn btn-info" id="btnStandardizeData" type="button">
+                        <span>⚙️</span> Padronizar Dados
                     </button>
                     
                     <button class="btn btn-success" id="btnAddNew" type="button">
@@ -825,18 +938,19 @@
         </div>
     </div>
 
-    <!-- CORREÇÃO: Modal de Edição/Adição FUNCIONAL -->
+    <!-- Modal de Edição/Adição -->
     <div class="modal" id="editModal">
         <div class="modal-content">
             <h3 id="modalTitle">Adicionar Novo Veículo</h3>
             <form id="editForm">
                 <div class="form-group">
                     <label>Placa do Veículo *</label>
-                    <input type="text" class="form-control" id="editPlaca" required>
+                    <input type="text" class="form-control" id="editPlaca" required aria-label="Placa do veículo">
+                    <div class="error-message" id="placaError">Placa é obrigatória</div>
                 </div>
                 <div class="form-group">
                     <label>Status do Checklist *</label>
-                    <select class="form-control" id="editStatus" required>
+                    <select class="form-control" id="editStatus" required aria-label="Status do checklist">
                         <option value="Checklist válido">Válido</option>
                         <option value="Checklist inválido">Inválido</option>
                         <option value="Checklist vencido">Vencido</option>
@@ -844,23 +958,27 @@
                 </div>
                 <div class="form-group">
                     <label>Data de Realização *</label>
-                    <input type="date" class="form-control" id="editDataRealizacao" required>
+                    <input type="date" class="form-control" id="editDataRealizacao" required aria-label="Data de realização">
+                    <div class="error-message" id="dataRealizacaoError">Data de realização é obrigatória</div>
                 </div>
                 <div class="form-group">
                     <label>Data de Validade *</label>
-                    <input type="date" class="form-control" id="editValidade" required>
+                    <input type="date" class="form-control" id="editValidade" required aria-label="Data de validade">
+                    <div class="error-message" id="validadeError">Data de validade é obrigatória e deve ser posterior à data de realização</div>
                 </div>
                 <div class="form-group">
                     <label>Motorista *</label>
-                    <input type="text" class="form-control" id="editMotorista" required>
+                    <input type="text" class="form-control" id="editMotorista" required aria-label="Nome do motorista">
+                    <div class="error-message" id="motoristaError">Motorista é obrigatório</div>
                 </div>
                 <div class="form-group">
                     <label>Operador *</label>
-                    <input type="text" class="form-control" id="editOperador" required>
+                    <input type="text" class="form-control" id="editOperador" required aria-label="Nome do operador">
+                    <div class="error-message" id="operadorError">Operador é obrigatório</div>
                 </div>
                 <div class="form-group">
                     <label>Dispositivos Pendentes</label>
-                    <textarea class="form-control" id="editDispositivos" rows="3" placeholder="Lista de dispositivos com problemas..."></textarea>
+                    <textarea class="form-control" id="editDispositivos" rows="3" placeholder="Lista de dispositivos com problemas..." aria-label="Dispositivos pendentes de manutenção"></textarea>
                 </div>
                 <div class="modal-actions">
                     <button type="button" class="btn-cancel" id="btnCancelModal">Cancelar</button>
@@ -883,8 +1001,9 @@
         const btnDarkMode = document.getElementById('btnDarkMode');
         const fileInput = document.getElementById('fileInput');
         const btnAddNew = document.getElementById('btnAddNew');
-        const btnBackup = document.getElementById('btnBackup');
         const btnExport = document.getElementById('btnExport');
+        const btnCleanDuplicates = document.getElementById('btnCleanDuplicates');
+        const btnStandardizeData = document.getElementById('btnStandardizeData');
         const statusFilter = document.getElementById('statusFilter');
         const driverFilter = document.getElementById('driverFilter');
         const dateFilter = document.getElementById('dateFilter');
@@ -904,7 +1023,7 @@
         const filteredCount = document.getElementById('filteredCount');
         const exportDropdown = document.getElementById('exportDropdown');
 
-        // CORREÇÃO: Inicialização correta
+        // Inicialização
         document.addEventListener('DOMContentLoaded', function() {
             loadFromLocalStorage();
             setupEventListeners();
@@ -914,25 +1033,166 @@
             updateSaveStatus();
         });
 
-        // 🎯 CORREÇÃO 1: Dropdown de Exportação FUNCIONAL
+        // 🆕 FUNÇÃO: Padronização Inteligente de Dados
+        function standardizeData() {
+            if (window.vehicleData.length === 0) {
+                alert('Não há dados para padronizar!');
+                return;
+            }
+
+            const originalCount = window.vehicleData.length;
+            let changesMade = 0;
+
+            window.vehicleData = window.vehicleData.map(vehicle => {
+                const standardized = { ...vehicle };
+                
+                // 1. Corrigir status inconsistentes (vencido com validade futura)
+                if (standardized.status.includes('vencido') && !isExpired(standardized.validade)) {
+                    standardized.status = 'Checklist válido';
+                    changesMade++;
+                    console.log(`Corrigido status: ${vehicle.placa} de "vencido" para "válido"`);
+                }
+
+                // 2. Padronizar motoristas genéricos
+                const genericDrivers = ['Condutor', '-', '--', '00', 'condutor', 'cONDUTOR'];
+                if (genericDrivers.includes(standardized.motorista)) {
+                    standardized.motorista = 'Motorista Não Identificado';
+                    changesMade++;
+                }
+
+                // 3. Padronizar operadores genéricos
+                if (!standardized.operador || standardized.operador === '-' || standardized.operador === '--') {
+                    standardized.operador = 'Operador Não Identificado';
+                    changesMade++;
+                }
+
+                // 4. Padronizar dispositivos pendentes
+                if (standardized.dispositivos) {
+                    const originalDevices = standardized.dispositivos;
+                    
+                    // Converter para maiúsculas
+                    standardized.dispositivos = standardized.dispositivos.toUpperCase();
+                    
+                    // Padronizar termos
+                    standardized.dispositivos = standardized.dispositivos
+                        .replace(/SENSOR DE PORTA DE CARONA/gi, 'SENSOR_PORTA_CARONA')
+                        .replace(/SENSOR DE PORTA DE MOTORISTA/gi, 'SENSOR_PORTA_MOTORISTA')
+                        .replace(/SENSOR DE BAU TRASEIRO/gi, 'SENSOR_BAU_TRASEIRO')
+                        .replace(/TRAVA DE BAU TRASEIRA/gi, 'TRAVA_BAU_TRASEIRA')
+                        .replace(/SENSOR DE DESENGATE/gi, 'SENSOR_DESENGATE')
+                        .replace(/BOTAO DE PANICO/gi, 'BOTAO_PANICO')
+                        .replace(/GPS/gi, 'GPS');
+                    
+                    if (originalDevices !== standardized.dispositivos) {
+                        changesMade++;
+                    }
+                }
+
+                // 5. Validar e corrigir datas inconsistentes
+                if (standardized.dataRealizacao && standardized.validade) {
+                    const realizacao = new Date(standardized.dataRealizacao);
+                    const validade = new Date(standardized.validade);
+                    
+                    if (validade <= realizacao) {
+                        // Se validade é anterior à realização, ajustar para 30 dias depois
+                        const newValidade = new Date(realizacao);
+                        newValidade.setDate(newValidade.getDate() + 30);
+                        standardized.validade = newValidade.toISOString().split('T')[0];
+                        changesMade++;
+                        console.log(`Corrigida validade: ${vehicle.placa} para ${standardized.validade}`);
+                    }
+                }
+
+                return standardized;
+            });
+
+            // 6. Remover veículos sem placa
+            const beforeRemove = window.vehicleData.length;
+            window.vehicleData = window.vehicleData.filter(vehicle => 
+                vehicle.placa && vehicle.placa.trim() !== ''
+            );
+            const removedCount = beforeRemove - window.vehicleData.length;
+            changesMade += removedCount;
+
+            // Atualizar interface
+            renderTable();
+            updateDriverFilter();
+            updateSummaryCards();
+            saveToLocalStorage();
+            
+            alert(`Padronização concluída!\n\nRegistros processados: ${originalCount}\nAlterações realizadas: ${changesMade}\nRegistros sem placa removidos: ${removedCount}`);
+        }
+
+        // 🆕 FUNÇÃO: Limpar Duplicados Inteligente
+        function cleanDuplicates() {
+            if (window.vehicleData.length === 0) {
+                alert('Não há dados para limpar!');
+                return;
+            }
+
+            const originalCount = window.vehicleData.length;
+            
+            // Agrupar por placa
+            const groupedByPlaca = {};
+            
+            window.vehicleData.forEach(vehicle => {
+                if (!groupedByPlaca[vehicle.placa]) {
+                    groupedByPlaca[vehicle.placa] = [];
+                }
+                groupedByPlaca[vehicle.placa].push(vehicle);
+            });
+
+            // Para cada placa, manter apenas o registro mais recente
+            const cleanedData = [];
+            let duplicatesRemoved = 0;
+
+            Object.keys(groupedByPlaca).forEach(placa => {
+                const vehicles = groupedByPlaca[placa];
+                
+                if (vehicles.length > 1) {
+                    // Ordenar por data de realização (mais recente primeiro)
+                    vehicles.sort((a, b) => {
+                        const dateA = new Date(a.dataRealizacao);
+                        const dateB = new Date(b.dataRealizacao);
+                        return dateB - dateA;
+                    });
+                    
+                    // Manter apenas o mais recente
+                    cleanedData.push(vehicles[0]);
+                    duplicatesRemoved += vehicles.length - 1;
+                    
+                    console.log(`Placa ${placa}: ${vehicles.length} registros -> mantido o mais recente de ${vehicles[0].dataRealizacao}`);
+                } else {
+                    cleanedData.push(vehicles[0]);
+                }
+            });
+
+            window.vehicleData = cleanedData;
+            
+            // Atualizar interface
+            renderTable();
+            updateDriverFilter();
+            updateSummaryCards();
+            saveToLocalStorage();
+            
+            alert(`Limpeza concluída!\n\nRegistros antes: ${originalCount}\nRegistros depois: ${window.vehicleData.length}\nDuplicados removidos: ${duplicatesRemoved}`);
+        }
+
+        // Configuração do dropdown de exportação
         function setupExportDropdown() {
-            // Abrir/fechar com clique
             btnExport.addEventListener('click', function(e) {
                 e.stopPropagation();
                 exportDropdown.classList.toggle('active');
             });
 
-            // Manter aberto ao interagir com o menu
             exportDropdown.addEventListener('click', function(e) {
                 e.stopPropagation();
             });
 
-            // Fechar ao clicar fora
             document.addEventListener('click', function() {
                 exportDropdown.classList.remove('active');
             });
 
-            // Fechar após selecionar uma opção
             const exportOptions = document.querySelectorAll('.export-option');
             exportOptions.forEach(option => {
                 option.addEventListener('click', function() {
@@ -941,7 +1201,7 @@
             });
         }
 
-        // 🎯 CORREÇÃO 2: Modal de Edição/Adição COMPLETO
+        // Funções de Modal
         function openAddModal() {
             isAddingNew = true;
             currentEditIndex = -1;
@@ -975,22 +1235,114 @@
             document.getElementById('editMotorista').value = '';
             document.getElementById('editOperador').value = '';
             document.getElementById('editDispositivos').value = '';
+            
+            // Limpar erros
+            document.querySelectorAll('.error-message').forEach(el => {
+                el.style.display = 'none';
+            });
+            document.querySelectorAll('.form-control').forEach(el => {
+                el.classList.remove('error');
+            });
         }
 
         function closeEditModal() {
             editModal.style.display = 'none';
         }
 
+        // Validação de datas
+        function validateDates(dataRealizacao, validade) {
+            if (!dataRealizacao || !validade) {
+                return false;
+            }
+            
+            const realizacao = new Date(dataRealizacao);
+            const validadeDate = new Date(validade);
+            
+            // Verificar se a data de validade é posterior à data de realização
+            if (validadeDate <= realizacao) {
+                document.getElementById('validadeError').style.display = 'block';
+                document.getElementById('editValidade').classList.add('error');
+                return false;
+            }
+            
+            document.getElementById('validadeError').style.display = 'none';
+            document.getElementById('editValidade').classList.remove('error');
+            return true;
+        }
+
         function handleFormSubmit(e) {
             e.preventDefault();
             
+            // Validar campos obrigatórios
+            const placa = document.getElementById('editPlaca').value;
+            const dataRealizacao = document.getElementById('editDataRealizacao').value;
+            const validade = document.getElementById('editValidade').value;
+            const motorista = document.getElementById('editMotorista').value;
+            const operador = document.getElementById('editOperador').value;
+            
+            let isValid = true;
+            
+            if (!placa) {
+                document.getElementById('placaError').style.display = 'block';
+                document.getElementById('editPlaca').classList.add('error');
+                isValid = false;
+            } else {
+                document.getElementById('placaError').style.display = 'none';
+                document.getElementById('editPlaca').classList.remove('error');
+            }
+            
+            if (!dataRealizacao) {
+                document.getElementById('dataRealizacaoError').style.display = 'block';
+                document.getElementById('editDataRealizacao').classList.add('error');
+                isValid = false;
+            } else {
+                document.getElementById('dataRealizacaoError').style.display = 'none';
+                document.getElementById('editDataRealizacao').classList.remove('error');
+            }
+            
+            if (!validade) {
+                document.getElementById('validadeError').style.display = 'block';
+                document.getElementById('editValidade').classList.add('error');
+                isValid = false;
+            } else {
+                document.getElementById('validadeError').style.display = 'none';
+                document.getElementById('editValidade').classList.remove('error');
+            }
+            
+            if (!motorista) {
+                document.getElementById('motoristaError').style.display = 'block';
+                document.getElementById('editMotorista').classList.add('error');
+                isValid = false;
+            } else {
+                document.getElementById('motoristaError').style.display = 'none';
+                document.getElementById('editMotorista').classList.remove('error');
+            }
+            
+            if (!operador) {
+                document.getElementById('operadorError').style.display = 'block';
+                document.getElementById('editOperador').classList.add('error');
+                isValid = false;
+            } else {
+                document.getElementById('operadorError').style.display = 'none';
+                document.getElementById('editOperador').classList.remove('error');
+            }
+            
+            // Validar lógica das datas
+            if (!validateDates(dataRealizacao, validade)) {
+                isValid = false;
+            }
+            
+            if (!isValid) {
+                return;
+            }
+            
             const newVehicle = {
-                placa: document.getElementById('editPlaca').value,
+                placa: placa,
                 status: document.getElementById('editStatus').value,
-                dataRealizacao: document.getElementById('editDataRealizacao').value,
-                validade: document.getElementById('editValidade').value,
-                motorista: document.getElementById('editMotorista').value,
-                operador: document.getElementById('editOperador').value,
+                dataRealizacao: dataRealizacao,
+                validade: validade,
+                motorista: motorista,
+                operador: operador,
                 dispositivos: document.getElementById('editDispositivos').value
             };
 
@@ -1010,13 +1362,65 @@
             alert(isAddingNew ? 'Veículo adicionado com sucesso!' : 'Dados atualizados com sucesso!');
         }
 
-        // 🎯 CORREÇÃO 3: Função filterData FALTANTE
+        // Função de filtro
         function filterData() {
             const filteredData = getFilteredData();
             renderTable(filteredData);
         }
 
-        // Funções de salvamento automático (mantidas)
+        function getFilteredData() {
+            const statusValue = statusFilter.value;
+            const driverValue = driverFilter.value;
+            const dateValue = dateFilter.value;
+            const searchValue = searchInput.value.trim().toLowerCase();
+
+            return window.vehicleData.filter(vehicle => {
+                // Filtro por status
+                let statusMatch = true;
+                if (statusValue !== 'all') {
+                    switch(statusValue) {
+                        case 'valid':
+                            statusMatch = vehicle.status.includes('válido');
+                            break;
+                        case 'invalid':
+                            statusMatch = vehicle.status.includes('inválido');
+                            break;
+                        case 'expired':
+                            statusMatch = vehicle.status.includes('vencido') || isExpired(vehicle.validade);
+                            break;
+                        case 'expiring':
+                            statusMatch = isExpiringSoon(vehicle.validade);
+                            break;
+                    }
+                }
+
+                // Filtro por motorista
+                const driverMatch = driverValue === 'all' || vehicle.motorista === driverValue;
+                
+                // Filtro por data
+                const dateMatch = !dateValue || vehicle.validade === dateValue;
+                
+                // Busca inteligente
+                const searchMatch = !searchValue || 
+                    vehicle.placa.toLowerCase().includes(searchValue) ||
+                    vehicle.motorista.toLowerCase().includes(searchValue) ||
+                    vehicle.operador.toLowerCase().includes(searchValue) ||
+                    (vehicle.dispositivos && vehicle.dispositivos.toLowerCase().includes(searchValue)) ||
+                    vehicle.status.toLowerCase().includes(searchValue);
+
+                return statusMatch && driverMatch && dateMatch && searchMatch;
+            });
+        }
+
+        function getCriticalData() {
+            return window.vehicleData.filter(vehicle => 
+                vehicle.status.includes('vencido') || 
+                isExpiringSoon(vehicle.validade) ||
+                (vehicle.dispositivos && vehicle.dispositivos !== '')
+            );
+        }
+
+        // Funções de salvamento automático
         function startAutoSave() {
             autoSaveInterval = setInterval(() => {
                 if (window.vehicleData.length > 0) {
@@ -1116,11 +1520,9 @@
         function setupEventListeners() {
             btnDarkMode.addEventListener('click', toggleDarkMode);
             fileInput.addEventListener('change', handleFileImport);
-            btnBackup.addEventListener('click', () => {
-                saveToLocalStorage();
-                alert('Backup realizado com sucesso!');
-            });
             btnAddNew.addEventListener('click', openAddModal);
+            btnCleanDuplicates.addEventListener('click', cleanDuplicates);
+            btnStandardizeData.addEventListener('click', standardizeData);
             
             statusFilter.addEventListener('change', filterData);
             driverFilter.addEventListener('change', filterData);
@@ -1129,6 +1531,21 @@
             
             btnCancelModal.addEventListener('click', closeEditModal);
             editForm.addEventListener('submit', handleFormSubmit);
+            
+            // Validação em tempo real das datas
+            document.getElementById('editDataRealizacao').addEventListener('change', function() {
+                const validade = document.getElementById('editValidade').value;
+                if (validade) {
+                    validateDates(this.value, validade);
+                }
+            });
+            
+            document.getElementById('editValidade').addEventListener('change', function() {
+                const dataRealizacao = document.getElementById('editDataRealizacao').value;
+                if (dataRealizacao) {
+                    validateDates(dataRealizacao, this.value);
+                }
+            });
             
             window.addEventListener('click', function(e) {
                 if (e.target === editModal) {
@@ -1143,61 +1560,7 @@
             });
         }
 
-        // 🎯 CORREÇÃO 4: Função getFilteredData CORRIGIDA
-        function getFilteredData() {
-            const statusValue = statusFilter.value;
-            const driverValue = driverFilter.value;
-            const dateValue = dateFilter.value;
-            const searchValue = searchInput.value.trim().toLowerCase();
-
-            return window.vehicleData.filter(vehicle => {
-                // Filtro por status - CORRIGIDO
-                let statusMatch = true;
-                if (statusValue !== 'all') {
-                    const statusLower = vehicle.status.toLowerCase();
-                    switch(statusValue) {
-                        case 'valid':
-                            statusMatch = statusLower.includes('checklist válido');
-                            break;
-                        case 'invalid':
-                            statusMatch = statusLower.includes('checklist inválido');
-                            break;
-                        case 'expired':
-                            statusMatch = statusLower.includes('checklist vencido') || isExpired(vehicle.validade);
-                            break;
-                        case 'expiring':
-                            statusMatch = isExpiringSoon(vehicle.validade) && !statusLower.includes('checklist vencido');
-                            break;
-                    }
-                }
-
-                // Filtro por motorista
-                const driverMatch = driverValue === 'all' || vehicle.motorista === driverValue;
-                
-                // Filtro por data
-                const dateMatch = !dateValue || vehicle.validade === dateValue;
-                
-                // 🎯 CORREÇÃO 5: Busca inteligente FUNCIONAL
-                const searchMatch = !searchValue || 
-                    vehicle.placa.toLowerCase().includes(searchValue) ||
-                    vehicle.motorista.toLowerCase().includes(searchValue) ||
-                    vehicle.operador.toLowerCase().includes(searchValue) ||
-                    (vehicle.dispositivos && vehicle.dispositivos.toLowerCase().includes(searchValue)) ||
-                    vehicle.status.toLowerCase().includes(searchValue);
-
-                return statusMatch && driverMatch && dateMatch && searchMatch;
-            });
-        }
-
-        function getCriticalData() {
-            return window.vehicleData.filter(vehicle => 
-                vehicle.status.toLowerCase().includes('checklist vencido') || 
-                isExpiringSoon(vehicle.validade) ||
-                (vehicle.dispositivos && vehicle.dispositivos !== '')
-            );
-        }
-
-        // Função de exportação Excel (mantida)
+        // Função de exportação Excel
         function exportXLS(type) {
             let dataToExport = [];
             let filename = '';
@@ -1261,10 +1624,10 @@
                 const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
 
                 window.vehicleData = [];
-                for (let i = 4; i < jsonData.length; i++) {
+                for (let i = 1; i < jsonData.length; i++) {
                     const row = jsonData[i];
-                    if (row.length >= 7 && row[0]) {
-                        window.vehicleData.push({
+                    if (row && row.length >= 7 && row[0]) {
+                        const newVehicle = {
                             placa: row[0] || '',
                             status: row[1] || '',
                             dataRealizacao: parseExcelDate(row[2]),
@@ -1272,7 +1635,21 @@
                             motorista: row[4] || '',
                             operador: row[5] || '',
                             dispositivos: row[6] || ''
-                        });
+                        };
+                        
+                        // Validar datas ao importar
+                        if (newVehicle.dataRealizacao && newVehicle.validade) {
+                            const realizacao = new Date(newVehicle.dataRealizacao);
+                            const validade = new Date(newVehicle.validade);
+                            
+                            if (validade > realizacao) {
+                                window.vehicleData.push(newVehicle);
+                            } else {
+                                console.warn(`Veículo ${newVehicle.placa} ignorado: datas inconsistentes`);
+                            }
+                        } else {
+                            window.vehicleData.push(newVehicle);
+                        }
                     }
                 }
 
@@ -1280,6 +1657,7 @@
                 renderTable();
                 updateSummaryCards();
                 saveToLocalStorage();
+                alert(`Importação concluída! ${window.vehicleData.length} veículos carregados.`);
             };
             reader.readAsArrayBuffer(file);
         }
@@ -1294,23 +1672,14 @@
             return dateValue;
         }
 
-        // 🎯 CORREÇÃO: Função updateSummaryCards CORRIGIDA
         function updateSummaryCards() {
             const total = window.vehicleData.length;
-            const valid = window.vehicleData.filter(v => 
-                v.status.toLowerCase().includes('checklist válido')
-            ).length;
-            const expired = window.vehicleData.filter(v => 
-                v.status.toLowerCase().includes('checklist vencido')
-            ).length;
+            const valid = window.vehicleData.filter(v => v.status.includes('válido')).length;
+            const expired = window.vehicleData.filter(v => v.status.includes('vencido') || isExpired(v.validade)).length;
             
             const today = new Date();
             const warning = window.vehicleData.filter(v => {
-                if (!v.validade || v.validade === 'No embarque') return false;
-                const validadeDate = new Date(v.validade);
-                const diffTime = validadeDate - today;
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                return diffDays <= 7 && diffDays > 0 && !v.status.toLowerCase().includes('checklist vencido');
+                return isExpiringSoon(v.validade);
             }).length;
 
             totalVehicles.textContent = total;
@@ -1382,7 +1751,6 @@
             return validadeDate < today;
         }
 
-        // 🎯 CORREÇÃO 6: Função renderTable corrigida para exclusão
         function renderTable(filteredData = null) {
             const dataToRender = filteredData || window.vehicleData;
             
@@ -1391,8 +1759,8 @@
                 return;
             }
 
-            tableBody.innerHTML = dataToRender.map((vehicle) => {
-                const statusClass = getStatusClass(vehicle.status);
+            tableBody.innerHTML = dataToRender.map((vehicle, index) => {
+                const statusClass = getStatusClass(vehicle.status, vehicle.validade);
                 let rowClass = '';
                 
                 if (isExpired(vehicle.validade)) {
@@ -1401,7 +1769,7 @@
                     rowClass = 'expiring-soon';
                 }
 
-                // 🎯 CORREÇÃO: Encontrar o índice real no array original
+                // Encontrar o índice real no array original
                 const originalIndex = window.vehicleData.findIndex(v => 
                     v.placa === vehicle.placa && 
                     v.motorista === vehicle.motorista &&
@@ -1419,8 +1787,8 @@
                         <td>${vehicle.dispositivos || '-'}</td>
                         <td>
                             <div class="action-buttons">
-                                <button class="btn-edit" onclick="openEditModal(${originalIndex})">Editar</button>
-                                <button class="btn-delete" onclick="openDeleteModal(${originalIndex})">Excluir</button>
+                                <button class="btn-edit" onclick="openEditModal(${originalIndex})" aria-label="Editar veículo ${vehicle.placa}">Editar</button>
+                                <button class="btn-delete" onclick="openDeleteModal(${originalIndex})" aria-label="Excluir veículo ${vehicle.placa}">Excluir</button>
                             </div>
                         </td>
                     </tr>
@@ -1431,21 +1799,11 @@
             filteredCount.textContent = dataToRender.length;
         }
 
-        // 🎯 CORREÇÃO PRINCIPAL: Função getStatusClass CORRIGIDA
-        function getStatusClass(status) {
-            if (!status) return 'status-valid';
-            
-            const statusLower = status.toLowerCase().trim();
-            
-            if (statusLower === 'checklist válido') return 'status-valid';
-            if (statusLower === 'checklist inválido') return 'status-invalid';
-            if (statusLower === 'checklist vencido') return 'status-expired';
-            
-            // Fallback para casos diferentes
-            if (statusLower.includes('válido')) return 'status-valid';
-            if (statusLower.includes('inválido')) return 'status-invalid';
-            if (statusLower.includes('vencido')) return 'status-expired';
-            
+        function getStatusClass(status, validade) {
+            if (isExpired(validade)) return 'status-expired';
+            if (status.includes('válido')) return 'status-valid';
+            if (status.includes('inválido')) return 'status-invalid';
+            if (status.includes('vencido')) return 'status-expired';
             return 'status-valid';
         }
 
@@ -1488,7 +1846,7 @@
             }
         }
 
-        // Funções de exportação PDF (mantidas)
+        // Funções de exportação PDF
         function exportPDF(type) {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
@@ -1566,12 +1924,8 @@
 
         function generateSummaryPDF(doc) {
             const total = window.vehicleData.length;
-            const valid = window.vehicleData.filter(v => 
-                v.status.toLowerCase().includes('checklist válido')
-            ).length;
-            const expired = window.vehicleData.filter(v => 
-                v.status.toLowerCase().includes('checklist vencido')
-            ).length;
+            const valid = window.vehicleData.filter(v => v.status.includes('válido')).length;
+            const expired = window.vehicleData.filter(v => v.status.includes('vencido') || isExpired(v.validade)).length;
             const warning = window.vehicleData.filter(v => isExpiringSoon(v.validade)).length;
             
             const percentValid = total > 0 ? ((valid / total) * 100).toFixed(1) : 0;
@@ -1607,7 +1961,7 @@
                     doc.setTextColor(100, 100, 100);
                     
                     let statusText = '';
-                    if (vehicle.status.toLowerCase().includes('vencido')) {
+                    if (vehicle.status.includes('vencido') || isExpired(vehicle.validade)) {
                         statusText = 'VENCIDO';
                         doc.setTextColor(255, 0, 0);
                     } else if (isExpiringSoon(vehicle.validade)) {
@@ -1648,6 +2002,8 @@
         window.exportPDF = exportPDF;
         window.exportXLS = exportXLS;
         window.filterData = filterData;
+        window.cleanDuplicates = cleanDuplicates;
+        window.standardizeData = standardizeData;
     </script>
 </body>
 </html>
