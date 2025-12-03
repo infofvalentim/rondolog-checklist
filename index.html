@@ -490,13 +490,13 @@
       background: var(--bg-secondary);
     }
 
-    /* 🎯 ESTADOS VISUAIS - LINHAS */
-    tbody tr.expiring-soon {
+    /* 🎯 ESTADOS VISUAIS - LINHAS - CORRIGIDO ✅ */
+    tbody tr.pending {
       background: #fff3cd !important;
       border-left: 3px solid var(--yellow);
     }
 
-    tbody tr.expiring-soon:hover {
+    tbody tr.pending:hover {
       background: #ffeaa7 !important;
     }
 
@@ -722,12 +722,12 @@
       transform: translateX(2px);
     }
 
-    .dark-mode tbody tr.expiring-soon {
+    .dark-mode tbody tr.pending {
       background: #2d2a22 !important;
       border-left-color: var(--yellow);
     }
 
-    .dark-mode tbody tr.expiring-soon:hover {
+    .dark-mode tbody tr.pending:hover {
       background: #3d382a !important;
     }
 
@@ -886,7 +886,7 @@
       </div>
     </div>
     
-    <!-- 📊 CARDS DE RESUMO -->
+    <!-- 📊 CARDS DE RESUMO - CORRIGIDO ✅ -->
     <div class="summary-cards" id="summaryCards">
       <div class="summary-card total">
         <div class="card-number" id="totalVehicles">0</div>
@@ -895,13 +895,13 @@
       </div>
       <div class="summary-card valid">
         <div class="card-number" id="validVehicles">0</div>
-        <div class="card-label">Checklists Válidos</div>
+        <div class="card-label">Checklists OK</div>
         <div class="card-subtitle">Em conformidade</div>
       </div>
       <div class="summary-card warning">
         <div class="card-number" id="warningVehicles">0</div>
-        <div class="card-label">Próximos do Vencimento</div>
-        <div class="card-subtitle">7 dias ou menos</div>
+        <div class="card-label">Checklists Pendentes</div>
+        <div class="card-subtitle">Sem informação completa</div>
       </div>
       <div class="summary-card expired">
         <div class="card-number" id="expiredVehicles">0</div>
@@ -916,8 +916,8 @@
         <div class="filter-label">Filtrar por Status</div>
         <select class="filter-select" id="statusFilter">
           <option value="all">Todos os Status</option>
-          <option value="valid">Válidos</option>
-          <option value="expiring">Próximos do Vencimento</option>
+          <option value="valid">OK</option>
+          <option value="pending">Pendentes</option>
           <option value="expired">Vencidos</option>
         </select>
       </div>
@@ -1229,22 +1229,22 @@
       alert(currentEditIndex === -1 ? 'Veículo adicionado com sucesso!' : 'Dados atualizados com sucesso!');
     }
 
-    // 🎯 FUNÇÕES DE FILTRO
+    // 🎯 FUNÇÕES DE FILTRO - CORRIGIDO ✅
     function applyFiltersAndRender() {
       const statusValue = statusFilter.value;
       const dateValue = dateFilter.value;
       const searchValue = searchInput.value.trim().toLowerCase();
       
       filteredData = vehicleData.filter(vehicle => {
-        // Filtro por status geral
+        // Filtro por status geral - CORREÇÃO APLICADA
         let statusMatch = true;
         if (statusValue !== 'all') {
           switch(statusValue) {
             case 'valid':
               statusMatch = vehicle.statusGeral === 'OK';
               break;
-            case 'expiring':
-              statusMatch = vehicle.statusGeral === 'ATENÇÃO';
+            case 'pending': // ✅ CORREÇÃO: Mudado de 'expiring' para 'pending'
+              statusMatch = vehicle.statusGeral === 'PENDENTE';
               break;
             case 'expired':
               statusMatch = vehicle.statusGeral === 'VENCIDO';
@@ -1395,7 +1395,7 @@
       }
     }
 
-    // 🎯 FUNÇÕES DE RENDERIZAÇÃO
+    // 🎯 FUNÇÕES DE RENDERIZAÇÃO - CORRIGIDO ✅
     function renderTable() {
       if (filteredData.length === 0) {
         tableBody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px; color: var(--text-secondary);">Nenhum dado encontrado</td></tr>';
@@ -1425,7 +1425,7 @@
             break;
           default: // PENDENTE
             statusClass = 'status-invalid';
-            rowClass = 'expiring-soon'; // Usamos a classe de atenção para pendentes
+            rowClass = 'pending'; // ✅ CORREÇÃO: Mudado de 'expiring-soon' para 'pending'
         }
         
         return `
@@ -1459,7 +1459,7 @@
 
       totalVehicles.textContent = total;
       validVehicles.textContent = ok;
-      warningVehicles.textContent = pendente; // Mostra pendentes como "próximos do vencimento"
+      warningVehicles.textContent = pendente;
       expiredVehicles.textContent = expired;
     }
 
@@ -1712,7 +1712,7 @@
       XLSX.writeFile(workbook, filename);
     }
 
-    // 🎯 FUNÇÕES DE EXPORTAÇÃO PDF - CORRIGIDAS
+    // 🎯 FUNÇÕES DE EXPORTAÇÃO PDF - CORRIGIDAS ✅
     function exportPDF(type) {
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
@@ -1734,7 +1734,7 @@
           title = 'RELATÓRIO ATUAL (COM FILTROS APLICADOS)';
           break;
         case 'critical':
-          dataToExport = filteredData.filter(v => v.statusGeral === 'VENCIDO' || v.statusGeral === 'PENDENTE');
+          dataToExport = filteredData.filter(v => v.statusGeral === 'VENCIDO' || v.statusGeral === 'PENDENTE'); // ✅ CORREÇÃO
           title = 'RELATÓRIO DE SITUAÇÕES CRÍTICAS';
           break;
         case 'summary':
