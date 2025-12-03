@@ -1,2009 +1,1865 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RONDOLOG - Sistema de Checklist</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
-    <style>
-        :root {
-            --primary-black: #000000;
-            --primary-red: #ff0000;
-            --red-light: #ff6b6b;
-            --green: #00c853;
-            --green-dark: #009624;
-            --yellow: #ffc107;
-            --yellow-dark: #ff8f00;
-            --orange: #ff9800;
-            --orange-dark: #f57c00;
-            --gray-light: #f8f9fa;
-            --gray-border: #e2e8f0;
-            --gray-text: #718096;
-            --gray-dark: #2d3748;
-            
-            --bg-primary: #ffffff;
-            --bg-secondary: #f8f9fa;
-            --text-primary: #2d3748;
-            --text-secondary: #718096;
-            --border-color: #e2e8f0;
-        }
-
-        .dark-mode {
-            --bg-primary: #1a1d23;
-            --bg-secondary: #252a33;
-            --text-primary: #e2e8f0;
-            --text-secondary: #a0aec0;
-            --border-color: #3a4556;
-            
-            --green: #48bb78;
-            --green-dark: #38a169;
-            --yellow: #ecc94b;
-            --yellow-dark: #d69e2e;
-            --orange: #ed8936;
-            --orange-dark: #dd6b20;
-            --red-light: #fc8181;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-        }
-
-        body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-            color: var(--text-primary);
-            transition: all 0.3s ease;
-        }
-
-        .container {
-            max-width: 95%;
-            margin: 0 auto;
-            background: var(--bg-primary);
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            overflow: hidden;
-            border: 1px solid var(--border-color);
-            min-height: 90vh;
-            transition: all 0.3s ease;
-        }
-
-        /* Header */
-        .header {
-            background: linear-gradient(135deg, var(--primary-black) 0%, #2d2d2d 100%);
-            color: white;
-            padding: 25px 30px;
-            position: relative;
-            border-bottom: 4px solid var(--primary-red);
-        }
-
-        .header-content {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 20px;
-        }
-
-        .header-titles h1 {
-            font-size: 32px;
-            font-weight: 700;
-            margin-bottom: 8px;
-            letter-spacing: -0.5px;
-        }
-
-        .header-subtitle {
-            font-size: 16px;
-            opacity: 0.9;
-            font-weight: 400;
-        }
-
-        .controls {
-            display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-
-        .btn {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 10px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 14px;
-        }
-
-        .btn-primary {
-            background: var(--primary-red);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #cc0000;
-            transform: translateY(-2px);
-        }
-
-        .btn-success {
-            background: var(--green);
-            color: white;
-        }
-
-        .btn-success:hover {
-            background: var(--green-dark);
-            transform: translateY(-2px);
-        }
-
-        .btn-warning {
-            background: var(--yellow);
-            color: black;
-        }
-
-        .btn-warning:hover {
-            background: var(--yellow-dark);
-            transform: translateY(-2px);
-        }
-
-        .btn-info {
-            background: #17a2b8;
-            color: white;
-        }
-
-        .btn-info:hover {
-            background: #138496;
-            transform: translateY(-2px);
-        }
-
-        .btn-danger {
-            background: var(--primary-red);
-            color: white;
-        }
-
-        .btn-danger:hover {
-            background: #cc0000;
-            transform: translateY(-2px);
-        }
-
-        .btn-outline {
-            background: transparent;
-            border: 2px solid white;
-            color: white;
-        }
-
-        .btn-outline:hover {
-            background: white;
-            color: var(--primary-black);
-        }
-
-        .btn-dark-mode {
-            background: transparent;
-            border: 2px solid white;
-            color: white;
-            padding: 10px 15px;
-        }
-
-        .btn-dark-mode:hover {
-            background: white;
-            color: var(--primary-black);
-        }
-
-        /* Dropdown */
-        .export-dropdown {
-            position: relative;
-            display: inline-block;
-            z-index: 1001;
-        }
-
-        .export-menu {
-            display: none;
-            position: absolute;
-            top: 100%;
-            right: 0;
-            background: var(--bg-primary);
-            min-width: 220px;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
-            border-radius: 8px;
-            z-index: 1000;
-            margin-top: 5px;
-            border: 1px solid var(--border-color);
-        }
-
-        .export-dropdown.active .export-menu {
-            display: block;
-        }
-
-        .export-option {
-            padding: 12px 16px;
-            border: none;
-            background: none;
-            width: 100%;
-            text-align: left;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 14px;
-            transition: background 0.2s;
-            color: var(--text-primary);
-        }
-
-        .export-option:hover {
-            background: var(--bg-secondary);
-        }
-
-        /* Status de Salvamento */
-        .save-status {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 16px;
-            background: var(--green);
-            color: white;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            animation: pulse 2s infinite;
-        }
-
-        .save-status.saving {
-            background: var(--yellow);
-            color: black;
-        }
-
-        .save-status.error {
-            background: var(--primary-red);
-            color: white;
-        }
-
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.7; }
-            100% { opacity: 1; }
-        }
-
-        /* Modal */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 2000;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .modal-content {
-            background: var(--bg-primary);
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
-            max-width: 500px;
-            width: 90%;
-            max-height: 80vh;
-            overflow-y: auto;
-        }
-
-        .modal h3 {
-            margin-bottom: 20px;
-            color: var(--text-primary);
-            font-size: 20px;
-            border-bottom: 2px solid var(--primary-red);
-            padding-bottom: 10px;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: var(--text-primary);
-            font-size: 14px;
-        }
-
-        .form-control {
-            width: 100%;
-            padding: 10px;
-            border: 2px solid var(--border-color);
-            border-radius: 6px;
-            font-size: 14px;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            transition: border-color 0.3s ease;
-        }
-
-        .form-control:focus {
-            border-color: var(--primary-red);
-            outline: none;
-        }
-
-        .form-control.error {
-            border-color: var(--primary-red);
-        }
-
-        .error-message {
-            color: var(--primary-red);
-            font-size: 12px;
-            margin-top: 5px;
-            display: none;
-        }
-
-        .modal-actions {
-            display: flex;
-            gap: 10px;
-            justify-content: flex-end;
-            margin-top: 25px;
-        }
-
-        .btn-cancel {
-            background: var(--gray-text);
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-        }
-
-        .btn-cancel:hover {
-            background: var(--gray-dark);
-        }
-
-        /* Cards de Resumo */
-        .summary-cards {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            padding: 20px 30px;
-            background: var(--bg-secondary);
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .summary-card {
-            background: var(--bg-primary);
-            padding: 20px;
-            border-radius: 10px;
-            text-align: center;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            border-left: 4px solid var(--primary-red);
-            transition: all 0.3s ease;
-        }
-
-        .summary-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        }
-
-        .summary-card.valid {
-            border-left-color: var(--green);
-        }
-
-        .summary-card.expired {
-            border-left-color: var(--primary-red);
-        }
-
-        .summary-card.warning {
-            border-left-color: var(--yellow);
-        }
-
-        .summary-card.total {
-            border-left-color: var(--gray-dark);
-        }
-
-        .card-number {
-            font-size: 28px;
-            font-weight: 700;
-            margin-bottom: 5px;
-            color: var(--text-primary);
-        }
-
-        .card-label {
-            font-size: 12px;
-            color: var(--text-secondary);
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .card-subtitle {
-            font-size: 10px;
-            color: var(--gray-text);
-            margin-top: 4px;
-        }
-
-        /* Filtros */
-        .filters {
-            padding: 20px 30px;
-            background: var(--bg-secondary);
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-
-        .filter-group {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-
-        .filter-label {
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--text-secondary);
-        }
-
-        .filter-select {
-            padding: 8px 12px;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            min-width: 150px;
-            cursor: pointer;
-        }
-
-        .filter-input {
-            padding: 8px 12px;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            min-width: 150px;
-        }
-
-        .file-input {
-            display: none;
-        }
-
-        .file-input-label {
-            padding: 10px 20px;
-            background: var(--green);
-            color: white;
-            border-radius: 6px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-weight: 600;
-        }
-
-        /* Tabela */
-        .table-container {
-            overflow-x: auto;
-            padding: 20px;
-            max-height: 50vh;
-            overflow-y: auto;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            background: var(--bg-primary);
-            min-width: 1000px;
-        }
-
-        thead th {
-            background: var(--bg-secondary);
-            color: var(--text-primary);
-            font-weight: 600;
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            padding: 12px 8px;
-            border-bottom: 3px solid var(--border-color);
-            text-align: left;
-            position: sticky;
-            top: 0;
-            z-index: 10;
-            cursor: pointer;
-            user-select: none;
-            transition: background 0.2s ease;
-        }
-
-        thead th:hover {
-            background: var(--border-color);
-        }
-
-        thead th.sorted-asc::after {
-            content: " ↑";
-            font-weight: bold;
-        }
-
-        thead th.sorted-desc::after {
-            content: " ↓";
-            font-weight: bold;
-        }
-
-        tbody td {
-            padding: 12px 8px;
-            border-bottom: 1px solid var(--border-color);
-            font-size: 13px;
-            color: var(--text-primary);
-            transition: background 0.2s ease;
-            vertical-align: middle;
-        }
-
-        tbody tr {
-            border-left: 3px solid transparent;
-            transition: all 0.2s ease;
-        }
-
-        tbody tr:hover {
-            background: var(--bg-secondary);
-        }
-
-        tbody tr.expiring-soon {
-            background: #fff3cd !important;
-            border-left: 3px solid var(--yellow);
-        }
-
-        tbody tr.expiring-soon:hover {
-            background: #ffeaa7 !important;
-        }
-
-        tbody tr.expired {
-            background: #f8d7da !important;
-            border-left: 3px solid var(--primary-red);
-        }
-
-        tbody tr.expired:hover {
-            background: #f1b0b7 !important;
-        }
-
-        .status-badge {
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 11px;
-            font-weight: 600;
-            text-align: center;
-            display: inline-block;
-            min-width: 80px;
-        }
-
-        .status-valid {
-            background: var(--green);
-            color: white;
-        }
-
-        .status-invalid {
-            background: var(--primary-red);
-            color: white;
-        }
-
-        .status-expired {
-            background: var(--yellow);
-            color: black;
-        }
-
-        .vehicle-plate {
-            font-family: 'Courier New', monospace;
-            font-weight: 700;
-            font-size: 14px;
-            color: var(--text-primary);
-        }
-
-        .action-buttons {
-            display: flex;
-            gap: 5px;
-        }
-
-        .btn-edit {
-            padding: 6px 12px;
-            background: var(--yellow);
-            color: black;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 12px;
-            font-weight: 600;
-        }
-
-        .btn-edit:hover {
-            background: var(--yellow-dark);
-        }
-
-        .btn-delete {
-            padding: 6px 12px;
-            background: var(--primary-red);
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 12px;
-            font-weight: 600;
-        }
-
-        .btn-delete:hover {
-            background: #cc0000;
-        }
-
-        /* Footer */
-        .footer {
-            background: var(--bg-secondary);
-            padding: 15px 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-top: 1px solid var(--border-color);
-            flex-wrap: wrap;
-            gap: 15px;
-        }
-
-        .footer-info {
-            color: var(--text-secondary);
-            font-size: 12px;
-        }
-
-        .stats {
-            display: flex;
-            gap: 15px;
-            font-size: 12px;
-        }
-
-        .stat-item {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            padding: 6px 12px;
-            background: var(--bg-primary);
-            border-radius: 6px;
-            border: 1px solid var(--border-color);
-        }
-
-        /* Modo Escuro Específico */
-        .dark-mode tbody tr {
-            border-left: 3px solid transparent;
-            transition: all 0.2s ease;
-        }
-
-        .dark-mode tbody tr:hover {
-            background: #2d3748 !important;
-            transform: translateX(2px);
-        }
-
-        .dark-mode tbody tr.expiring-soon {
-            background: #2d2a22 !important;
-            border-left-color: #ecc94b;
-        }
-
-        .dark-mode tbody tr.expiring-soon:hover {
-            background: #3d382a !important;
-        }
-
-        .dark-mode tbody tr.expired {
-            background: #2d2526 !important;
-            border-left-color: #fc8181;
-        }
-
-        .dark-mode tbody tr.expired:hover {
-            background: #3d2c2e !important;
-        }
-
-        .dark-mode .status-badge {
-            font-weight: 600;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-        }
-
-        .dark-mode .status-valid {
-            background: var(--green);
-            color: #1a202c;
-        }
-
-        .dark-mode .status-invalid {
-            background: #e53e3e;
-            color: white;
-        }
-
-        .dark-mode .status-expired {
-            background: var(--yellow);
-            color: #1a202c;
-        }
-
-        .dark-mode thead th {
-            background: #2d3748;
-            color: var(--text-primary);
-            border-bottom: 2px solid #4a5568;
-        }
-
-        .dark-mode .summary-card {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-        }
-
-        .dark-mode .filters {
-            background: #252a33;
-            border-bottom: 1px solid #3a4556;
-        }
-
-        .dark-mode .btn-edit {
-            background: #ed8936;
-            color: #1a202c;
-        }
-
-        .dark-mode .btn-edit:hover {
-            background: #dd6b20;
-        }
-
-        .dark-mode .btn-delete {
-            background: #e53e3e;
-            color: white;
-        }
-
-        .dark-mode .btn-delete:hover {
-            background: #c53030;
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .header-content {
-                flex-direction: column;
-                text-align: center;
-            }
-            
-            .controls {
-                justify-content: center;
-            }
-            
-            .summary-cards {
-                grid-template-columns: 1fr 1fr;
-                padding: 15px 20px;
-            }
-            
-            .filters {
-                flex-direction: column;
-                align-items: stretch;
-            }
-            
-            .filter-select, .filter-input {
-                min-width: 100%;
-            }
-            
-            .footer {
-                flex-direction: column;
-                text-align: center;
-            }
-        }
-    </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RONDOLOG - SISTEMA DE GESTÃO DE FROTAS</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* 🎨 VARIÁVEIS DE CORES - MODO CLARO (PADRÃO) */
+    :root {
+      /* Cores Corporativas */
+      --primary-black: #000000;
+      --primary-red: #ff0000;
+      --red-light: #ff6b6b;
+      --green: #00c853;
+      --green-dark: #009624;
+      --yellow: #ffc107;
+      --yellow-dark: #ff8f00;
+      --orange: #ff9800;
+      --orange-dark: #f57c00;
+      
+      /* Sistema de Cores */
+      --bg-primary: #ffffff;
+      --bg-secondary: #f8f9fa;
+      --text-primary: #2d3748;
+      --text-secondary: #718096;
+      --border-color: #e2e8f0;
+      --gray-light: #f8f9fa;
+      --gray-text: #718096;
+      --gray-dark: #2d3748;
+      
+      /* Layout */
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 20px;
+      --shadow-light: 0 2px 8px rgba(0, 0, 0, 0.1);
+      --shadow-medium: 0 8px 25px rgba(0,0,0,0.15);
+      --shadow-heavy: 0 20px 60px rgba(0, 0, 0, 0.3);
+      --transition: all 0.3s ease;
+    }
+
+    /* 🎨 MODO ESCURO */
+    .dark-mode {
+      --bg-primary: #1a1d23;
+      --bg-secondary: #252a33;
+      --text-primary: #e2e8f0;
+      --text-secondary: #a0aec0;
+      --border-color: #3a4556;
+      
+      /* Cores adaptadas para modo escuro */
+      --green: #48bb78;
+      --green-dark: #38a169;
+      --yellow: #ecc94b;
+      --yellow-dark: #d69e2e;
+      --orange: #ed8936;
+      --orange-dark: #dd6b20;
+      --red-light: #fc8181;
+      --gray-light: #2d3748;
+      --gray-text: #a0aec0;
+      --gray-dark: #1a202c;
+      
+      --shadow-light: 0 2px 8px rgba(0, 0, 0, 0.3);
+      --shadow-medium: 0 8px 25px rgba(0,0,0,0.4);
+      --shadow-heavy: 0 20px 60px rgba(0, 0, 0, 0.5);
+    }
+
+    /* 🔤 TIPOGRAFIA */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    /* 📐 LAYOUT ESTRUTURAL */
+    body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+      color: var(--text-primary);
+      transition: var(--transition);
+    }
+
+    .container {
+      max-width: 95%;
+      margin: 0 auto;
+      background: var(--bg-primary);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-heavy);
+      overflow: hidden;
+      border: 1px solid var(--border-color);
+      min-height: 90vh;
+      transition: var(--transition);
+    }
+
+    /* 🎭 HEADER */
+    .header {
+      background: linear-gradient(135deg, var(--primary-black) 0%, #2d2d2d 100%);
+      color: white;
+      padding: 25px 30px;
+      position: relative;
+      border-bottom: 4px solid var(--primary-red);
+    }
+
+    .header-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+
+    .header-titles h1 {
+      font-size: 32px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      letter-spacing: -0.5px;
+    }
+
+    .header-subtitle {
+      font-size: 16px;
+      opacity: 0.9;
+      font-weight: 400;
+    }
+
+    /* 🎭 CONTROLES */
+    .controls {
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    /* 🎭 BOTÕES */
+    .btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: var(--radius-md);
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+    }
+
+    .btn-primary {
+      background: var(--primary-red);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #cc0000;
+      box-shadow: 0 4px 12px rgba(255, 0, 0, 0.3);
+    }
+
+    .btn-success {
+      background: var(--green);
+      color: white;
+    }
+
+    .btn-success:hover {
+      background: var(--green-dark);
+      box-shadow: 0 4px 12px rgba(0, 200, 83, 0.3);
+    }
+
+    .btn-warning {
+      background: var(--yellow);
+      color: black;
+    }
+
+    .btn-warning:hover {
+      background: var(--yellow-dark);
+      box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
+    }
+
+    .btn-info {
+      background: #17a2b8;
+      color: white;
+    }
+
+    .btn-info:hover {
+      background: #138496;
+      box-shadow: 0 4px 12px rgba(23, 162, 184, 0.3);
+    }
+
+    .btn-danger {
+      background: var(--primary-red);
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background: #cc0000;
+      box-shadow: 0 4px 12px rgba(255, 0, 0, 0.3);
+    }
+
+    .btn-outline {
+      background: transparent;
+      border: 2px solid white;
+      color: white;
+    }
+
+    .btn-outline:hover {
+      background: white;
+      color: var(--primary-black);
+    }
+
+    .btn-dark-mode {
+      background: transparent;
+      border: 2px solid white;
+      color: white;
+      padding: 10px 15px;
+    }
+
+    .btn-dark-mode:hover {
+      background: white;
+      color: var(--primary-black);
+    }
+
+    /* 📊 CARDS DE RESUMO */
+    .summary-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      padding: 20px 30px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .summary-card {
+      background: var(--bg-primary);
+      padding: 20px;
+      border-radius: var(--radius-md);
+      text-align: center;
+      box-shadow: var(--shadow-light);
+      border-left: 4px solid var(--primary-red);
+      transition: var(--transition);
+    }
+
+    .summary-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .summary-card.valid {
+      border-left-color: var(--green);
+    }
+
+    .summary-card.warning {
+      border-left-color: var(--yellow);
+    }
+
+    .summary-card.expired {
+      border-left-color: var(--primary-red);
+    }
+
+    .summary-card.total {
+      border-left-color: var(--gray-dark);
+    }
+
+    .card-number {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 5px;
+      color: var(--text-primary);
+    }
+
+    .card-label {
+      font-size: 12px;
+      color: var(--text-secondary);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .card-subtitle {
+      font-size: 10px;
+      color: var(--gray-text);
+      margin-top: 4px;
+    }
+
+    /* 🔍 FILTROS */
+    .filters {
+      padding: 20px 30px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .filter-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .filter-select, .filter-input {
+      padding: 8px 12px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-width: 150px;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .filter-select:focus, .filter-input:focus {
+      outline: none;
+      border-color: var(--primary-red);
+    }
+
+    /* 📁 UPLOAD DE ARQUIVO */
+    .file-input {
+      display: none;
+    }
+
+    .file-input-label {
+      padding: 10px 20px;
+      background: var(--green);
+      color: white;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+      transition: var(--transition);
+    }
+
+    .file-input-label:hover {
+      background: var(--green-dark);
+      transform: translateY(-2px);
+    }
+
+    /* 📊 DROPDOWN DE EXPORTAÇÃO */
+    .export-dropdown {
+      position: relative;
+      display: inline-block;
+      z-index: 1001;
+    }
+
+    .export-menu {
+      display: none;
+      position: absolute;
+      top: 100%;
+      right: 0;
+      background: var(--bg-primary);
+      min-width: 220px;
+      box-shadow: var(--shadow-medium);
+      border-radius: var(--radius-sm);
+      z-index: 1000;
+      margin-top: 5px;
+      border: 1px solid var(--border-color);
+    }
+
+    .export-dropdown.active .export-menu {
+      display: block;
+    }
+
+    .export-option {
+      padding: 12px 16px;
+      border: none;
+      background: none;
+      width: 100%;
+      text-align: left;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      transition: background 0.2s;
+      color: var(--text-primary);
+    }
+
+    .export-option:hover {
+      background: var(--bg-secondary);
+    }
+
+    /* 💾 STATUS DE SALVAMENTO */
+    .save-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: var(--green);
+      color: white;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      animation: pulse 2s infinite;
+    }
+
+    .save-status.saving {
+      background: var(--yellow);
+      color: black;
+    }
+
+    .save-status.error {
+      background: var(--primary-red);
+      color: white;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.7; }
+      100% { opacity: 1; }
+    }
+
+    /* 📋 TABELA */
+    .table-container {
+      overflow-x: auto;
+      padding: 20px;
+      max-height: 50vh;
+      overflow-y: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--bg-primary);
+      min-width: 1000px;
+    }
+
+    thead th {
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      font-weight: 600;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 12px 8px;
+      border-bottom: 3px solid var(--border-color);
+      text-align: left;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.2s ease;
+    }
+
+    thead th:hover {
+      background: var(--border-color);
+    }
+
+    thead th.sorted-asc::after {
+      content: " ↑";
+      font-weight: bold;
+    }
+
+    thead th.sorted-desc::after {
+      content: " ↓";
+      font-weight: bold;
+    }
+
+    tbody td {
+      padding: 12px 8px;
+      border-bottom: 1px solid var(--border-color);
+      font-size: 13px;
+      color: var(--text-primary);
+      transition: background 0.2s ease;
+      vertical-align: middle;
+    }
+
+    tbody tr {
+      border-left: 3px solid transparent;
+      transition: var(--transition);
+    }
+
+    tbody tr:hover {
+      background: var(--bg-secondary);
+    }
+
+    /* 🎯 ESTADOS VISUAIS - LINHAS */
+    tbody tr.expiring-soon {
+      background: #fff3cd !important;
+      border-left: 3px solid var(--yellow);
+    }
+
+    tbody tr.expiring-soon:hover {
+      background: #ffeaa7 !important;
+    }
+
+    tbody tr.expired {
+      background: #f8d7da !important;
+      border-left: 3px solid var(--primary-red);
+    }
+
+    tbody tr.expired:hover {
+      background: #f1b0b7 !important;
+    }
+
+    /* 🎭 STATUS BADGES */
+    .status-badge {
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      text-align: center;
+      display: inline-block;
+      min-width: 80px;
+    }
+
+    .status-valid {
+      background: var(--green);
+      color: white;
+    }
+
+    .status-invalid {
+      background: var(--primary-red);
+      color: white;
+    }
+
+    .status-expired {
+      background: var(--yellow);
+      color: black;
+    }
+
+    /* 🎪 PLACAS DE VEÍCULO */
+    .vehicle-plate {
+      font-family: 'Courier New', monospace;
+      font-weight: 700;
+      font-size: 14px;
+      color: var(--text-primary);
+    }
+
+    /* 🎭 BOTÕES DE AÇÃO */
+    .action-buttons {
+      display: flex;
+      gap: 5px;
+    }
+
+    .btn-edit {
+      padding: 6px 12px;
+      background: var(--yellow);
+      color: black;
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      transition: var(--transition);
+    }
+
+    .btn-edit:hover {
+      background: var(--yellow-dark);
+      transform: translateY(-1px);
+    }
+
+    .btn-delete {
+      padding: 6px 12px;
+      background: var(--primary-red);
+      color: white;
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      transition: var(--transition);
+    }
+
+    .btn-delete:hover {
+      background: #cc0000;
+      transform: translateY(-1px);
+    }
+
+    /* 🎭 MODAL */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 2000;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal-content {
+      background: var(--bg-primary);
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+      max-width: 500px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+      border: 1px solid var(--border-color);
+    }
+
+    .modal h3 {
+      margin-bottom: 20px;
+      color: var(--text-primary);
+      font-size: 20px;
+      border-bottom: 2px solid var(--primary-red);
+      padding-bottom: 10px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: var(--text-primary);
+      font-size: 14px;
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 10px;
+      border: 2px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      transition: var(--transition);
+    }
+
+    .form-control:focus {
+      border-color: var(--primary-red);
+      outline: none;
+    }
+
+    .form-control.error {
+      border-color: var(--primary-red);
+    }
+
+    .error-message {
+      color: var(--primary-red);
+      font-size: 12px;
+      margin-top: 5px;
+      display: none;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 25px;
+    }
+
+    .btn-cancel {
+      background: var(--gray-text);
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-weight: 600;
+      transition: var(--transition);
+    }
+
+    .btn-cancel:hover {
+      background: var(--gray-dark);
+    }
+
+    /* 🎭 FOOTER */
+    .footer {
+      background: var(--bg-secondary);
+      padding: 15px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid var(--border-color);
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+
+    .footer-info {
+      color: var(--text-secondary);
+      font-size: 12px;
+    }
+
+    .stats {
+      display: flex;
+      gap: 15px;
+      font-size: 12px;
+    }
+
+    .stat-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      background: var(--bg-primary);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-color);
+    }
+
+    /* 🔄 MODO ESCURO ESPECÍFICO */
+    .dark-mode tbody tr {
+      border-left: 3px solid transparent;
+      transition: var(--transition);
+    }
+
+    .dark-mode tbody tr:hover {
+      background: #2d3748 !important;
+      transform: translateX(2px);
+    }
+
+    .dark-mode tbody tr.expiring-soon {
+      background: #2d2a22 !important;
+      border-left-color: var(--yellow);
+    }
+
+    .dark-mode tbody tr.expiring-soon:hover {
+      background: #3d382a !important;
+    }
+
+    .dark-mode tbody tr.expired {
+      background: #2d2526 !important;
+      border-left-color: var(--red-light);
+    }
+
+    .dark-mode tbody tr.expired:hover {
+      background: #3d2c2e !important;
+    }
+
+    .dark-mode .status-badge {
+      font-weight: 600;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+
+    .dark-mode .status-valid {
+      background: var(--green);
+      color: #1a202c;
+    }
+
+    .dark-mode .status-invalid {
+      background: #e53e3e;
+      color: white;
+    }
+
+    .dark-mode .status-expired {
+      background: var(--yellow);
+      color: #1a202c;
+    }
+
+    .dark-mode thead th {
+      background: #2d3748;
+      color: var(--text-primary);
+      border-bottom: 2px solid #4a5568;
+    }
+
+    .dark-mode .summary-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+
+    .dark-mode .filters {
+      background: #252a33;
+      border-bottom: 1px solid #3a4556;
+    }
+
+    .dark-mode .btn-edit {
+      background: var(--orange);
+      color: #1a202c;
+    }
+
+    .dark-mode .btn-edit:hover {
+      background: var(--orange-dark);
+    }
+
+    .dark-mode .btn-delete {
+      background: #e53e3e;
+      color: white;
+    }
+
+    .dark-mode .btn-delete:hover {
+      background: #c53030;
+    }
+
+    /* 📱 RESPONSIVIDADE */
+    @media (max-width: 768px) {
+      .header-content {
+        flex-direction: column;
+        text-align: center;
+      }
+      
+      .controls {
+        justify-content: center;
+      }
+      
+      .summary-cards {
+        grid-template-columns: 1fr 1fr;
+        padding: 15px 20px;
+      }
+      
+      .filters {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      
+      .filter-select, .filter-input {
+        min-width: 100%;
+      }
+      
+      .footer {
+        flex-direction: column;
+        text-align: center;
+      }
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <!-- Header -->
-        <div class="header">
-            <div class="header-content">
-                <div class="header-titles">
-                    <h1>RONDOLOG - SISTEMA DE GESTÃO DE FROTAS</h1>
-                    <div class="header-subtitle">Importe, visualize e edite os dados dos veículos</div>
-                </div>
-                <div class="controls">
-                    <button class="btn btn-dark-mode" id="btnDarkMode">
-                        <span>🌙</span> Modo Escuro
-                    </button>
-                    <label for="fileInput" class="file-input-label">
-                        <span>📁</span> Importar Excel
-                    </label>
-                    <input type="file" id="fileInput" class="file-input" accept=".xlsx, .xls">
-                    
-                    <div class="export-dropdown" id="exportDropdown">
-                        <button class="btn btn-warning" type="button" id="btnExport">
-                            <span>📊</span> Exportar
-                        </button>
-                        <div class="export-menu">
-                            <button class="export-option" type="button" onclick="exportPDF('current')">
-                                <span>📋</span> PDF - Relatório Atual
-                            </button>
-                            <button class="export-option" type="button" onclick="exportPDF('critical')">
-                                <span>🚨</span> PDF - Apenas Críticos
-                            </button>
-                            <button class="export-option" type="button" onclick="exportPDF('summary')">
-                                <span>📈</span> PDF - Resumo Executivo
-                            </button>
-                            <button class="export-option" type="button" onclick="exportXLS('current')">
-                                <span>📊</span> Excel - Relatório Atual
-                            </button>
-                            <button class="export-option" type="button" onclick="exportXLS('all')">
-                                <span>💾</span> Excel - Todos os Dados
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- 🆕 BOTÃO: Limpar Duplicados -->
-                    <button class="btn btn-danger" id="btnCleanDuplicates" type="button">
-                        <span>🧹</span> Limpar Duplicados
-                    </button>
-                    
-                    <!-- 🆕 BOTÃO: Padronizar Dados -->
-                    <button class="btn btn-info" id="btnStandardizeData" type="button">
-                        <span>⚙️</span> Padronizar Dados
-                    </button>
-                    
-                    <button class="btn btn-success" id="btnAddNew" type="button">
-                        <span>➕</span> Novo Veículo
-                    </button>
-
-                    <div class="save-status" id="saveStatus">
-                        <span>💾</span> Dados carregados
-                    </div>
-                </div>
-            </div>
+  <div class="container">
+    <!-- 🎭 HEADER -->
+    <div class="header">
+      <div class="header-content">
+        <div class="header-titles">
+          <h1>RONDOLOG - SISTEMA DE GESTÃO DE FROTAS</h1>
+          <div class="header-subtitle">Importe, visualize e gerencie os dados dos veículos</div>
         </div>
-        
-        <!-- Cards de Resumo -->
-        <div class="summary-cards" id="summaryCards">
-            <div class="summary-card total">
-                <div class="card-number" id="totalVehicles">0</div>
-                <div class="card-label">Total de Veículos</div>
-                <div class="card-subtitle">Carregados no sistema</div>
+        <div class="controls">
+          <button class="btn btn-dark-mode" id="btnDarkMode">
+            <span>🌙</span> Modo Escuro
+          </button>
+          <label for="fileInput" class="file-input-label">
+            <span>📁</span> Importar Excel
+          </label>
+          <input type="file" id="fileInput" class="file-input" accept=".xlsx, .xls">
+          
+          <!-- 📊 DROPDOWN DE EXPORTAÇÃO -->
+          <div class="export-dropdown" id="exportDropdown">
+            <button class="btn btn-warning" type="button" id="btnExport">
+              <span>📊</span> Exportar
+            </button>
+            <div class="export-menu">
+              <button class="export-option" type="button" onclick="exportPDF('current')">
+                <span>📋</span> PDF - Relatório Atual
+              </button>
+              <button class="export-option" type="button" onclick="exportPDF('critical')">
+                <span>🚨</span> PDF - Apenas Críticos
+              </button>
+              <button class="export-option" type="button" onclick="exportPDF('summary')">
+                <span>📈</span> PDF - Resumo Executivo
+              </button>
+              <button class="export-option" type="button" onclick="exportXLS('current')">
+                <span>📊</span> Excel - Relatório Atual
+              </button>
+              <button class="export-option" type="button" onclick="exportXLS('all')">
+                <span>💾</span> Excel - Todos os Dados
+              </button>
             </div>
-            <div class="summary-card valid">
-                <div class="card-number" id="validVehicles">0</div>
-                <div class="card-label">Checklists Válidos</div>
-                <div class="card-subtitle">Em conformidade</div>
-            </div>
-            <div class="summary-card warning">
-                <div class="card-number" id="warningVehicles">0</div>
-                <div class="card-label">Próximos do Vencimento</div>
-                <div class="card-subtitle">7 dias ou menos</div>
-            </div>
-            <div class="summary-card expired">
-                <div class="card-number" id="expiredVehicles">0</div>
-                <div class="card-label">Checklists Vencidos</div>
-                <div class="card-subtitle">Fora da validade</div>
-            </div>
-        </div>
+          </div>
+          
+          <button class="btn btn-success" id="btnAddNew" type="button">
+            <span>➕</span> Novo Veículo
+          </button>
+          
+          <!-- 🗑️ BOTÃO LIMPAR TODOS OS DADOS -->
+          <button class="btn btn-danger" id="btnClearAll" type="button">
+            <span>🗑️</span> Limpar Todos
+          </button>
 
-        <!-- Filtros -->
-        <div class="filters">
-            <div class="filter-group">
-                <div class="filter-label">Filtrar por Status</div>
-                <select class="filter-select" id="statusFilter">
-                    <option value="all">Todos os Status</option>
-                    <option value="valid">Válidos</option>
-                    <option value="invalid">Inválidos</option>
-                    <option value="expired">Vencidos</option>
-                    <option value="expiring">Próximos do Vencimento</option>
-                </select>
-            </div>
-            <div class="filter-group">
-                <div class="filter-label">Filtrar por Motorista</div>
-                <select class="filter-select" id="driverFilter">
-                    <option value="all">Todos os Motoristas</option>
-                </select>
-            </div>
-            <div class="filter-group">
-                <div class="filter-label">Data de Validade</div>
-                <input type="date" class="filter-input" id="dateFilter">
-            </div>
-            <div class="filter-group">
-                <div class="filter-label">Busca Inteligente</div>
-                <input type="text" class="filter-input" id="searchInput" placeholder="Placa, motorista, dispositivo...">
-            </div>
+          <!-- 💾 STATUS DE SALVAMENTO -->
+          <div class="save-status" id="saveStatus">
+            <span>💾</span> Dados carregados
+          </div>
         </div>
-
-        <!-- Tabela -->
-        <div class="table-container">
-            <table id="dataTable">
-                <thead>
-                    <tr>
-                        <th data-sort="placa">VEÍCULO</th>
-                        <th data-sort="status">STATUS</th>
-                        <th data-sort="dataRealizacao">DATA REALIZAÇÃO</th>
-                        <th data-sort="validade">VALIDADE</th>
-                        <th data-sort="motorista">MOTORISTA</th>
-                        <th data-sort="operador">OPERADOR</th>
-                        <th data-sort="dispositivos">DISPOSITIVOS PENDENTES</th>
-                        <th>AÇÕES</th>
-                    </tr>
-                </thead>
-                <tbody id="tableBody">
-                    <tr>
-                        <td colspan="8" style="text-align: center; padding: 40px; color: var(--text-secondary);">
-                            Importe um arquivo Excel ou adicione um novo veículo
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-
-        <!-- Footer -->
-        <div class="footer">
-            <div class="footer-info">
-                <div>RONDOLOG - SISTEMA DE GESTÃO DE FROTAS</div>
-                <div id="lastSaveInfo">Último salvamento: Nunca</div>
-            </div>
-            <div class="stats">
-                <div class="stat-item">
-                    <span id="totalCount">0</span> registros carregados
-                </div>
-                <div class="stat-item">
-                    <span id="filteredCount">0</span> filtrados
-                </div>
-            </div>
-        </div>
+      </div>
+    </div>
+    
+    <!-- 📊 CARDS DE RESUMO -->
+    <div class="summary-cards" id="summaryCards">
+      <div class="summary-card total">
+        <div class="card-number" id="totalVehicles">0</div>
+        <div class="card-label">Total de Veículos</div>
+        <div class="card-subtitle">Carregados no sistema</div>
+      </div>
+      <div class="summary-card valid">
+        <div class="card-number" id="validVehicles">0</div>
+        <div class="card-label">Checklists Válidos</div>
+        <div class="card-subtitle">Em conformidade</div>
+      </div>
+      <div class="summary-card warning">
+        <div class="card-number" id="warningVehicles">0</div>
+        <div class="card-label">Próximos do Vencimento</div>
+        <div class="card-subtitle">7 dias ou menos</div>
+      </div>
+      <div class="summary-card expired">
+        <div class="card-number" id="expiredVehicles">0</div>
+        <div class="card-label">Checklists Vencidos</div>
+        <div class="card-subtitle">Fora da validade</div>
+      </div>
     </div>
 
-    <!-- Modal de Edição/Adição -->
-    <div class="modal" id="editModal">
-        <div class="modal-content">
-            <h3 id="modalTitle">Adicionar Novo Veículo</h3>
-            <form id="editForm">
-                <div class="form-group">
-                    <label>Placa do Veículo *</label>
-                    <input type="text" class="form-control" id="editPlaca" required aria-label="Placa do veículo">
-                    <div class="error-message" id="placaError">Placa é obrigatória</div>
-                </div>
-                <div class="form-group">
-                    <label>Status do Checklist *</label>
-                    <select class="form-control" id="editStatus" required aria-label="Status do checklist">
-                        <option value="Checklist válido">Válido</option>
-                        <option value="Checklist inválido">Inválido</option>
-                        <option value="Checklist vencido">Vencido</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Data de Realização *</label>
-                    <input type="date" class="form-control" id="editDataRealizacao" required aria-label="Data de realização">
-                    <div class="error-message" id="dataRealizacaoError">Data de realização é obrigatória</div>
-                </div>
-                <div class="form-group">
-                    <label>Data de Validade *</label>
-                    <input type="date" class="form-control" id="editValidade" required aria-label="Data de validade">
-                    <div class="error-message" id="validadeError">Data de validade é obrigatória e deve ser posterior à data de realização</div>
-                </div>
-                <div class="form-group">
-                    <label>Motorista *</label>
-                    <input type="text" class="form-control" id="editMotorista" required aria-label="Nome do motorista">
-                    <div class="error-message" id="motoristaError">Motorista é obrigatório</div>
-                </div>
-                <div class="form-group">
-                    <label>Operador *</label>
-                    <input type="text" class="form-control" id="editOperador" required aria-label="Nome do operador">
-                    <div class="error-message" id="operadorError">Operador é obrigatório</div>
-                </div>
-                <div class="form-group">
-                    <label>Dispositivos Pendentes</label>
-                    <textarea class="form-control" id="editDispositivos" rows="3" placeholder="Lista de dispositivos com problemas..." aria-label="Dispositivos pendentes de manutenção"></textarea>
-                </div>
-                <div class="modal-actions">
-                    <button type="button" class="btn-cancel" id="btnCancelModal">Cancelar</button>
-                    <button type="submit" class="btn btn-success">Salvar Veículo</button>
-                </div>
-            </form>
-        </div>
+    <!-- 🔍 FILTROS -->
+    <div class="filters">
+      <div class="filter-group">
+        <div class="filter-label">Filtrar por Status</div>
+        <select class="filter-select" id="statusFilter">
+          <option value="all">Todos os Status</option>
+          <option value="valid">Válidos</option>
+          <option value="expiring">Próximos do Vencimento</option>
+          <option value="expired">Vencidos</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <div class="filter-label">Data de Validade</div>
+        <input type="date" class="filter-input" id="dateFilter">
+      </div>
+      <div class="filter-group">
+        <div class="filter-label">Busca Inteligente</div>
+        <input type="text" class="filter-input" id="searchInput" placeholder="Placa, status, data...">
+      </div>
     </div>
 
-    <script>
-        // Variáveis globais
-        window.vehicleData = [];
-        let currentSort = { column: null, direction: 'asc' };
-        let currentEditIndex = -1;
-        let isAddingNew = false;
-        let autoSaveInterval;
-        let lastSaveTime = null;
+    <!-- 📋 TABELA -->
+    <div class="table-container">
+      <table id="dataTable">
+        <thead>
+          <tr>
+            <th data-sort="placa">PLACA</th>
+            <th data-sort="statusPlaca">STATUS PLACA</th>
+            <th data-sort="vigenciaPlaca">VIGÊNCIA PESQ. PLACA</th>
+            <th data-sort="vigenciaChecklist">CHECKLIST VIGÊNCIA</th>
+            <th data-sort="statusChecklist">CHECKLIST STATUS</th>
+            <th data-sort="statusGeral">STATUS GERAL</th>
+            <th>AÇÕES</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          <tr>
+            <td colspan="7" style="text-align: center; padding: 40px; color: var(--text-secondary);">
+              Importe um arquivo Excel ou adicione um novo veículo
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
 
-        // Elementos DOM
-        const btnDarkMode = document.getElementById('btnDarkMode');
-        const fileInput = document.getElementById('fileInput');
-        const btnAddNew = document.getElementById('btnAddNew');
-        const btnExport = document.getElementById('btnExport');
-        const btnCleanDuplicates = document.getElementById('btnCleanDuplicates');
-        const btnStandardizeData = document.getElementById('btnStandardizeData');
-        const statusFilter = document.getElementById('statusFilter');
-        const driverFilter = document.getElementById('driverFilter');
-        const dateFilter = document.getElementById('dateFilter');
-        const searchInput = document.getElementById('searchInput');
-        const tableBody = document.getElementById('tableBody');
-        const editModal = document.getElementById('editModal');
-        const editForm = document.getElementById('editForm');
-        const modalTitle = document.getElementById('modalTitle');
-        const btnCancelModal = document.getElementById('btnCancelModal');
-        const saveStatus = document.getElementById('saveStatus');
-        const lastSaveInfo = document.getElementById('lastSaveInfo');
-        const totalVehicles = document.getElementById('totalVehicles');
-        const validVehicles = document.getElementById('validVehicles');
-        const warningVehicles = document.getElementById('warningVehicles');
-        const expiredVehicles = document.getElementById('expiredVehicles');
-        const totalCount = document.getElementById('totalCount');
-        const filteredCount = document.getElementById('filteredCount');
-        const exportDropdown = document.getElementById('exportDropdown');
+    <!-- 🎭 FOOTER -->
+    <div class="footer">
+      <div class="footer-info">
+        <div>RONDOLOG - SISTEMA DE GESTÃO DE FROTAS</div>
+        <div id="lastSaveInfo">Último salvamento: Nunca</div>
+      </div>
+      <div class="stats">
+        <div class="stat-item">
+          <span id="totalCount">0</span> registros carregados
+        </div>
+        <div class="stat-item">
+          <span id="filteredCount">0</span> filtrados
+        </div>
+      </div>
+    </div>
+  </div>
 
-        // Inicialização
-        document.addEventListener('DOMContentLoaded', function() {
-            loadFromLocalStorage();
-            setupEventListeners();
-            setupSorting();
-            setupExportDropdown();
-            startAutoSave();
-            updateSaveStatus();
+  <!-- 🎭 MODAL DE EDIÇÃO/ADIÇÃO -->
+  <div class="modal" id="editModal">
+    <div class="modal-content">
+      <h3 id="modalTitle">Adicionar Novo Veículo</h3>
+      <form id="editForm">
+        <div class="form-group">
+          <label>Placa do Veículo *</label>
+          <input type="text" class="form-control" id="editPlaca" required aria-label="Placa do veículo">
+          <div class="error-message" id="placaError">Placa é obrigatória</div>
+        </div>
+        <div class="form-group">
+          <label>Status da Placa</label>
+          <select class="form-control" id="editStatusPlaca" aria-label="Status da placa">
+            <option value="">Selecione...</option>
+            <option value="Regular">Regular</option>
+            <option value="Irregular">Irregular</option>
+            <option value="Pendente">Pendente</option>
+            <option value="Em acordo">Em acordo</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Vigência Pesquisa Placa</label>
+          <input type="date" class="form-control" id="editVigenciaPlaca" aria-label="Vigência pesquisa placa">
+        </div>
+        <div class="form-group">
+          <label>Checklist Vigência *</label>
+          <input type="date" class="form-control" id="editVigenciaChecklist" required aria-label="Checklist vigência">
+          <div class="error-message" id="vigenciaChecklistError">Vigência do checklist é obrigatória</div>
+        </div>
+        <div class="form-group">
+          <label>Checklist Status *</label>
+          <select class="form-control" id="editStatusChecklist" required aria-label="Checklist status">
+            <option value="">Selecione...</option>
+            <option value="Aprovado">Aprovado</option>
+            <option value="Reprovado">Reprovado</option>
+            <option value="Pendente">Pendente</option>
+            <option value="Em acordo">Em acordo</option>
+            <option value="Vencido">Vencido</option>
+          </select>
+          <div class="error-message" id="statusChecklistError">Status do checklist é obrigatório</div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" id="btnCancelModal">Cancelar</button>
+          <button type="submit" class="btn btn-success">Salvar Veículo</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // 🎯 VARIÁVEIS GLOBAIS
+    let vehicleData = [];
+    let filteredData = [];
+    let currentSort = { column: null, direction: 'asc' };
+    let currentEditIndex = -1;
+    let lastSaveTime = null;
+    let autoSaveInterval;
+
+    // 🎯 ELEMENTOS DOM
+    const btnDarkMode = document.getElementById('btnDarkMode');
+    const fileInput = document.getElementById('fileInput');
+    const btnAddNew = document.getElementById('btnAddNew');
+    const btnExport = document.getElementById('btnExport');
+    const btnClearAll = document.getElementById('btnClearAll');
+    const statusFilter = document.getElementById('statusFilter');
+    const dateFilter = document.getElementById('dateFilter');
+    const searchInput = document.getElementById('searchInput');
+    const tableBody = document.getElementById('tableBody');
+    const editModal = document.getElementById('editModal');
+    const editForm = document.getElementById('editForm');
+    const modalTitle = document.getElementById('modalTitle');
+    const btnCancelModal = document.getElementById('btnCancelModal');
+    const saveStatus = document.getElementById('saveStatus');
+    const lastSaveInfo = document.getElementById('lastSaveInfo');
+    const totalVehicles = document.getElementById('totalVehicles');
+    const validVehicles = document.getElementById('validVehicles');
+    const warningVehicles = document.getElementById('warningVehicles');
+    const expiredVehicles = document.getElementById('expiredVehicles');
+    const totalCount = document.getElementById('totalCount');
+    const filteredCount = document.getElementById('filteredCount');
+    const exportDropdown = document.getElementById('exportDropdown');
+
+    // 🎯 INICIALIZAÇÃO
+    document.addEventListener('DOMContentLoaded', function() {
+      loadFromLocalStorage();
+      setupEventListeners();
+      setupSorting();
+      setupExportDropdown();
+      startAutoSave();
+      updateSaveStatus();
+      applyFiltersAndRender();
+    });
+
+    // 🎯 CONFIGURAÇÃO DO DROPDOWN DE EXPORTAÇÃO
+    function setupExportDropdown() {
+      btnExport.addEventListener('click', function(e) {
+        e.stopPropagation();
+        exportDropdown.classList.toggle('active');
+      });
+
+      exportDropdown.addEventListener('click', function(e) {
+        e.stopPropagation();
+      });
+
+      document.addEventListener('click', function() {
+        exportDropdown.classList.remove('active');
+      });
+
+      const exportOptions = document.querySelectorAll('.export-option');
+      exportOptions.forEach(option => {
+        option.addEventListener('click', function() {
+          exportDropdown.classList.remove('active');
         });
+      });
+    }
 
-        // 🆕 FUNÇÃO: Padronização Inteligente de Dados
-        function standardizeData() {
-            if (window.vehicleData.length === 0) {
-                alert('Não há dados para padronizar!');
-                return;
-            }
+    // 🎯 FUNÇÃO PARA LIMPAR TODOS OS DADOS
+    function clearAllData() {
+      if (vehicleData.length === 0) {
+        alert('Não há dados para limpar!');
+        return;
+      }
+      
+      if (confirm(`⚠️ ATENÇÃO!\n\nVocê está prestes a apagar TODOS os ${vehicleData.length} registros.\n\nEsta ação NÃO pode ser desfeita!\n\nTem certeza que deseja continuar?`)) {
+        vehicleData = [];
+        filteredData = [];
+        
+        // Limpar localStorage
+        localStorage.removeItem('rondolog_vehicle_data');
+        localStorage.removeItem('rondolog_save_info');
+        
+        // Limpar filtros
+        statusFilter.value = 'all';
+        dateFilter.value = '';
+        searchInput.value = '';
+        
+        // Limpar ordenação
+        currentSort = { column: null, direction: 'asc' };
+        document.querySelectorAll('thead th').forEach(th => {
+          th.classList.remove('sorted-asc', 'sorted-desc');
+        });
+        
+        // Atualizar interface
+        applyFiltersAndRender();
+        updateSaveStatus();
+        
+        // Mostrar confirmação
+        showSaveStatus('saved');
+        alert('✅ Todos os dados foram removidos com sucesso!');
+      }
+    }
 
-            const originalCount = window.vehicleData.length;
-            let changesMade = 0;
+    // 🎯 FUNÇÕES DE MODAL
+    function openAddModal() {
+      currentEditIndex = -1;
+      modalTitle.textContent = 'Adicionar Novo Veículo';
+      clearEditForm();
+      editModal.style.display = 'flex';
+    }
 
-            window.vehicleData = window.vehicleData.map(vehicle => {
-                const standardized = { ...vehicle };
-                
-                // 1. Corrigir status inconsistentes (vencido com validade futura)
-                if (standardized.status.includes('vencido') && !isExpired(standardized.validade)) {
-                    standardized.status = 'Checklist válido';
-                    changesMade++;
-                    console.log(`Corrigido status: ${vehicle.placa} de "vencido" para "válido"`);
-                }
+    function openEditModal(index) {
+      currentEditIndex = index;
+      const vehicle = vehicleData[index];
 
-                // 2. Padronizar motoristas genéricos
-                const genericDrivers = ['Condutor', '-', '--', '00', 'condutor', 'cONDUTOR'];
-                if (genericDrivers.includes(standardized.motorista)) {
-                    standardized.motorista = 'Motorista Não Identificado';
-                    changesMade++;
-                }
+      modalTitle.textContent = 'Editar Veículo';
+      document.getElementById('editPlaca').value = vehicle.placa || '';
+      document.getElementById('editStatusPlaca').value = vehicle.statusPlaca || '';
+      document.getElementById('editVigenciaPlaca').value = formatDateForInput(vehicle.vigenciaPlaca) || '';
+      document.getElementById('editVigenciaChecklist').value = formatDateForInput(vehicle.vigenciaChecklist) || '';
+      document.getElementById('editStatusChecklist').value = vehicle.statusChecklist || '';
 
-                // 3. Padronizar operadores genéricos
-                if (!standardized.operador || standardized.operador === '-' || standardized.operador === '--') {
-                    standardized.operador = 'Operador Não Identificado';
-                    changesMade++;
-                }
+      editModal.style.display = 'flex';
+    }
 
-                // 4. Padronizar dispositivos pendentes
-                if (standardized.dispositivos) {
-                    const originalDevices = standardized.dispositivos;
-                    
-                    // Converter para maiúsculas
-                    standardized.dispositivos = standardized.dispositivos.toUpperCase();
-                    
-                    // Padronizar termos
-                    standardized.dispositivos = standardized.dispositivos
-                        .replace(/SENSOR DE PORTA DE CARONA/gi, 'SENSOR_PORTA_CARONA')
-                        .replace(/SENSOR DE PORTA DE MOTORISTA/gi, 'SENSOR_PORTA_MOTORISTA')
-                        .replace(/SENSOR DE BAU TRASEIRO/gi, 'SENSOR_BAU_TRASEIRO')
-                        .replace(/TRAVA DE BAU TRASEIRA/gi, 'TRAVA_BAU_TRASEIRA')
-                        .replace(/SENSOR DE DESENGATE/gi, 'SENSOR_DESENGATE')
-                        .replace(/BOTAO DE PANICO/gi, 'BOTAO_PANICO')
-                        .replace(/GPS/gi, 'GPS');
-                    
-                    if (originalDevices !== standardized.dispositivos) {
-                        changesMade++;
-                    }
-                }
+    function clearEditForm() {
+      document.getElementById('editPlaca').value = '';
+      document.getElementById('editStatusPlaca').value = '';
+      document.getElementById('editVigenciaPlaca').value = '';
+      document.getElementById('editVigenciaChecklist').value = '';
+      document.getElementById('editStatusChecklist').value = '';
+      
+      document.querySelectorAll('.error-message').forEach(el => {
+        el.style.display = 'none';
+      });
+      document.querySelectorAll('.form-control').forEach(el => {
+        el.classList.remove('error');
+      });
+    }
 
-                // 5. Validar e corrigir datas inconsistentes
-                if (standardized.dataRealizacao && standardized.validade) {
-                    const realizacao = new Date(standardized.dataRealizacao);
-                    const validade = new Date(standardized.validade);
-                    
-                    if (validade <= realizacao) {
-                        // Se validade é anterior à realização, ajustar para 30 dias depois
-                        const newValidade = new Date(realizacao);
-                        newValidade.setDate(newValidade.getDate() + 30);
-                        standardized.validade = newValidade.toISOString().split('T')[0];
-                        changesMade++;
-                        console.log(`Corrigida validade: ${vehicle.placa} para ${standardized.validade}`);
-                    }
-                }
+    function closeEditModal() {
+      editModal.style.display = 'none';
+    }
 
-                return standardized;
-            });
+    function handleFormSubmit(e) {
+      e.preventDefault();
+      
+      // Validar campos obrigatórios
+      const placa = document.getElementById('editPlaca').value;
+      const vigenciaChecklist = document.getElementById('editVigenciaChecklist').value;
+      const statusChecklist = document.getElementById('editStatusChecklist').value;
+      
+      let isValid = true;
+      
+      if (!placa) {
+        document.getElementById('placaError').style.display = 'block';
+        document.getElementById('editPlaca').classList.add('error');
+        isValid = false;
+      } else {
+        document.getElementById('placaError').style.display = 'none';
+        document.getElementById('editPlaca').classList.remove('error');
+      }
+      
+      if (!vigenciaChecklist) {
+        document.getElementById('vigenciaChecklistError').style.display = 'block';
+        document.getElementById('editVigenciaChecklist').classList.add('error');
+        isValid = false;
+      } else {
+        document.getElementById('vigenciaChecklistError').style.display = 'none';
+        document.getElementById('editVigenciaChecklist').classList.remove('error');
+      }
+      
+      if (!statusChecklist) {
+        document.getElementById('statusChecklistError').style.display = 'block';
+        document.getElementById('editStatusChecklist').classList.add('error');
+        isValid = false;
+      } else {
+        document.getElementById('statusChecklistError').style.display = 'none';
+        document.getElementById('editStatusChecklist').classList.remove('error');
+      }
+      
+      if (!isValid) {
+        return;
+      }
+      
+      const newVehicle = {
+        placa: placa,
+        statusPlaca: document.getElementById('editStatusPlaca').value,
+        vigenciaPlaca: document.getElementById('editVigenciaPlaca').value,
+        vigenciaChecklist: vigenciaChecklist,
+        statusChecklist: statusChecklist,
+        // ✅ CORREÇÃO: Status geral baseado no status checklist e data
+        statusGeral: calculateStatusGeral(vigenciaChecklist, statusChecklist)
+      };
 
-            // 6. Remover veículos sem placa
-            const beforeRemove = window.vehicleData.length;
-            window.vehicleData = window.vehicleData.filter(vehicle => 
-                vehicle.placa && vehicle.placa.trim() !== ''
-            );
-            const removedCount = beforeRemove - window.vehicleData.length;
-            changesMade += removedCount;
+      if (currentEditIndex === -1) {
+        vehicleData.push(newVehicle);
+      } else {
+        vehicleData[currentEditIndex] = newVehicle;
+      }
 
-            // Atualizar interface
-            renderTable();
-            updateDriverFilter();
-            updateSummaryCards();
-            saveToLocalStorage();
-            
-            alert(`Padronização concluída!\n\nRegistros processados: ${originalCount}\nAlterações realizadas: ${changesMade}\nRegistros sem placa removidos: ${removedCount}`);
+      applyFiltersAndRender();
+      saveToLocalStorage();
+      closeEditModal();
+      
+      alert(currentEditIndex === -1 ? 'Veículo adicionado com sucesso!' : 'Dados atualizados com sucesso!');
+    }
+
+    // 🎯 FUNÇÕES DE FILTRO
+    function applyFiltersAndRender() {
+      const statusValue = statusFilter.value;
+      const dateValue = dateFilter.value;
+      const searchValue = searchInput.value.trim().toLowerCase();
+      
+      filteredData = vehicleData.filter(vehicle => {
+        // Filtro por status geral
+        let statusMatch = true;
+        if (statusValue !== 'all') {
+          switch(statusValue) {
+            case 'valid':
+              statusMatch = vehicle.statusGeral === 'OK';
+              break;
+            case 'expiring':
+              statusMatch = vehicle.statusGeral === 'ATENÇÃO';
+              break;
+            case 'expired':
+              statusMatch = vehicle.statusGeral === 'VENCIDO';
+              break;
+          }
         }
+        
+        // Filtro por data
+        const dateMatch = !dateValue || vehicle.vigenciaChecklist === dateValue;
+        
+        // Busca inteligente
+        const searchMatch = !searchValue || 
+          (vehicle.placa && vehicle.placa.toLowerCase().includes(searchValue)) ||
+          (vehicle.statusPlaca && vehicle.statusPlaca.toLowerCase().includes(searchValue)) ||
+          (vehicle.statusChecklist && vehicle.statusChecklist.toLowerCase().includes(searchValue)) ||
+          (vehicle.vigenciaPlaca && vehicle.vigenciaPlaca.toString().toLowerCase().includes(searchValue)) ||
+          (vehicle.vigenciaChecklist && vehicle.vigenciaChecklist.toString().toLowerCase().includes(searchValue));
+        
+        return statusMatch && dateMatch && searchMatch;
+      });
+      
+      // Aplicar ordenação
+      if (currentSort.column) {
+        sortFilteredData(currentSort.column, currentSort.direction);
+      }
+      
+      renderTable();
+      updateSummaryCards();
+    }
 
-        // 🆕 FUNÇÃO: Limpar Duplicados Inteligente
-        function cleanDuplicates() {
-            if (window.vehicleData.length === 0) {
-                alert('Não há dados para limpar!');
-                return;
+    // 🎯 FUNÇÕES DE ORDENAÇÃO
+    function setupSorting() {
+      const headers = document.querySelectorAll('thead th[data-sort]');
+      headers.forEach(header => {
+        header.addEventListener('click', () => {
+          const column = header.getAttribute('data-sort');
+          
+          headers.forEach(h => {
+            if (h !== header) {
+              h.classList.remove('sorted-asc', 'sorted-desc');
             }
+          });
 
-            const originalCount = window.vehicleData.length;
-            
-            // Agrupar por placa
-            const groupedByPlaca = {};
-            
-            window.vehicleData.forEach(vehicle => {
-                if (!groupedByPlaca[vehicle.placa]) {
-                    groupedByPlaca[vehicle.placa] = [];
-                }
-                groupedByPlaca[vehicle.placa].push(vehicle);
-            });
+          if (currentSort.column === column) {
+            currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+          } else {
+            currentSort.column = column;
+            currentSort.direction = 'asc';
+          }
 
-            // Para cada placa, manter apenas o registro mais recente
-            const cleanedData = [];
-            let duplicatesRemoved = 0;
+          header.classList.add(currentSort.direction === 'asc' ? 'sorted-asc' : 'sorted-desc');
+          applyFiltersAndRender();
+        });
+      });
+    }
 
-            Object.keys(groupedByPlaca).forEach(placa => {
-                const vehicles = groupedByPlaca[placa];
-                
-                if (vehicles.length > 1) {
-                    // Ordenar por data de realização (mais recente primeiro)
-                    vehicles.sort((a, b) => {
-                        const dateA = new Date(a.dataRealizacao);
-                        const dateB = new Date(b.dataRealizacao);
-                        return dateB - dateA;
-                    });
-                    
-                    // Manter apenas o mais recente
-                    cleanedData.push(vehicles[0]);
-                    duplicatesRemoved += vehicles.length - 1;
-                    
-                    console.log(`Placa ${placa}: ${vehicles.length} registros -> mantido o mais recente de ${vehicles[0].dataRealizacao}`);
-                } else {
-                    cleanedData.push(vehicles[0]);
-                }
-            });
-
-            window.vehicleData = cleanedData;
-            
-            // Atualizar interface
-            renderTable();
-            updateDriverFilter();
-            updateSummaryCards();
-            saveToLocalStorage();
-            
-            alert(`Limpeza concluída!\n\nRegistros antes: ${originalCount}\nRegistros depois: ${window.vehicleData.length}\nDuplicados removidos: ${duplicatesRemoved}`);
+    function sortFilteredData(column, direction) {
+      filteredData.sort((a, b) => {
+        let aValue = a[column] || '';
+        let bValue = b[column] || '';
+        
+        if (column === 'vigenciaPlaca' || column === 'vigenciaChecklist') {
+          aValue = aValue ? new Date(aValue) : new Date(0);
+          bValue = bValue ? new Date(bValue) : new Date(0);
         }
-
-        // Configuração do dropdown de exportação
-        function setupExportDropdown() {
-            btnExport.addEventListener('click', function(e) {
-                e.stopPropagation();
-                exportDropdown.classList.toggle('active');
-            });
-
-            exportDropdown.addEventListener('click', function(e) {
-                e.stopPropagation();
-            });
-
-            document.addEventListener('click', function() {
-                exportDropdown.classList.remove('active');
-            });
-
-            const exportOptions = document.querySelectorAll('.export-option');
-            exportOptions.forEach(option => {
-                option.addEventListener('click', function() {
-                    exportDropdown.classList.remove('active');
-                });
-            });
+        
+        if (typeof aValue === 'string') {
+          aValue = aValue.toLowerCase();
+          bValue = bValue.toLowerCase();
         }
+        
+        if (aValue < bValue) return direction === 'asc' ? -1 : 1;
+        if (aValue > bValue) return direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
 
-        // Funções de Modal
-        function openAddModal() {
-            isAddingNew = true;
-            currentEditIndex = -1;
-            modalTitle.textContent = 'Adicionar Novo Veículo';
-            clearEditForm();
-            editModal.style.display = 'flex';
+    // 🎯 FUNÇÕES DE DATA
+    function formatDateForInput(dateString) {
+      if (!dateString) return '';
+      try {
+        const date = new Date(dateString);
+        return isNaN(date.getTime()) ? dateString : date.toISOString().split('T')[0];
+      } catch {
+        return dateString;
+      }
+    }
+
+    function formatDate(dateString) {
+      if (!dateString) return '-';
+      try {
+        const date = new Date(dateString);
+        return isNaN(date.getTime()) ? dateString : date.toLocaleDateString('pt-BR');
+      } catch {
+        return dateString;
+      }
+    }
+
+    // 🎯 FUNÇÃO DE STATUS GERAL - COM SUA REGRA ESPECÍFICA ✅
+    function calculateStatusGeral(vigenciaChecklist, statusChecklist) {
+      // Se não tem status checklist ou status é vazio, retorna PENDENTE
+      if (!statusChecklist || statusChecklist.trim() === '') {
+        return 'PENDENTE';
+      }
+      
+      const statusUpper = statusChecklist.toUpperCase().trim();
+      
+      // ✅ REGRA 1: Se o status do checklist for "VENCIDO", retorna VENCIDO independente da data
+      if (statusUpper === 'VENCIDO') {
+        return 'VENCIDO';
+      }
+      
+      // ✅ REGRA 2: Se o status do checklist for "EM ACORDO", retorna OK independente da data
+      if (statusUpper === 'EM ACORDO' || statusUpper === 'EM ACORDO.') {
+        return 'OK';
+      }
+      
+      // ✅ REGRA 3: Para outros status, verifica a data
+      if (!vigenciaChecklist) {
+        return 'PENDENTE';
+      }
+      
+      try {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Zera horas para comparar apenas datas
+        
+        const validadeDate = new Date(vigenciaChecklist);
+        validadeDate.setHours(0, 0, 0, 0); // Zera horas para comparar apenas datas
+        
+        if (isNaN(validadeDate.getTime())) {
+          return 'PENDENTE';
         }
-
-        function openEditModal(index) {
-            isAddingNew = false;
-            currentEditIndex = index;
-            const vehicle = window.vehicleData[index];
-
-            modalTitle.textContent = 'Editar Veículo';
-            document.getElementById('editPlaca').value = vehicle.placa;
-            document.getElementById('editStatus').value = vehicle.status;
-            document.getElementById('editDataRealizacao').value = formatDateForInput(vehicle.dataRealizacao);
-            document.getElementById('editValidade').value = formatDateForInput(vehicle.validade);
-            document.getElementById('editMotorista').value = vehicle.motorista;
-            document.getElementById('editOperador').value = vehicle.operador;
-            document.getElementById('editDispositivos').value = vehicle.dispositivos || '';
-
-            editModal.style.display = 'flex';
+        
+        // Calcula diferença em milissegundos
+        const diffTime = validadeDate.getTime() - today.getTime();
+        
+        // ✅ REGRA 3a: Se a data de validade é NO FUTURO (amanhã ou depois) → OK
+        if (diffTime > 0) {
+          return 'OK';
         }
-
-        function clearEditForm() {
-            document.getElementById('editPlaca').value = '';
-            document.getElementById('editStatus').value = 'Checklist válido';
-            document.getElementById('editDataRealizacao').value = '';
-            document.getElementById('editValidade').value = '';
-            document.getElementById('editMotorista').value = '';
-            document.getElementById('editOperador').value = '';
-            document.getElementById('editDispositivos').value = '';
-            
-            // Limpar erros
-            document.querySelectorAll('.error-message').forEach(el => {
-                el.style.display = 'none';
-            });
-            document.querySelectorAll('.form-control').forEach(el => {
-                el.classList.remove('error');
-            });
+        // ✅ REGRA 3b: Se a data de validade é HOJE ou NO PASSADO → VENCIDO
+        else {
+          return 'VENCIDO';
         }
+      } catch (error) {
+        console.error('Erro ao calcular status:', error);
+        return 'PENDENTE';
+      }
+    }
 
-        function closeEditModal() {
-            editModal.style.display = 'none';
+    // 🎯 FUNÇÕES DE RENDERIZAÇÃO
+    function renderTable() {
+      if (filteredData.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px; color: var(--text-secondary);">Nenhum dado encontrado</td></tr>';
+        totalCount.textContent = vehicleData.length;
+        filteredCount.textContent = 0;
+        return;
+      }
+
+      tableBody.innerHTML = filteredData.map((vehicle, index) => {
+        // Encontrar o índice real no array original
+        const originalIndex = vehicleData.findIndex(v => 
+          v.placa === vehicle.placa && 
+          v.vigenciaChecklist === vehicle.vigenciaChecklist
+        );
+        
+        let rowClass = '';
+        let statusClass = '';
+        let statusText = vehicle.statusGeral || 'PENDENTE';
+        
+        switch(vehicle.statusGeral) {
+          case 'VENCIDO':
+            rowClass = 'expired';
+            statusClass = 'status-expired';
+            break;
+          case 'OK':
+            statusClass = 'status-valid';
+            break;
+          default: // PENDENTE
+            statusClass = 'status-invalid';
+            rowClass = 'expiring-soon'; // Usamos a classe de atenção para pendentes
         }
+        
+        return `
+          <tr class="${rowClass}">
+            <td><span class="vehicle-plate">${vehicle.placa || '-'}</span></td>
+            <td>${vehicle.statusPlaca || '-'}</td>
+            <td>${formatDate(vehicle.vigenciaPlaca)}</td>
+            <td>${formatDate(vehicle.vigenciaChecklist)}</td>
+            <td>${vehicle.statusChecklist || '-'}</td>
+            <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+            <td>
+              <div class="action-buttons">
+                <button class="btn-edit" onclick="openEditModal(${originalIndex})" aria-label="Editar veículo ${vehicle.placa}">Editar</button>
+                <button class="btn-delete" onclick="deleteVehicle(${originalIndex})" aria-label="Excluir veículo ${vehicle.placa}">Excluir</button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
 
-        // Validação de datas
-        function validateDates(dataRealizacao, validade) {
-            if (!dataRealizacao || !validade) {
-                return false;
-            }
-            
-            const realizacao = new Date(dataRealizacao);
-            const validadeDate = new Date(validade);
-            
-            // Verificar se a data de validade é posterior à data de realização
-            if (validadeDate <= realizacao) {
-                document.getElementById('validadeError').style.display = 'block';
-                document.getElementById('editValidade').classList.add('error');
-                return false;
-            }
-            
-            document.getElementById('validadeError').style.display = 'none';
-            document.getElementById('editValidade').classList.remove('error');
-            return true;
+      totalCount.textContent = vehicleData.length;
+      filteredCount.textContent = filteredData.length;
+    }
+
+    function updateSummaryCards() {
+      const total = vehicleData.length;
+      
+      const expired = vehicleData.filter(v => v.statusGeral === 'VENCIDO').length;
+      const ok = vehicleData.filter(v => v.statusGeral === 'OK').length;
+      const pendente = vehicleData.filter(v => v.statusGeral === 'PENDENTE').length;
+
+      totalVehicles.textContent = total;
+      validVehicles.textContent = ok;
+      warningVehicles.textContent = pendente; // Mostra pendentes como "próximos do vencimento"
+      expiredVehicles.textContent = expired;
+    }
+
+    function deleteVehicle(index) {
+      if (confirm(`Excluir veículo ${vehicleData[index].placa}?`)) {
+        vehicleData.splice(index, 1);
+        applyFiltersAndRender();
+        saveToLocalStorage();
+      }
+    }
+
+    // 🎯 FUNÇÕES DE SALVAMENTO AUTOMÁTICO
+    function startAutoSave() {
+      autoSaveInterval = setInterval(() => {
+        if (vehicleData.length > 0) {
+          saveToLocalStorage();
         }
+      }, 30000);
+    }
 
-        function handleFormSubmit(e) {
-            e.preventDefault();
-            
-            // Validar campos obrigatórios
-            const placa = document.getElementById('editPlaca').value;
-            const dataRealizacao = document.getElementById('editDataRealizacao').value;
-            const validade = document.getElementById('editValidade').value;
-            const motorista = document.getElementById('editMotorista').value;
-            const operador = document.getElementById('editOperador').value;
-            
-            let isValid = true;
-            
-            if (!placa) {
-                document.getElementById('placaError').style.display = 'block';
-                document.getElementById('editPlaca').classList.add('error');
-                isValid = false;
-            } else {
-                document.getElementById('placaError').style.display = 'none';
-                document.getElementById('editPlaca').classList.remove('error');
-            }
-            
-            if (!dataRealizacao) {
-                document.getElementById('dataRealizacaoError').style.display = 'block';
-                document.getElementById('editDataRealizacao').classList.add('error');
-                isValid = false;
-            } else {
-                document.getElementById('dataRealizacaoError').style.display = 'none';
-                document.getElementById('editDataRealizacao').classList.remove('error');
-            }
-            
-            if (!validade) {
-                document.getElementById('validadeError').style.display = 'block';
-                document.getElementById('editValidade').classList.add('error');
-                isValid = false;
-            } else {
-                document.getElementById('validadeError').style.display = 'none';
-                document.getElementById('editValidade').classList.remove('error');
-            }
-            
-            if (!motorista) {
-                document.getElementById('motoristaError').style.display = 'block';
-                document.getElementById('editMotorista').classList.add('error');
-                isValid = false;
-            } else {
-                document.getElementById('motoristaError').style.display = 'none';
-                document.getElementById('editMotorista').classList.remove('error');
-            }
-            
-            if (!operador) {
-                document.getElementById('operadorError').style.display = 'block';
-                document.getElementById('editOperador').classList.add('error');
-                isValid = false;
-            } else {
-                document.getElementById('operadorError').style.display = 'none';
-                document.getElementById('editOperador').classList.remove('error');
-            }
-            
-            // Validar lógica das datas
-            if (!validateDates(dataRealizacao, validade)) {
-                isValid = false;
-            }
-            
-            if (!isValid) {
-                return;
-            }
-            
+    function saveToLocalStorage() {
+      try {
+        showSaveStatus('saving');
+        
+        localStorage.setItem('rondolog_vehicle_data', JSON.stringify(vehicleData));
+        
+        const saveInfo = {
+          lastSave: new Date().toISOString(),
+          totalRecords: vehicleData.length,
+          version: '1.0'
+        };
+        localStorage.setItem('rondolog_save_info', JSON.stringify(saveInfo));
+        
+        lastSaveTime = new Date();
+        updateSaveStatus();
+        
+        setTimeout(() => showSaveStatus('saved'), 1000);
+        
+      } catch (error) {
+        console.error('Erro ao salvar:', error);
+        showSaveStatus('error');
+      }
+    }
+
+    function loadFromLocalStorage() {
+      try {
+        const savedData = localStorage.getItem('rondolog_vehicle_data');
+        const saveInfo = localStorage.getItem('rondolog_save_info');
+        
+        if (savedData) {
+          vehicleData = JSON.parse(savedData);
+          
+          if (saveInfo) {
+            const info = JSON.parse(saveInfo);
+            lastSaveTime = new Date(info.lastSave);
+            updateSaveStatus();
+          }
+          
+          if (vehicleData.length > 0) {
+            applyFiltersAndRender();
+            showSaveStatus('loaded');
+          }
+        }
+      } catch (error) {
+        console.error('Erro ao carregar dados salvos:', error);
+        showSaveStatus('error');
+      }
+    }
+
+    function showSaveStatus(status) {
+      const statusMap = {
+        saving: { text: 'Salvando...', className: 'saving' },
+        saved: { text: 'Salvo!', className: '' },
+        loaded: { text: 'Dados carregados', className: '' },
+        error: { text: 'Erro ao salvar', className: 'error' }
+      };
+      
+      const currentStatus = statusMap[status];
+      saveStatus.innerHTML = `<span>💾</span> ${currentStatus.text}`;
+      saveStatus.className = `save-status ${currentStatus.className}`;
+      
+      if (status === 'saved' || status === 'loaded') {
+        setTimeout(() => {
+          saveStatus.style.opacity = '0.7';
+        }, 2000);
+      }
+    }
+
+    function updateSaveStatus() {
+      if (lastSaveTime) {
+        const now = new Date();
+        const diff = Math.floor((now - lastSaveTime) / 1000);
+        
+        let text = '';
+        if (diff < 60) {
+          text = `Salvamento: ${diff} segundos atrás`;
+        } else if (diff < 3600) {
+          text = `Salvamento: ${Math.floor(diff / 60)} minutos atrás`;
+        } else {
+          text = `Salvamento: ${lastSaveTime.toLocaleString('pt-BR')}`;
+        }
+        
+        lastSaveInfo.textContent = text;
+      }
+    }
+
+    // 🎯 CONFIGURAÇÃO DE EVENT LISTENERS
+    function setupEventListeners() {
+      btnDarkMode.addEventListener('click', toggleDarkMode);
+      fileInput.addEventListener('change', handleFileImport);
+      btnAddNew.addEventListener('click', openAddModal);
+      btnClearAll.addEventListener('click', clearAllData);
+      
+      statusFilter.addEventListener('change', applyFiltersAndRender);
+      dateFilter.addEventListener('change', applyFiltersAndRender);
+      searchInput.addEventListener('input', applyFiltersAndRender);
+      
+      btnCancelModal.addEventListener('click', closeEditModal);
+      editForm.addEventListener('submit', handleFormSubmit);
+      
+      window.addEventListener('click', function(e) {
+        if (e.target === editModal) {
+          closeEditModal();
+        }
+      });
+
+      window.addEventListener('beforeunload', () => {
+        if (vehicleData.length > 0) {
+          saveToLocalStorage();
+        }
+      });
+    }
+
+    function toggleDarkMode() {
+      document.body.classList.toggle('dark-mode');
+      btnDarkMode.innerHTML = document.body.classList.contains('dark-mode') 
+        ? '<span>☀️</span> Modo Claro' 
+        : '<span>🌙</span> Modo Escuro';
+    }
+
+    // 🎯 FUNÇÃO DE IMPORTAR EXCEL - CORRIGIDA
+    function handleFileImport(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        
+        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+        const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+
+        const newVehicleData = [];
+        for (let i = 1; i < jsonData.length; i++) {
+          const row = jsonData[i];
+          if (row && row.length >= 5) {
             const newVehicle = {
-                placa: placa,
-                status: document.getElementById('editStatus').value,
-                dataRealizacao: dataRealizacao,
-                validade: validade,
-                motorista: motorista,
-                operador: operador,
-                dispositivos: document.getElementById('editDispositivos').value
-            };
-
-            if (isAddingNew) {
-                window.vehicleData.push(newVehicle);
-            } else {
-                window.vehicleData[currentEditIndex] = newVehicle;
-            }
-
-            renderTable();
-            filterData();
-            updateDriverFilter();
-            updateSummaryCards();
-            saveToLocalStorage();
-            closeEditModal();
-            
-            alert(isAddingNew ? 'Veículo adicionado com sucesso!' : 'Dados atualizados com sucesso!');
-        }
-
-        // Função de filtro
-        function filterData() {
-            const filteredData = getFilteredData();
-            renderTable(filteredData);
-        }
-
-        function getFilteredData() {
-            const statusValue = statusFilter.value;
-            const driverValue = driverFilter.value;
-            const dateValue = dateFilter.value;
-            const searchValue = searchInput.value.trim().toLowerCase();
-
-            return window.vehicleData.filter(vehicle => {
-                // Filtro por status
-                let statusMatch = true;
-                if (statusValue !== 'all') {
-                    switch(statusValue) {
-                        case 'valid':
-                            statusMatch = vehicle.status.includes('válido');
-                            break;
-                        case 'invalid':
-                            statusMatch = vehicle.status.includes('inválido');
-                            break;
-                        case 'expired':
-                            statusMatch = vehicle.status.includes('vencido') || isExpired(vehicle.validade);
-                            break;
-                        case 'expiring':
-                            statusMatch = isExpiringSoon(vehicle.validade);
-                            break;
-                    }
-                }
-
-                // Filtro por motorista
-                const driverMatch = driverValue === 'all' || vehicle.motorista === driverValue;
-                
-                // Filtro por data
-                const dateMatch = !dateValue || vehicle.validade === dateValue;
-                
-                // Busca inteligente
-                const searchMatch = !searchValue || 
-                    vehicle.placa.toLowerCase().includes(searchValue) ||
-                    vehicle.motorista.toLowerCase().includes(searchValue) ||
-                    vehicle.operador.toLowerCase().includes(searchValue) ||
-                    (vehicle.dispositivos && vehicle.dispositivos.toLowerCase().includes(searchValue)) ||
-                    vehicle.status.toLowerCase().includes(searchValue);
-
-                return statusMatch && driverMatch && dateMatch && searchMatch;
-            });
-        }
-
-        function getCriticalData() {
-            return window.vehicleData.filter(vehicle => 
-                vehicle.status.includes('vencido') || 
-                isExpiringSoon(vehicle.validade) ||
-                (vehicle.dispositivos && vehicle.dispositivos !== '')
-            );
-        }
-
-        // Funções de salvamento automático
-        function startAutoSave() {
-            autoSaveInterval = setInterval(() => {
-                if (window.vehicleData.length > 0) {
-                    saveToLocalStorage();
-                }
-            }, 30000);
-        }
-
-        function saveToLocalStorage() {
-            try {
-                showSaveStatus('saving');
-                
-                localStorage.setItem('rondolog_vehicle_data', JSON.stringify(window.vehicleData));
-                
-                const saveInfo = {
-                    lastSave: new Date().toISOString(),
-                    totalRecords: window.vehicleData.length,
-                    version: '1.0'
-                };
-                localStorage.setItem('rondolog_save_info', JSON.stringify(saveInfo));
-                
-                lastSaveTime = new Date();
-                updateSaveStatus();
-                
-                setTimeout(() => showSaveStatus('saved'), 1000);
-                
-            } catch (error) {
-                console.error('Erro ao salvar:', error);
-                showSaveStatus('error');
-            }
-        }
-
-        function loadFromLocalStorage() {
-            try {
-                const savedData = localStorage.getItem('rondolog_vehicle_data');
-                const saveInfo = localStorage.getItem('rondolog_save_info');
-                
-                if (savedData) {
-                    window.vehicleData = JSON.parse(savedData);
-                    
-                    if (saveInfo) {
-                        const info = JSON.parse(saveInfo);
-                        lastSaveTime = new Date(info.lastSave);
-                        updateSaveStatus();
-                    }
-                    
-                    if (window.vehicleData.length > 0) {
-                        updateDriverFilter();
-                        renderTable();
-                        updateSummaryCards();
-                        showSaveStatus('loaded');
-                    }
-                }
-            } catch (error) {
-                console.error('Erro ao carregar dados salvos:', error);
-                showSaveStatus('error');
-            }
-        }
-
-        function showSaveStatus(status) {
-            const statusMap = {
-                saving: { text: 'Salvando...', className: 'saving' },
-                saved: { text: 'Salvo!', className: '' },
-                loaded: { text: 'Dados carregados', className: '' },
-                error: { text: 'Erro ao salvar', className: 'error' }
+              // CORREÇÃO APLICADA AQUI:
+              // Coluna 0: Placa (OK)
+              placa: parseCell(row[0]) || '',
+              
+              // CORREÇÃO: Coluna 1 era "Vigência Pesquisa Placa" - agora vai para vigenciaPlaca
+              vigenciaPlaca: parseExcelDate(row[1]),
+              
+              // CORREÇÃO: Coluna 2 era "Status Placa" - agora vai para statusPlaca
+              statusPlaca: parseCell(row[2]) || '',
+              
+              // Coluna 3: Checklist Vigência (OK)
+              vigenciaChecklist: parseExcelDate(row[3]),
+              
+              // Coluna 4: Checklist Status (OK)
+              statusChecklist: parseCell(row[4]) || ''
             };
             
-            const currentStatus = statusMap[status];
-            saveStatus.innerHTML = `<span>💾</span> ${currentStatus.text}`;
-            saveStatus.className = `save-status ${currentStatus.className}`;
+            // ✅ CORREÇÃO: Calcular status geral com ambos os parâmetros
+            newVehicle.statusGeral = calculateStatusGeral(newVehicle.vigenciaChecklist, newVehicle.statusChecklist);
             
-            if (status === 'saved' || status === 'loaded') {
-                setTimeout(() => {
-                    saveStatus.style.opacity = '0.7';
-                }, 2000);
-            }
+            newVehicleData.push(newVehicle);
+          }
         }
 
-        function updateSaveStatus() {
-            if (lastSaveTime) {
-                const now = new Date();
-                const diff = Math.floor((now - lastSaveTime) / 1000);
-                
-                let text = '';
-                if (diff < 60) {
-                    text = `Salvamento: ${diff} segundos atrás`;
-                } else if (diff < 3600) {
-                    text = `Salvamento: ${Math.floor(diff / 60)} minutos atrás`;
-                } else {
-                    text = `Salvamento: ${lastSaveTime.toLocaleString('pt-BR')}`;
-                }
-                
-                lastSaveInfo.textContent = text;
-            }
-        }
+        vehicleData = newVehicleData;
+        applyFiltersAndRender();
+        saveToLocalStorage();
+        alert(`Importação concluída! ${vehicleData.length} veículos carregados.`);
+      };
+      reader.readAsArrayBuffer(file);
+    }
 
-        function setupEventListeners() {
-            btnDarkMode.addEventListener('click', toggleDarkMode);
-            fileInput.addEventListener('change', handleFileImport);
-            btnAddNew.addEventListener('click', openAddModal);
-            btnCleanDuplicates.addEventListener('click', cleanDuplicates);
-            btnStandardizeData.addEventListener('click', standardizeData);
-            
-            statusFilter.addEventListener('change', filterData);
-            driverFilter.addEventListener('change', filterData);
-            dateFilter.addEventListener('change', filterData);
-            searchInput.addEventListener('input', filterData);
-            
-            btnCancelModal.addEventListener('click', closeEditModal);
-            editForm.addEventListener('submit', handleFormSubmit);
-            
-            // Validação em tempo real das datas
-            document.getElementById('editDataRealizacao').addEventListener('change', function() {
-                const validade = document.getElementById('editValidade').value;
-                if (validade) {
-                    validateDates(this.value, validade);
-                }
-            });
-            
-            document.getElementById('editValidade').addEventListener('change', function() {
-                const dataRealizacao = document.getElementById('editDataRealizacao').value;
-                if (dataRealizacao) {
-                    validateDates(dataRealizacao, this.value);
-                }
-            });
-            
-            window.addEventListener('click', function(e) {
-                if (e.target === editModal) {
-                    closeEditModal();
-                }
-            });
+    function parseCell(value) {
+      if (value === null || value === undefined) return '';
+      if (typeof value === 'string') return value.trim();
+      return String(value);
+    }
 
-            window.addEventListener('beforeunload', () => {
-                if (window.vehicleData.length > 0) {
-                    saveToLocalStorage();
-                }
-            });
-        }
+    function parseExcelDate(dateValue) {
+      if (!dateValue) return '';
+      if (typeof dateValue === 'string') return dateValue;
+      if (typeof dateValue === 'number') {
+        const date = new Date((dateValue - 25569) * 86400 * 1000);
+        return date.toISOString().split('T')[0];
+      }
+      return dateValue;
+    }
 
-        // Função de exportação Excel
-        function exportXLS(type) {
-            let dataToExport = [];
-            let filename = '';
+    // 🎯 FUNÇÕES DE EXPORTAÇÃO EXCEL - CORRIGIDAS
+    function exportXLS(type) {
+      let dataToExport = [];
+      let filename = '';
 
-            switch(type) {
-                case 'current':
-                    dataToExport = getFilteredData();
-                    filename = `relatorio_atual_${new Date().toISOString().split('T')[0]}.xlsx`;
-                    break;
-                case 'all':
-                    dataToExport = window.vehicleData;
-                    filename = `todos_dados_${new Date().toISOString().split('T')[0]}.xlsx`;
-                    break;
-            }
+      switch(type) {
+        case 'current':
+          dataToExport = filteredData;
+          filename = `relatorio_atual_${new Date().toISOString().split('T')[0]}.xlsx`;
+          break;
+        case 'all':
+          dataToExport = vehicleData;
+          filename = `todos_dados_${new Date().toISOString().split('T')[0]}.xlsx`;
+          break;
+      }
 
-            if (dataToExport.length === 0) {
-                alert('Nenhum dado para exportar!');
-                return;
-            }
+      if (dataToExport.length === 0) {
+        alert('Nenhum dado para exportar!');
+        return;
+      }
 
-            const excelData = dataToExport.map(vehicle => ({
-                'VEÍCULO': vehicle.placa,
-                'STATUS': vehicle.status,
-                'DATA REALIZAÇÃO': formatDate(vehicle.dataRealizacao),
-                'VALIDADE': formatDate(vehicle.validade),
-                'MOTORISTA': vehicle.motorista,
-                'OPERADOR': vehicle.operador,
-                'DISPOSITIVOS PENDENTES': vehicle.dispositivos || ''
-            }));
+      // CORREÇÃO APLICADA AQUI: Ordem corrigida das colunas
+      const excelData = dataToExport.map(vehicle => ({
+        'PLACA': vehicle.placa || '',
+        // CORREÇÃO: Agora a coluna 2 é VIGÊNCIA PESQUISA PLACA
+        'VIGÊNCIA PESQUISA PLACA': formatDate(vehicle.vigenciaPlaca),
+        // CORREÇÃO: Agora a coluna 3 é STATUS PLACA
+        'STATUS PLACA': vehicle.statusPlaca || '',
+        'CHECKLIST VIGÊNCIA': formatDate(vehicle.vigenciaChecklist),
+        'CHECKLIST STATUS': vehicle.statusChecklist || '',
+        'STATUS GERAL': vehicle.statusGeral || ''
+      }));
 
-            const worksheet = XLSX.utils.json_to_sheet(excelData);
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, 'Checklist');
+      const worksheet = XLSX.utils.json_to_sheet(excelData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Checklist');
 
-            const colWidths = [
-                { wch: 12 }, { wch: 18 }, { wch: 16 }, 
-                { wch: 12 }, { wch: 20 }, { wch: 15 }, { wch: 30 }
-            ];
-            worksheet['!cols'] = colWidths;
+      const colWidths = [
+        { wch: 12 }, { wch: 20 }, { wch: 18 }, 
+        { wch: 20 }, { wch: 18 }, { wch: 15 }
+      ];
+      worksheet['!cols'] = colWidths;
 
-            XLSX.writeFile(workbook, filename);
-        }
+      XLSX.writeFile(workbook, filename);
+    }
 
-        function toggleDarkMode() {
-            document.body.classList.toggle('dark-mode');
-            btnDarkMode.innerHTML = document.body.classList.contains('dark-mode') 
-                ? '<span>☀️</span> Modo Claro' 
-                : '<span>🌙</span> Modo Escuro';
-        }
+    // 🎯 FUNÇÕES DE EXPORTAÇÃO PDF - CORRIGIDAS
+    function exportPDF(type) {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      
+      doc.setFontSize(20);
+      doc.setTextColor(40, 40, 40);
+      doc.text('RONDOLOG - RELATÓRIO DE CHECKLIST', 105, 15, { align: 'center' });
+      
+      doc.setFontSize(10);
+      doc.setTextColor(100, 100, 100);
+      doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, 105, 22, { align: 'center' });
+      
+      let dataToExport = [];
+      let title = '';
 
-        function handleFileImport(e) {
-            const file = e.target.files[0];
-            if (!file) return;
+      switch(type) {
+        case 'current':
+          dataToExport = filteredData;
+          title = 'RELATÓRIO ATUAL (COM FILTROS APLICADOS)';
+          break;
+        case 'critical':
+          dataToExport = filteredData.filter(v => v.statusGeral === 'VENCIDO' || v.statusGeral === 'PENDENTE');
+          title = 'RELATÓRIO DE SITUAÇÕES CRÍTICAS';
+          break;
+        case 'summary':
+          generateSummaryPDF(doc);
+          return;
+      }
 
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
-                
-                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+      if (dataToExport.length === 0) {
+        doc.text('Nenhum dado para exportar', 20, 40);
+      } else {
+        doc.setFontSize(14);
+        doc.setTextColor(0, 0, 0);
+        doc.text(title, 20, 35);
+        
+        // CORREÇÃO APLICADA AQUI: Ordem corrigida das colunas
+        const tableData = dataToExport.map(vehicle => [
+          vehicle.placa || '',
+          // CORREÇÃO: Agora a coluna 2 é VIGÊNCIA PESQ.
+          formatDate(vehicle.vigenciaPlaca),
+          // CORREÇÃO: Agora a coluna 3 é STATUS PLACA
+          vehicle.statusPlaca || '',
+          formatDate(vehicle.vigenciaChecklist),
+          vehicle.statusChecklist || '',
+          vehicle.statusGeral || ''
+        ]);
 
-                window.vehicleData = [];
-                for (let i = 1; i < jsonData.length; i++) {
-                    const row = jsonData[i];
-                    if (row && row.length >= 7 && row[0]) {
-                        const newVehicle = {
-                            placa: row[0] || '',
-                            status: row[1] || '',
-                            dataRealizacao: parseExcelDate(row[2]),
-                            validade: parseExcelDate(row[3]),
-                            motorista: row[4] || '',
-                            operador: row[5] || '',
-                            dispositivos: row[6] || ''
-                        };
-                        
-                        // Validar datas ao importar
-                        if (newVehicle.dataRealizacao && newVehicle.validade) {
-                            const realizacao = new Date(newVehicle.dataRealizacao);
-                            const validade = new Date(newVehicle.validade);
-                            
-                            if (validade > realizacao) {
-                                window.vehicleData.push(newVehicle);
-                            } else {
-                                console.warn(`Veículo ${newVehicle.placa} ignorado: datas inconsistentes`);
-                            }
-                        } else {
-                            window.vehicleData.push(newVehicle);
-                        }
-                    }
-                }
+        doc.autoTable({
+          startY: 45,
+          head: [['PLACA', 'VIGÊNCIA PESQ.', 'STATUS PLACA', 'CHECKLIST VIGÊNCIA', 'CHECKLIST STATUS', 'STATUS GERAL']],
+          body: tableData,
+          styles: { fontSize: 8 },
+          headStyles: { fillColor: [0, 0, 0] },
+          columnStyles: {
+            0: { cellWidth: 20 },
+            1: { cellWidth: 25 },
+            2: { cellWidth: 25 },
+            3: { cellWidth: 25 },
+            4: { cellWidth: 25 },
+            5: { cellWidth: 20 }
+          }
+        });
+      }
 
-                updateDriverFilter();
-                renderTable();
-                updateSummaryCards();
-                saveToLocalStorage();
-                alert(`Importação concluída! ${window.vehicleData.length} veículos carregados.`);
-            };
-            reader.readAsArrayBuffer(file);
-        }
+      const pageCount = doc.internal.getNumberOfPages();
+      for(let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(100, 100, 100);
+        doc.text(`Página ${i} de ${pageCount} - RONDOLOG Sistema de Gestão`, 105, 285, { align: 'center' });
+      }
 
-        function parseExcelDate(dateValue) {
-            if (!dateValue) return '';
-            if (typeof dateValue === 'string') return dateValue;
-            if (typeof dateValue === 'number') {
-                const date = new Date((dateValue - 25569) * 86400 * 1000);
-                return date.toISOString().split('T')[0];
-            }
-            return dateValue;
-        }
+      doc.save(`relatorio_checklist_${type}_${new Date().toISOString().split('T')[0]}.pdf`);
+    }
 
-        function updateSummaryCards() {
-            const total = window.vehicleData.length;
-            const valid = window.vehicleData.filter(v => v.status.includes('válido')).length;
-            const expired = window.vehicleData.filter(v => v.status.includes('vencido') || isExpired(v.validade)).length;
-            
-            const today = new Date();
-            const warning = window.vehicleData.filter(v => {
-                return isExpiringSoon(v.validade);
-            }).length;
+    function generateSummaryPDF(doc) {
+      const total = vehicleData.length;
+      const expired = vehicleData.filter(v => v.statusGeral === 'VENCIDO').length;
+      const ok = vehicleData.filter(v => v.statusGeral === 'OK').length;
+      const pendente = vehicleData.filter(v => v.statusGeral === 'PENDENTE').length;
+      
+      const percentOk = total > 0 ? ((ok / total) * 100).toFixed(1) : 0;
+      const percentExpired = total > 0 ? ((expired / total) * 100).toFixed(1) : 0;
 
-            totalVehicles.textContent = total;
-            validVehicles.textContent = valid;
-            warningVehicles.textContent = warning;
-            expiredVehicles.textContent = expired;
-        }
+      doc.setFontSize(16);
+      doc.setTextColor(0, 0, 0);
+      doc.text('RESUMO EXECUTIVO - SITUAÇÃO DA FROTA', 20, 35);
 
-        function setupSorting() {
-            const headers = document.querySelectorAll('thead th[data-sort]');
-            headers.forEach(header => {
-                header.addEventListener('click', () => {
-                    const column = header.getAttribute('data-sort');
-                    
-                    headers.forEach(h => {
-                        if (h !== header) {
-                            h.classList.remove('sorted-asc', 'sorted-desc');
-                        }
-                    });
+      doc.setFontSize(10);
+      doc.text(`Total de Veículos: ${total}`, 20, 50);
+      doc.text(`Checklists OK: ${ok} (${percentOk}%)`, 20, 60);
+      doc.text(`Checklists Pendentes: ${pendente}`, 20, 70);
+      doc.text(`Checklists Vencidos: ${expired} (${percentExpired}%)`, 20, 80);
 
-                    if (currentSort.column === column) {
-                        currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
-                    } else {
-                        currentSort.column = column;
-                        currentSort.direction = 'asc';
-                    }
+      const criticalVehicles = vehicleData.filter(v => v.statusGeral === 'VENCIDO' || v.statusGeral === 'PENDENTE');
+      if (criticalVehicles.length > 0) {
+        doc.setFontSize(14);
+        doc.text('SITUAÇÕES CRÍTICAS:', 20, 100);
+        
+        let yPosition = 110;
+        criticalVehicles.slice(0, 10).forEach((vehicle, index) => {
+          if (yPosition > 270) {
+            doc.addPage();
+            yPosition = 20;
+          }
+          
+          doc.setFontSize(9);
+          doc.setTextColor(0, 0, 0);
+          doc.text(`${vehicle.placa || 'Sem placa'}`, 25, yPosition);
+          
+          doc.setFontSize(8);
+          doc.setTextColor(100, 100, 100);
+          
+          let statusText = vehicle.statusGeral;
+          if (vehicle.statusGeral === 'VENCIDO') {
+            doc.setTextColor(255, 0, 0);
+          } else if (vehicle.statusGeral === 'PENDENTE') {
+            doc.setTextColor(255, 165, 0);
+          }
+          
+          doc.text(statusText, 80, yPosition);
+          doc.setTextColor(100, 100, 100);
+          doc.text(`Validade: ${formatDate(vehicle.vigenciaChecklist)}`, 120, yPosition);
+          
+          yPosition += 10;
+        });
+      }
 
-                    header.classList.add(currentSort.direction === 'asc' ? 'sorted-asc' : 'sorted-desc');
-                    sortData(column, currentSort.direction);
-                    renderTable();
-                });
-            });
-        }
+      const pageCount = doc.internal.getNumberOfPages();
+      for(let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(100, 100, 100);
+        doc.text(`Página ${i} de ${pageCount} - RONDOLOG Sistema de Gestão`, 105, 285, { align: 'center' });
+      }
 
-        function sortData(column, direction) {
-            window.vehicleData.sort((a, b) => {
-                let aValue = a[column];
-                let bValue = b[column];
+      doc.save(`resumo_executivo_${new Date().toISOString().split('T')[0]}.pdf`);
+    }
 
-                if (column === 'dataRealizacao' || column === 'validade') {
-                    aValue = aValue ? new Date(aValue) : new Date(0);
-                    bValue = bValue ? new Date(bValue) : new Date(0);
-                }
-
-                if (typeof aValue === 'string') {
-                    aValue = aValue.toLowerCase();
-                    bValue = bValue.toLowerCase();
-                }
-
-                if (aValue < bValue) return direction === 'asc' ? -1 : 1;
-                if (aValue > bValue) return direction === 'asc' ? 1 : -1;
-                return 0;
-            });
-        }
-
-        function isExpiringSoon(validade) {
-            if (!validade || validade === 'No embarque') return false;
-            const today = new Date();
-            const validadeDate = new Date(validade);
-            const diffTime = validadeDate - today;
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            return diffDays <= 7 && diffDays > 0;
-        }
-
-        function isExpired(validade) {
-            if (!validade || validade === 'No embarque') return false;
-            const today = new Date();
-            const validadeDate = new Date(validade);
-            return validadeDate < today;
-        }
-
-        function renderTable(filteredData = null) {
-            const dataToRender = filteredData || window.vehicleData;
-            
-            if (dataToRender.length === 0) {
-                tableBody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px; color: var(--text-secondary);">Nenhum dado encontrado</td></tr>';
-                return;
-            }
-
-            tableBody.innerHTML = dataToRender.map((vehicle, index) => {
-                const statusClass = getStatusClass(vehicle.status, vehicle.validade);
-                let rowClass = '';
-                
-                if (isExpired(vehicle.validade)) {
-                    rowClass = 'expired';
-                } else if (isExpiringSoon(vehicle.validade)) {
-                    rowClass = 'expiring-soon';
-                }
-
-                // Encontrar o índice real no array original
-                const originalIndex = window.vehicleData.findIndex(v => 
-                    v.placa === vehicle.placa && 
-                    v.motorista === vehicle.motorista &&
-                    v.validade === vehicle.validade
-                );
-
-                return `
-                    <tr class="${rowClass}">
-                        <td><span class="vehicle-plate">${vehicle.placa}</span></td>
-                        <td><span class="status-badge ${statusClass}">${vehicle.status}</span></td>
-                        <td>${formatDate(vehicle.dataRealizacao)}</td>
-                        <td>${formatDate(vehicle.validade)}</td>
-                        <td>${vehicle.motorista}</td>
-                        <td>${vehicle.operador}</td>
-                        <td>${vehicle.dispositivos || '-'}</td>
-                        <td>
-                            <div class="action-buttons">
-                                <button class="btn-edit" onclick="openEditModal(${originalIndex})" aria-label="Editar veículo ${vehicle.placa}">Editar</button>
-                                <button class="btn-delete" onclick="openDeleteModal(${originalIndex})" aria-label="Excluir veículo ${vehicle.placa}">Excluir</button>
-                            </div>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
-
-            totalCount.textContent = window.vehicleData.length;
-            filteredCount.textContent = dataToRender.length;
-        }
-
-        function getStatusClass(status, validade) {
-            if (isExpired(validade)) return 'status-expired';
-            if (status.includes('válido')) return 'status-valid';
-            if (status.includes('inválido')) return 'status-invalid';
-            if (status.includes('vencido')) return 'status-expired';
-            return 'status-valid';
-        }
-
-        function formatDate(dateString) {
-            if (!dateString) return '-';
-            if (dateString === 'No embarque') return dateString;
-            try {
-                const date = new Date(dateString);
-                return isNaN(date.getTime()) ? dateString : date.toLocaleDateString('pt-BR');
-            } catch {
-                return dateString;
-            }
-        }
-
-        function formatDateForInput(dateString) {
-            if (!dateString || dateString === 'No embarque') return '';
-            try {
-                const date = new Date(dateString);
-                return isNaN(date.getTime()) ? '' : date.toISOString().split('T')[0];
-            } catch {
-                return '';
-            }
-        }
-
-        function updateDriverFilter() {
-            const drivers = [...new Set(window.vehicleData.map(item => item.motorista).filter(Boolean))];
-            driverFilter.innerHTML = '<option value="all">Todos os Motoristas</option>';
-            drivers.forEach(driver => {
-                driverFilter.innerHTML += `<option value="${driver}">${driver}</option>`;
-            });
-        }
-
-        function openDeleteModal(index) {
-            if (confirm(`Excluir veículo ${window.vehicleData[index].placa}?`)) {
-                window.vehicleData.splice(index, 1);
-                renderTable();
-                updateSummaryCards();
-                filterData();
-                saveToLocalStorage();
-            }
-        }
-
-        // Funções de exportação PDF
-        function exportPDF(type) {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            
-            doc.setFontSize(20);
-            doc.setTextColor(40, 40, 40);
-            doc.text('RONDOLOG - RELATÓRIO DE CHECKLIST', 105, 15, { align: 'center' });
-            
-            doc.setFontSize(10);
-            doc.setTextColor(100, 100, 100);
-            doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, 105, 22, { align: 'center' });
-            
-            let dataToExport = [];
-            let title = '';
-
-            switch(type) {
-                case 'current':
-                    dataToExport = getFilteredData();
-                    title = 'RELATÓRIO ATUAL (COM FILTROS APLICADOS)';
-                    break;
-                case 'critical':
-                    dataToExport = getCriticalData();
-                    title = 'RELATÓRIO DE SITUAÇÕES CRÍTICAS';
-                    break;
-                case 'summary':
-                    generateSummaryPDF(doc);
-                    return;
-            }
-
-            if (dataToExport.length === 0) {
-                doc.text('Nenhum dado para exportar', 20, 40);
-            } else {
-                doc.setFontSize(14);
-                doc.setTextColor(0, 0, 0);
-                doc.text(title, 20, 35);
-                
-                const tableData = dataToExport.map(vehicle => [
-                    vehicle.placa,
-                    vehicle.status,
-                    formatDate(vehicle.dataRealizacao),
-                    formatDate(vehicle.validade),
-                    vehicle.motorista,
-                    vehicle.operador,
-                    vehicle.dispositivos || '-'
-                ]);
-
-                doc.autoTable({
-                    startY: 45,
-                    head: [['VEÍCULO', 'STATUS', 'DATA REALIZAÇÃO', 'VALIDADE', 'MOTORISTA', 'OPERADOR', 'DISPOSITIVOS']],
-                    body: tableData,
-                    styles: { fontSize: 8 },
-                    headStyles: { fillColor: [0, 0, 0] },
-                    columnStyles: {
-                        0: { cellWidth: 25 },
-                        1: { cellWidth: 25 },
-                        2: { cellWidth: 25 },
-                        3: { cellWidth: 25 },
-                        4: { cellWidth: 25 },
-                        5: { cellWidth: 25 },
-                        6: { cellWidth: 40 }
-                    }
-                });
-            }
-
-            const pageCount = doc.internal.getNumberOfPages();
-            for(let i = 1; i <= pageCount; i++) {
-                doc.setPage(i);
-                doc.setFontSize(8);
-                doc.setTextColor(100, 100, 100);
-                doc.text(`Página ${i} de ${pageCount} - RONDOLOG Sistema de Gestão`, 105, 285, { align: 'center' });
-            }
-
-            doc.save(`relatorio_checklist_${type}_${new Date().toISOString().split('T')[0]}.pdf`);
-        }
-
-        function generateSummaryPDF(doc) {
-            const total = window.vehicleData.length;
-            const valid = window.vehicleData.filter(v => v.status.includes('válido')).length;
-            const expired = window.vehicleData.filter(v => v.status.includes('vencido') || isExpired(v.validade)).length;
-            const warning = window.vehicleData.filter(v => isExpiringSoon(v.validade)).length;
-            
-            const percentValid = total > 0 ? ((valid / total) * 100).toFixed(1) : 0;
-            const percentExpired = total > 0 ? ((expired / total) * 100).toFixed(1) : 0;
-
-            doc.setFontSize(16);
-            doc.setTextColor(0, 0, 0);
-            doc.text('RESUMO EXECUTIVO - SITUAÇÃO DA FROTA', 20, 35);
-
-            doc.setFontSize(10);
-            doc.text(`Total de Veículos: ${total}`, 20, 50);
-            doc.text(`Checklists Válidos: ${valid} (${percentValid}%)`, 20, 60);
-            doc.text(`Próximos do Vencimento: ${warning}`, 20, 70);
-            doc.text(`Checklists Vencidos: ${expired} (${percentExpired}%)`, 20, 80);
-
-            const criticalVehicles = getCriticalData();
-            if (criticalVehicles.length > 0) {
-                doc.setFontSize(14);
-                doc.text('ALERTAS PRIORITÁRIOS:', 20, 100);
-                
-                let yPosition = 110;
-                criticalVehicles.slice(0, 10).forEach((vehicle, index) => {
-                    if (yPosition > 270) {
-                        doc.addPage();
-                        yPosition = 20;
-                    }
-                    
-                    doc.setFontSize(9);
-                    doc.setTextColor(0, 0, 0);
-                    doc.text(`${vehicle.placa} - ${vehicle.motorista}`, 25, yPosition);
-                    
-                    doc.setFontSize(8);
-                    doc.setTextColor(100, 100, 100);
-                    
-                    let statusText = '';
-                    if (vehicle.status.includes('vencido') || isExpired(vehicle.validade)) {
-                        statusText = 'VENCIDO';
-                        doc.setTextColor(255, 0, 0);
-                    } else if (isExpiringSoon(vehicle.validade)) {
-                        statusText = 'VENCE EM BREVE';
-                        doc.setTextColor(255, 165, 0);
-                    } else if (vehicle.dispositivos) {
-                        statusText = 'COM PROBLEMAS';
-                        doc.setTextColor(255, 0, 0);
-                    }
-                    
-                    doc.text(statusText, 80, yPosition);
-                    doc.setTextColor(100, 100, 100);
-                    doc.text(`Validade: ${formatDate(vehicle.validade)}`, 120, yPosition);
-                    
-                    if (vehicle.dispositivos) {
-                        yPosition += 5;
-                        doc.text(`Problemas: ${vehicle.dispositivos}`, 25, yPosition);
-                    }
-                    
-                    yPosition += 10;
-                });
-            }
-
-            const pageCount = doc.internal.getNumberOfPages();
-            for(let i = 1; i <= pageCount; i++) {
-                doc.setPage(i);
-                doc.setFontSize(8);
-                doc.setTextColor(100, 100, 100);
-                doc.text(`Página ${i} de ${pageCount} - RONDOLOG Sistema de Gestão`, 105, 285, { align: 'center' });
-            }
-
-            doc.save(`resumo_executivo_${new Date().toISOString().split('T')[0]}.pdf`);
-        }
-
-        // Funções globais
-        window.openEditModal = openEditModal;
-        window.openDeleteModal = openDeleteModal;
-        window.exportPDF = exportPDF;
-        window.exportXLS = exportXLS;
-        window.filterData = filterData;
-        window.cleanDuplicates = cleanDuplicates;
-        window.standardizeData = standardizeData;
-    </script>
+    // 🎯 FUNÇÕES GLOBAIS
+    window.openEditModal = openEditModal;
+    window.deleteVehicle = deleteVehicle;
+    window.exportPDF = exportPDF;
+    window.exportXLS = exportXLS;
+    window.applyFiltersAndRender = applyFiltersAndRender;
+    window.clearAllData = clearAllData;
+  </script>
 </body>
 </html>
