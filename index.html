@@ -843,6 +843,35 @@
       background: #ff6b6b;
     }
 
+    /* 🔄 ESTILOS PARA LOADING STATES */
+    .btn.loading {
+      opacity: 0.7;
+      cursor: not-allowed;
+      position: relative;
+    }
+
+    .btn.loading::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 20px;
+      height: 20px;
+      margin: -10px 0 0 -10px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    .btn-warning.loading::after {
+      border-top-color: black;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
     /* Animações */
     @keyframes slideIn {
       from {
@@ -1163,6 +1192,30 @@
     const exportDropdown = document.getElementById('exportDropdown');
     const syncInfo = document.getElementById('syncInfo');
 
+    // 🔄 FUNÇÃO AUXILIAR PARA GERENCIAR LOADING STATES
+    function setButtonLoading(buttonId, isLoading, loadingText = 'Processando...') {
+      const button = document.getElementById(buttonId);
+      if (!button) return;
+      
+      if (isLoading) {
+        // Salvar estado original
+        button.dataset.originalText = button.innerHTML;
+        button.dataset.originalDisabled = button.disabled;
+        
+        // Aplicar estado de loading
+        button.innerHTML = `<span>⏳</span> ${loadingText}`;
+        button.disabled = true;
+        button.classList.add('loading');
+      } else {
+        // Restaurar estado original
+        if (button.dataset.originalText) {
+          button.innerHTML = button.dataset.originalText;
+        }
+        button.disabled = button.dataset.originalDisabled === 'true';
+        button.classList.remove('loading');
+      }
+    }
+
     // 🎯 INICIALIZAÇÃO
     document.addEventListener('DOMContentLoaded', function() {
       loadFromLocalStorage();
@@ -1195,6 +1248,11 @@
         return false;
       }
       
+      // 🔴 ADICIONAR LOADING
+      setButtonLoading('btnTestConnection', true, 'Testando...');
+      setButtonLoading('btnLoadOnline', true);
+      setButtonLoading('btnSaveOnline', true);
+      
       showNotification('🔌 Testando conexão com Google Sheets...', 'info');
       updateSyncInfo('Testando conexão...');
       
@@ -1217,6 +1275,11 @@
         updateOnlineStatus(false);
         updateSyncInfo('Falha na conexão. Verifique a URL da API.');
         return false;
+      } finally {
+        // 🔴 REMOVER LOADING
+        setButtonLoading('btnTestConnection', false);
+        setButtonLoading('btnLoadOnline', false);
+        setButtonLoading('btnSaveOnline', false);
       }
     }
 
@@ -1235,6 +1298,11 @@
       if (!confirm('Carregar dados do Google Sheets? Isso substituirá os dados locais atuais.')) {
         return false;
       }
+      
+      // 🔴 ADICIONAR ESTADO DE LOADING
+      setButtonLoading('btnLoadOnline', true, 'Carregando...');
+      setButtonLoading('btnTestConnection', true);
+      setButtonLoading('btnSaveOnline', true);
       
       syncInProgress = true;
       showNotification('⏳ Carregando dados do Google Sheets...', 'info');
@@ -1260,8 +1328,6 @@
           
           showNotification(`✅ ${vehicleData.length} veículos carregados!`, 'success');
           updateSyncInfo(`${vehicleData.length} veículos carregados com sucesso.`);
-          syncInProgress = false;
-          return true;
         } else {
           throw new Error(JSON.stringify(result.data));
         }
@@ -1269,8 +1335,12 @@
         console.error('❌ Erro ao carregar:', error);
         showNotification('❌ Erro ao carregar dados online', 'error');
         updateSyncInfo('Erro ao carregar dados.');
+      } finally {
+        // 🔴 SEMPRE REMOVER ESTADO DE LOADING (mesmo em caso de erro)
+        setButtonLoading('btnLoadOnline', false);
+        setButtonLoading('btnTestConnection', false);
+        setButtonLoading('btnSaveOnline', false);
         syncInProgress = false;
-        return false;
       }
     }
 
@@ -1295,6 +1365,11 @@
         return false;
       }
       
+      // 🔴 ADICIONAR LOADING
+      setButtonLoading('btnSaveOnline', true, 'Salvando...');
+      setButtonLoading('btnTestConnection', true);
+      setButtonLoading('btnLoadOnline', true);
+      
       syncInProgress = true;
       showNotification('💾 Salvando no Google Sheets...', 'info');
       updateSyncInfo('Salvando dados...');
@@ -1310,7 +1385,6 @@
         if (result.status === 'success') {
           showNotification(`✅ ${result.data.count} veículos sincronizados!`, 'success');
           updateSyncInfo(`Dados salvos: ${result.data.count} veículos.`);
-          syncInProgress = false;
           return true;
         } else {
           throw new Error(JSON.stringify(result.data));
@@ -1319,8 +1393,13 @@
         console.error('❌ Erro ao salvar:', error);
         showNotification('❌ Erro ao salvar online. Verifique a conexão.', 'error');
         updateSyncInfo('Erro ao salvar dados.');
-        syncInProgress = false;
         return false;
+      } finally {
+        // 🔴 REMOVER LOADING
+        setButtonLoading('btnSaveOnline', false);
+        setButtonLoading('btnTestConnection', false);
+        setButtonLoading('btnLoadOnline', false);
+        syncInProgress = false;
       }
     }
 
