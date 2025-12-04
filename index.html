@@ -328,29 +328,6 @@
       border-color: var(--primary-red);
     }
 
-    /* 📁 UPLOAD DE ARQUIVO */
-    .file-input {
-      display: none;
-    }
-
-    .file-input-label {
-      padding: 10px 20px;
-      background: var(--green);
-      color: white;
-      border-radius: var(--radius-sm);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-weight: 600;
-      transition: var(--transition);
-    }
-
-    .file-input-label:hover {
-      background: var(--green-dark);
-      transform: translateY(-2px);
-    }
-
     /* 📊 DROPDOWN DE EXPORTAÇÃO */
     .export-dropdown {
       position: relative;
@@ -719,7 +696,6 @@
 
     .dark-mode tbody tr:hover {
       background: #2d3748 !important;
-      transform: translateX(2px);
     }
 
     .dark-mode tbody tr.pending {
@@ -795,6 +771,110 @@
       background: #c53030;
     }
 
+    /* 🔗 ESTILOS SINCRONIZAÇÃO GOOGLE SHEETS */
+    .sync-section {
+      background: linear-gradient(135deg, #1a237e 0%, #283593 100%);
+      padding: 15px 30px;
+      border-bottom: 3px solid var(--primary-red);
+      margin-top: -1px;
+    }
+
+    .sync-header {
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .sync-controls {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .sync-info {
+      margin-top: 10px;
+      padding: 8px 12px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    /* Status online/offline */
+    .online-status {
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.3s ease;
+    }
+
+    .online-status.online {
+      background: rgba(0, 200, 83, 0.2);
+      color: #00c853;
+      border: 1px solid rgba(0, 200, 83, 0.4);
+    }
+
+    .online-status.offline {
+      background: rgba(255, 0, 0, 0.1);
+      color: #ff6b6b;
+      border: 1px solid rgba(255, 0, 0, 0.3);
+    }
+
+    .online-dot, .offline-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .online-dot {
+      background: #00c853;
+      animation: pulse 1.5s infinite;
+      box-shadow: 0 0 10px #00c853;
+    }
+
+    .offline-dot {
+      background: #ff6b6b;
+    }
+
+    /* Animações */
+    @keyframes slideIn {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    @keyframes slideOut {
+      from {
+        transform: translateX(0);
+        opacity: 1;
+      }
+      to {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+    }
+
+    /* Modo escuro ajustes */
+    .dark-mode .sync-section {
+      background: linear-gradient(135deg, #0d47a1 0%, #1565c0 100%);
+    }
+
+    .dark-mode .sync-info {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
     /* 📱 RESPONSIVIDADE */
     @media (max-width: 768px) {
       .header-content {
@@ -824,6 +904,20 @@
         flex-direction: column;
         text-align: center;
       }
+      
+      .sync-controls {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      
+      .sync-controls .btn {
+        width: 100%;
+        justify-content: center;
+      }
+      
+      .online-status {
+        justify-content: center;
+      }
     }
   </style>
 </head>
@@ -834,37 +928,24 @@
       <div class="header-content">
         <div class="header-titles">
           <h1>RONDOLOG - SISTEMA DE GESTÃO DE FROTAS</h1>
-          <div class="header-subtitle">Importe, visualize e gerencie os dados dos veículos</div>
+          <div class="header-subtitle">Sincronizado com Google Sheets - Dados em tempo real</div>
         </div>
         <div class="controls">
           <button class="btn btn-dark-mode" id="btnDarkMode">
             <span>🌙</span> Modo Escuro
           </button>
-          <label for="fileInput" class="file-input-label">
-            <span>📁</span> Importar Excel
-          </label>
-          <input type="file" id="fileInput" class="file-input" accept=".xlsx, .xls">
           
-          <!-- 📊 DROPDOWN DE EXPORTAÇÃO -->
+          <!-- 📊 DROPDOWN DE EXPORTAÇÃO (SIMPLIFICADO) -->
           <div class="export-dropdown" id="exportDropdown">
             <button class="btn btn-warning" type="button" id="btnExport">
               <span>📊</span> Exportar
             </button>
             <div class="export-menu">
-              <button class="export-option" type="button" onclick="exportPDF('current')">
+              <button class="export-option" type="button" onclick="exportPDF()">
                 <span>📋</span> PDF - Relatório Atual
               </button>
-              <button class="export-option" type="button" onclick="exportPDF('critical')">
-                <span>🚨</span> PDF - Apenas Críticos
-              </button>
-              <button class="export-option" type="button" onclick="exportPDF('summary')">
-                <span>📈</span> PDF - Resumo Executivo
-              </button>
-              <button class="export-option" type="button" onclick="exportXLS('current')">
-                <span>📊</span> Excel - Relatório Atual
-              </button>
-              <button class="export-option" type="button" onclick="exportXLS('all')">
-                <span>💾</span> Excel - Todos os Dados
+              <button class="export-option" type="button" onclick="exportXLS()">
+                <span>📊</span> Excel - Dados Atuais
               </button>
             </div>
           </div>
@@ -873,11 +954,6 @@
             <span>➕</span> Novo Veículo
           </button>
           
-          <!-- 🗑️ BOTÃO LIMPAR TODOS OS DADOS -->
-          <button class="btn btn-danger" id="btnClearAll" type="button">
-            <span>🗑️</span> Limpar Todos
-          </button>
-
           <!-- 💾 STATUS DE SALVAMENTO -->
           <div class="save-status" id="saveStatus">
             <span>💾</span> Dados carregados
@@ -886,7 +962,36 @@
       </div>
     </div>
     
-    <!-- 📊 CARDS DE RESUMO - CORRIGIDO ✅ -->
+    <!-- 🔗 SEÇÃO DE SINCRONIZAÇÃO GOOGLE SHEETS -->
+    <div class="sync-section">
+      <div class="sync-header">
+        <h4 style="margin: 0; color: white;">☁️ Sincronização Google Sheets</h4>
+      </div>
+      
+      <div class="sync-controls">
+        <button class="btn btn-info" id="btnTestConnection" type="button">
+          <span>🔌</span> Testar Conexão
+        </button>
+        
+        <button class="btn btn-success" id="btnLoadOnline" type="button">
+          <span>⬇️</span> Carregar do Sheets
+        </button>
+        
+        <button class="btn btn-primary" id="btnSaveOnline" type="button">
+          <span>💾</span> Salvar no Sheets
+        </button>
+        
+        <div class="online-status offline" id="onlineStatus">
+          <span class="offline-dot"></span> Offline
+        </div>
+      </div>
+      
+      <div class="sync-info" id="syncInfo">
+        Conecte-se ao Google Sheets para carregar os dados da frota.
+      </div>
+    </div>
+    
+    <!-- 📊 CARDS DE RESUMO -->
     <div class="summary-cards" id="summaryCards">
       <div class="summary-card total">
         <div class="card-number" id="totalVehicles">0</div>
@@ -948,7 +1053,7 @@
         <tbody id="tableBody">
           <tr>
             <td colspan="7" style="text-align: center; padding: 40px; color: var(--text-secondary);">
-              Importe um arquivo Excel ou adicione um novo veículo
+              Clique em "Carregar do Sheets" para visualizar os dados da frota
             </td>
           </tr>
         </tbody>
@@ -1030,12 +1135,15 @@
     let lastSaveTime = null;
     let autoSaveInterval;
 
+    // 🔗 CONFIGURAÇÃO GOOGLE SHEETS API
+    let GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbynMU4xiEL0h-VnLmbK62YIPVkGJA1pcWdE1bGzxuZ2xBurIzlqjqP3gqbfgUJWC_w5/exec';
+    let isOnlineMode = false;
+    let syncInProgress = false;
+
     // 🎯 ELEMENTOS DOM
     const btnDarkMode = document.getElementById('btnDarkMode');
-    const fileInput = document.getElementById('fileInput');
     const btnAddNew = document.getElementById('btnAddNew');
     const btnExport = document.getElementById('btnExport');
-    const btnClearAll = document.getElementById('btnClearAll');
     const statusFilter = document.getElementById('statusFilter');
     const dateFilter = document.getElementById('dateFilter');
     const searchInput = document.getElementById('searchInput');
@@ -1053,6 +1161,7 @@
     const totalCount = document.getElementById('totalCount');
     const filteredCount = document.getElementById('filteredCount');
     const exportDropdown = document.getElementById('exportDropdown');
+    const syncInfo = document.getElementById('syncInfo');
 
     // 🎯 INICIALIZAÇÃO
     document.addEventListener('DOMContentLoaded', function() {
@@ -1063,7 +1172,221 @@
       startAutoSave();
       updateSaveStatus();
       applyFiltersAndRender();
+      
+      // Inicializar configuração online
+      initOnlineConfig();
     });
+
+    // 🔗 INICIALIZAR CONFIGURAÇÃO ONLINE
+    function initOnlineConfig() {
+      isOnlineMode = true;
+      localStorage.setItem('rondolog_google_api_url', GOOGLE_SCRIPT_URL);
+      updateSyncInfo('Conecte-se ao Google Sheets para carregar os dados.');
+      updateOnlineStatus(true);
+    }
+
+    // 🌐 FUNÇÕES DE SINCRONIZAÇÃO
+
+    // 🧪 TESTAR CONEXÃO
+    async function testGoogleSheetsConnection() {
+      if (!GOOGLE_SCRIPT_URL) {
+        showNotification('❌ URL da API não configurada', 'error');
+        updateSyncInfo('API não configurada');
+        return false;
+      }
+      
+      showNotification('🔌 Testando conexão com Google Sheets...', 'info');
+      updateSyncInfo('Testando conexão...');
+      
+      try {
+        const response = await fetch(`${GOOGLE_SCRIPT_URL}?action=test`);
+        const result = await response.json();
+        
+        if (result.status === 'success') {
+          isOnlineMode = true;
+          showNotification('✅ Conectado ao Google Sheets!', 'success');
+          updateOnlineStatus(true);
+          updateSyncInfo(`Conectado! ${result.data.totalRows || 0} veículos na planilha.`);
+          return true;
+        } else {
+          throw new Error(result.data);
+        }
+      } catch (error) {
+        console.error('❌ Erro na conexão:', error);
+        showNotification('❌ Falha na conexão com Google Sheets', 'error');
+        updateOnlineStatus(false);
+        updateSyncInfo('Falha na conexão. Verifique a URL da API.');
+        return false;
+      }
+    }
+
+    // 📥 CARREGAR DADOS DO GOOGLE SHEETS
+    async function loadFromGoogleSheets() {
+      if (!GOOGLE_SCRIPT_URL) {
+        showNotification('⚠️ API não configurada', 'warning');
+        return false;
+      }
+      
+      if (syncInProgress) {
+        showNotification('⏳ Sincronização já em andamento...', 'info');
+        return false;
+      }
+      
+      if (!confirm('Carregar dados do Google Sheets? Isso substituirá os dados locais atuais.')) {
+        return false;
+      }
+      
+      syncInProgress = true;
+      showNotification('⏳ Carregando dados do Google Sheets...', 'info');
+      updateSyncInfo('Carregando dados...');
+      
+      try {
+        const response = await fetch(`${GOOGLE_SCRIPT_URL}?action=getData`);
+        const result = await response.json();
+        
+        if (result.status === 'success') {
+          // Converter dados para o formato do sistema
+          vehicleData = result.data.map(vehicle => ({
+            placa: vehicle.placa || '',
+            statusPlaca: vehicle.statusPlaca || '',
+            vigenciaPlaca: vehicle.vigenciaPlaca || '',
+            vigenciaChecklist: vehicle.vigenciaChecklist || '',
+            statusChecklist: vehicle.statusChecklist || '',
+            statusGeral: calculateStatusGeral(vehicle.vigenciaChecklist, vehicle.statusChecklist)
+          }));
+          
+          applyFiltersAndRender();
+          saveToLocalStorage();
+          
+          showNotification(`✅ ${vehicleData.length} veículos carregados!`, 'success');
+          updateSyncInfo(`${vehicleData.length} veículos carregados com sucesso.`);
+          syncInProgress = false;
+          return true;
+        } else {
+          throw new Error(JSON.stringify(result.data));
+        }
+      } catch (error) {
+        console.error('❌ Erro ao carregar:', error);
+        showNotification('❌ Erro ao carregar dados online', 'error');
+        updateSyncInfo('Erro ao carregar dados.');
+        syncInProgress = false;
+        return false;
+      }
+    }
+
+    // 💾 SALVAR DADOS NO GOOGLE SHEETS
+    async function saveToGoogleSheets() {
+      if (!GOOGLE_SCRIPT_URL) {
+        showNotification('⚠️ API não configurada', 'warning');
+        return false;
+      }
+      
+      if (vehicleData.length === 0) {
+        showNotification('📭 Nenhum dado para salvar', 'warning');
+        return false;
+      }
+      
+      if (syncInProgress) {
+        showNotification('⏳ Aguarde a sincronização atual...', 'info');
+        return false;
+      }
+      
+      if (!confirm(`Salvar ${vehicleData.length} veículos no Google Sheets?\n\nTodos os usuários verão esta atualização!`)) {
+        return false;
+      }
+      
+      syncInProgress = true;
+      showNotification('💾 Salvando no Google Sheets...', 'info');
+      updateSyncInfo('Salvando dados...');
+      
+      try {
+        const response = await fetch(GOOGLE_SCRIPT_URL, {
+          method: 'POST',
+          body: JSON.stringify(vehicleData)
+        });
+        
+        const result = await response.json();
+        
+        if (result.status === 'success') {
+          showNotification(`✅ ${result.data.count} veículos sincronizados!`, 'success');
+          updateSyncInfo(`Dados salvos: ${result.data.count} veículos.`);
+          syncInProgress = false;
+          return true;
+        } else {
+          throw new Error(JSON.stringify(result.data));
+        }
+      } catch (error) {
+        console.error('❌ Erro ao salvar:', error);
+        showNotification('❌ Erro ao salvar online. Verifique a conexão.', 'error');
+        updateSyncInfo('Erro ao salvar dados.');
+        syncInProgress = false;
+        return false;
+      }
+    }
+
+    // 📊 ATUALIZAR STATUS ONLINE/OFFLINE
+    function updateOnlineStatus(connected) {
+      isOnlineMode = connected;
+      const statusElement = document.getElementById('onlineStatus');
+      
+      if (statusElement) {
+        if (connected) {
+          statusElement.className = 'online-status online';
+          statusElement.innerHTML = '<span class="online-dot"></span> Online';
+        } else {
+          statusElement.className = 'online-status offline';
+          statusElement.innerHTML = '<span class="offline-dot"></span> Offline';
+        }
+      }
+    }
+
+    // 📝 ATUALIZAR INFORMAÇÕES DE SINCRONIZAÇÃO
+    function updateSyncInfo(message) {
+      if (syncInfo) {
+        syncInfo.textContent = message;
+        
+        // Adicionar timestamp
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        syncInfo.innerHTML = `${message} <small style="opacity:0.7;">(${timeStr})</small>`;
+      }
+    }
+
+    // 🔔 FUNÇÃO DE NOTIFICAÇÃO
+    function showNotification(message, type = 'info') {
+      const notification = document.createElement('div');
+      notification.className = `notification ${type}`;
+      notification.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 10px; padding: 15px 20px;">
+          <span style="font-size: 20px;">
+            ${type === 'success' ? '✅' : type === 'error' ? '❌' : type === 'warning' ? '⚠️' : '⏳'}
+          </span>
+          <span>${message}</span>
+        </div>
+      `;
+      
+      notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: ${type === 'success' ? '#00c853' : type === 'error' ? '#ff0000' : type === 'warning' ? '#ff9800' : '#2196f3'};
+        color: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 9999;
+        max-width: 400px;
+        animation: slideIn 0.3s ease;
+      `;
+      
+      document.body.appendChild(notification);
+      
+      setTimeout(() => {
+        if (notification.parentNode) {
+          notification.style.animation = 'slideOut 0.3s ease';
+          setTimeout(() => notification.remove(), 300);
+        }
+      }, 4000);
+    }
 
     // 🎯 CONFIGURAÇÃO DO DROPDOWN DE EXPORTAÇÃO
     function setupExportDropdown() {
@@ -1086,42 +1409,6 @@
           exportDropdown.classList.remove('active');
         });
       });
-    }
-
-    // 🎯 FUNÇÃO PARA LIMPAR TODOS OS DADOS
-    function clearAllData() {
-      if (vehicleData.length === 0) {
-        alert('Não há dados para limpar!');
-        return;
-      }
-      
-      if (confirm(`⚠️ ATENÇÃO!\n\nVocê está prestes a apagar TODOS os ${vehicleData.length} registros.\n\nEsta ação NÃO pode ser desfeita!\n\nTem certeza que deseja continuar?`)) {
-        vehicleData = [];
-        filteredData = [];
-        
-        // Limpar localStorage
-        localStorage.removeItem('rondolog_vehicle_data');
-        localStorage.removeItem('rondolog_save_info');
-        
-        // Limpar filtros
-        statusFilter.value = 'all';
-        dateFilter.value = '';
-        searchInput.value = '';
-        
-        // Limpar ordenação
-        currentSort = { column: null, direction: 'asc' };
-        document.querySelectorAll('thead th').forEach(th => {
-          th.classList.remove('sorted-asc', 'sorted-desc');
-        });
-        
-        // Atualizar interface
-        applyFiltersAndRender();
-        updateSaveStatus();
-        
-        // Mostrar confirmação
-        showSaveStatus('saved');
-        alert('✅ Todos os dados foram removidos com sucesso!');
-      }
     }
 
     // 🎯 FUNÇÕES DE MODAL
@@ -1165,10 +1452,10 @@
       editModal.style.display = 'none';
     }
 
-    function handleFormSubmit(e) {
+    // 🎯 MANIPULAR ENVIO DO FORMULÁRIO
+    async function handleFormSubmit(e) {
       e.preventDefault();
       
-      // Validar campos obrigatórios
       const placa = document.getElementById('editPlaca').value;
       const vigenciaChecklist = document.getElementById('editVigenciaChecklist').value;
       const statusChecklist = document.getElementById('editStatusChecklist').value;
@@ -1212,38 +1499,78 @@
         vigenciaPlaca: document.getElementById('editVigenciaPlaca').value,
         vigenciaChecklist: vigenciaChecklist,
         statusChecklist: statusChecklist,
-        // ✅ CORREÇÃO: Status geral baseado no status checklist e data
         statusGeral: calculateStatusGeral(vigenciaChecklist, statusChecklist)
       };
 
+      let syncMessage = '';
+      
       if (currentEditIndex === -1) {
         vehicleData.push(newVehicle);
+        syncMessage = '✅ Veículo adicionado';
       } else {
         vehicleData[currentEditIndex] = newVehicle;
+        syncMessage = '✅ Dados atualizados';
       }
 
       applyFiltersAndRender();
       saveToLocalStorage();
-      closeEditModal();
       
-      alert(currentEditIndex === -1 ? 'Veículo adicionado com sucesso!' : 'Dados atualizados com sucesso!');
+      if (isOnlineMode && GOOGLE_SCRIPT_URL) {
+        syncMessage += ' e sincronizado com Google Sheets!';
+        setTimeout(async () => {
+          const success = await saveToGoogleSheets();
+          if (!success) {
+            showNotification('⚠️ Alterações salvas localmente. Falha ao sincronizar online.', 'warning');
+          }
+        }, 500);
+      } else {
+        syncMessage += ' (modo offline)';
+      }
+      
+      closeEditModal();
+      showNotification(syncMessage, 'success');
     }
 
-    // 🎯 FUNÇÕES DE FILTRO - CORRIGIDO ✅
+    // 🗑️ EXCLUIR VEÍCULO
+    async function deleteVehicle(index) {
+      const vehicle = vehicleData[index];
+      if (!confirm(`Excluir veículo ${vehicle.placa}?`)) return;
+      
+      let syncMessage = '';
+      
+      vehicleData.splice(index, 1);
+      applyFiltersAndRender();
+      saveToLocalStorage();
+      
+      if (isOnlineMode && GOOGLE_SCRIPT_URL) {
+        syncMessage = '✅ Veículo excluído e sincronizado online!';
+        setTimeout(async () => {
+          const success = await saveToGoogleSheets();
+          if (!success) {
+            showNotification('⚠️ Excluído localmente. Falha ao sincronizar online.', 'warning');
+          }
+        }, 500);
+      } else {
+        syncMessage = '✅ Veículo excluído (modo offline)';
+      }
+      
+      showNotification(syncMessage, 'success');
+    }
+
+    // 🎯 FUNÇÕES DE FILTRO
     function applyFiltersAndRender() {
       const statusValue = statusFilter.value;
       const dateValue = dateFilter.value;
       const searchValue = searchInput.value.trim().toLowerCase();
       
       filteredData = vehicleData.filter(vehicle => {
-        // Filtro por status geral - CORREÇÃO APLICADA
         let statusMatch = true;
         if (statusValue !== 'all') {
           switch(statusValue) {
             case 'valid':
               statusMatch = vehicle.statusGeral === 'OK';
               break;
-            case 'pending': // ✅ CORREÇÃO: Mudado de 'expiring' para 'pending'
+            case 'pending':
               statusMatch = vehicle.statusGeral === 'PENDENTE';
               break;
             case 'expired':
@@ -1252,10 +1579,8 @@
           }
         }
         
-        // Filtro por data
         const dateMatch = !dateValue || vehicle.vigenciaChecklist === dateValue;
         
-        // Busca inteligente
         const searchMatch = !searchValue || 
           (vehicle.placa && vehicle.placa.toLowerCase().includes(searchValue)) ||
           (vehicle.statusPlaca && vehicle.statusPlaca.toLowerCase().includes(searchValue)) ||
@@ -1266,7 +1591,6 @@
         return statusMatch && dateMatch && searchMatch;
       });
       
-      // Aplicar ordenação
       if (currentSort.column) {
         sortFilteredData(currentSort.column, currentSort.direction);
       }
@@ -1343,50 +1667,42 @@
       }
     }
 
-    // 🎯 FUNÇÃO DE STATUS GERAL - COM SUA REGRA ESPECÍFICA ✅
+    // 🎯 FUNÇÃO DE STATUS GERAL
     function calculateStatusGeral(vigenciaChecklist, statusChecklist) {
-      // Se não tem status checklist ou status é vazio, retorna PENDENTE
       if (!statusChecklist || statusChecklist.trim() === '') {
         return 'PENDENTE';
       }
       
       const statusUpper = statusChecklist.toUpperCase().trim();
       
-      // ✅ REGRA 1: Se o status do checklist for "VENCIDO", retorna VENCIDO independente da data
       if (statusUpper === 'VENCIDO') {
         return 'VENCIDO';
       }
       
-      // ✅ REGRA 2: Se o status do checklist for "EM ACORDO", retorna OK independente da data
       if (statusUpper === 'EM ACORDO' || statusUpper === 'EM ACORDO.') {
         return 'OK';
       }
       
-      // ✅ REGRA 3: Para outros status, verifica a data
       if (!vigenciaChecklist) {
         return 'PENDENTE';
       }
       
       try {
         const today = new Date();
-        today.setHours(0, 0, 0, 0); // Zera horas para comparar apenas datas
+        today.setHours(0, 0, 0, 0);
         
         const validadeDate = new Date(vigenciaChecklist);
-        validadeDate.setHours(0, 0, 0, 0); // Zera horas para comparar apenas datas
+        validadeDate.setHours(0, 0, 0, 0);
         
         if (isNaN(validadeDate.getTime())) {
           return 'PENDENTE';
         }
         
-        // Calcula diferença em milissegundos
         const diffTime = validadeDate.getTime() - today.getTime();
         
-        // ✅ REGRA 3a: Se a data de validade é NO FUTURO (amanhã ou depois) → OK
         if (diffTime > 0) {
           return 'OK';
-        }
-        // ✅ REGRA 3b: Se a data de validade é HOJE ou NO PASSADO → VENCIDO
-        else {
+        } else {
           return 'VENCIDO';
         }
       } catch (error) {
@@ -1395,7 +1711,7 @@
       }
     }
 
-    // 🎯 FUNÇÕES DE RENDERIZAÇÃO - CORRIGIDO ✅
+    // 🎯 FUNÇÕES DE RENDERIZAÇÃO
     function renderTable() {
       if (filteredData.length === 0) {
         tableBody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px; color: var(--text-secondary);">Nenhum dado encontrado</td></tr>';
@@ -1405,7 +1721,6 @@
       }
 
       tableBody.innerHTML = filteredData.map((vehicle, index) => {
-        // Encontrar o índice real no array original
         const originalIndex = vehicleData.findIndex(v => 
           v.placa === vehicle.placa && 
           v.vigenciaChecklist === vehicle.vigenciaChecklist
@@ -1423,9 +1738,9 @@
           case 'OK':
             statusClass = 'status-valid';
             break;
-          default: // PENDENTE
+          default:
             statusClass = 'status-invalid';
-            rowClass = 'pending'; // ✅ CORREÇÃO: Mudado de 'expiring-soon' para 'pending'
+            rowClass = 'pending';
         }
         
         return `
@@ -1461,14 +1776,6 @@
       validVehicles.textContent = ok;
       warningVehicles.textContent = pendente;
       expiredVehicles.textContent = expired;
-    }
-
-    function deleteVehicle(index) {
-      if (confirm(`Excluir veículo ${vehicleData[index].placa}?`)) {
-        vehicleData.splice(index, 1);
-        applyFiltersAndRender();
-        saveToLocalStorage();
-      }
     }
 
     // 🎯 FUNÇÕES DE SALVAMENTO AUTOMÁTICO
@@ -1569,9 +1876,7 @@
     // 🎯 CONFIGURAÇÃO DE EVENT LISTENERS
     function setupEventListeners() {
       btnDarkMode.addEventListener('click', toggleDarkMode);
-      fileInput.addEventListener('change', handleFileImport);
       btnAddNew.addEventListener('click', openAddModal);
-      btnClearAll.addEventListener('click', clearAllData);
       
       statusFilter.addEventListener('change', applyFiltersAndRender);
       dateFilter.addEventListener('change', applyFiltersAndRender);
@@ -1579,6 +1884,10 @@
       
       btnCancelModal.addEventListener('click', closeEditModal);
       editForm.addEventListener('submit', handleFormSubmit);
+      
+      document.getElementById('btnTestConnection').addEventListener('click', testGoogleSheetsConnection);
+      document.getElementById('btnLoadOnline').addEventListener('click', loadFromGoogleSheets);
+      document.getElementById('btnSaveOnline').addEventListener('click', saveToGoogleSheets);
       
       window.addEventListener('click', function(e) {
         if (e.target === editModal) {
@@ -1600,99 +1909,19 @@
         : '<span>🌙</span> Modo Escuro';
     }
 
-    // 🎯 FUNÇÃO DE IMPORTAR EXCEL - CORRIGIDA
-    function handleFileImport(e) {
-      const file = e.target.files[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: 'array' });
-        
-        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-        const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
-
-        const newVehicleData = [];
-        for (let i = 1; i < jsonData.length; i++) {
-          const row = jsonData[i];
-          if (row && row.length >= 5) {
-            const newVehicle = {
-              // CORREÇÃO APLICADA AQUI:
-              // Coluna 0: Placa (OK)
-              placa: parseCell(row[0]) || '',
-              
-              // CORREÇÃO: Coluna 1 era "Vigência Pesquisa Placa" - agora vai para vigenciaPlaca
-              vigenciaPlaca: parseExcelDate(row[1]),
-              
-              // CORREÇÃO: Coluna 2 era "Status Placa" - agora vai para statusPlaca
-              statusPlaca: parseCell(row[2]) || '',
-              
-              // Coluna 3: Checklist Vigência (OK)
-              vigenciaChecklist: parseExcelDate(row[3]),
-              
-              // Coluna 4: Checklist Status (OK)
-              statusChecklist: parseCell(row[4]) || ''
-            };
-            
-            // ✅ CORREÇÃO: Calcular status geral com ambos os parâmetros
-            newVehicle.statusGeral = calculateStatusGeral(newVehicle.vigenciaChecklist, newVehicle.statusChecklist);
-            
-            newVehicleData.push(newVehicle);
-          }
-        }
-
-        vehicleData = newVehicleData;
-        applyFiltersAndRender();
-        saveToLocalStorage();
-        alert(`Importação concluída! ${vehicleData.length} veículos carregados.`);
-      };
-      reader.readAsArrayBuffer(file);
-    }
-
-    function parseCell(value) {
-      if (value === null || value === undefined) return '';
-      if (typeof value === 'string') return value.trim();
-      return String(value);
-    }
-
-    function parseExcelDate(dateValue) {
-      if (!dateValue) return '';
-      if (typeof dateValue === 'string') return dateValue;
-      if (typeof dateValue === 'number') {
-        const date = new Date((dateValue - 25569) * 86400 * 1000);
-        return date.toISOString().split('T')[0];
-      }
-      return dateValue;
-    }
-
-    // 🎯 FUNÇÕES DE EXPORTAÇÃO EXCEL - CORRIGIDAS
-    function exportXLS(type) {
-      let dataToExport = [];
-      let filename = '';
-
-      switch(type) {
-        case 'current':
-          dataToExport = filteredData;
-          filename = `relatorio_atual_${new Date().toISOString().split('T')[0]}.xlsx`;
-          break;
-        case 'all':
-          dataToExport = vehicleData;
-          filename = `todos_dados_${new Date().toISOString().split('T')[0]}.xlsx`;
-          break;
-      }
+    // 🎯 FUNÇÕES DE EXPORTAÇÃO
+    function exportXLS() {
+      let dataToExport = filteredData;
+      let filename = `relatorio_frota_${new Date().toISOString().split('T')[0]}.xlsx`;
 
       if (dataToExport.length === 0) {
-        alert('Nenhum dado para exportar!');
+        alert('Nenhum dado para exportar! Aplique filtros diferentes ou carregue dados.');
         return;
       }
 
-      // CORREÇÃO APLICADA AQUI: Ordem corrigida das colunas
       const excelData = dataToExport.map(vehicle => ({
         'PLACA': vehicle.placa || '',
-        // CORREÇÃO: Agora a coluna 2 é VIGÊNCIA PESQUISA PLACA
         'VIGÊNCIA PESQUISA PLACA': formatDate(vehicle.vigenciaPlaca),
-        // CORREÇÃO: Agora a coluna 3 é STATUS PLACA
         'STATUS PLACA': vehicle.statusPlaca || '',
         'CHECKLIST VIGÊNCIA': formatDate(vehicle.vigenciaChecklist),
         'CHECKLIST STATUS': vehicle.statusChecklist || '',
@@ -1712,8 +1941,7 @@
       XLSX.writeFile(workbook, filename);
     }
 
-    // 🎯 FUNÇÕES DE EXPORTAÇÃO PDF - CORRIGIDAS ✅
-    function exportPDF(type) {
+    function exportPDF() {
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
       
@@ -1725,22 +1953,8 @@
       doc.setTextColor(100, 100, 100);
       doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, 105, 22, { align: 'center' });
       
-      let dataToExport = [];
-      let title = '';
-
-      switch(type) {
-        case 'current':
-          dataToExport = filteredData;
-          title = 'RELATÓRIO ATUAL (COM FILTROS APLICADOS)';
-          break;
-        case 'critical':
-          dataToExport = filteredData.filter(v => v.statusGeral === 'VENCIDO' || v.statusGeral === 'PENDENTE'); // ✅ CORREÇÃO
-          title = 'RELATÓRIO DE SITUAÇÕES CRÍTICAS';
-          break;
-        case 'summary':
-          generateSummaryPDF(doc);
-          return;
-      }
+      let dataToExport = filteredData;
+      let title = 'RELATÓRIO DA FROTA';
 
       if (dataToExport.length === 0) {
         doc.text('Nenhum dado para exportar', 20, 40);
@@ -1749,12 +1963,9 @@
         doc.setTextColor(0, 0, 0);
         doc.text(title, 20, 35);
         
-        // CORREÇÃO APLICADA AQUI: Ordem corrigida das colunas
         const tableData = dataToExport.map(vehicle => [
           vehicle.placa || '',
-          // CORREÇÃO: Agora a coluna 2 é VIGÊNCIA PESQ.
           formatDate(vehicle.vigenciaPlaca),
-          // CORREÇÃO: Agora a coluna 3 é STATUS PLACA
           vehicle.statusPlaca || '',
           formatDate(vehicle.vigenciaChecklist),
           vehicle.statusChecklist || '',
@@ -1786,71 +1997,7 @@
         doc.text(`Página ${i} de ${pageCount} - RONDOLOG Sistema de Gestão`, 105, 285, { align: 'center' });
       }
 
-      doc.save(`relatorio_checklist_${type}_${new Date().toISOString().split('T')[0]}.pdf`);
-    }
-
-    function generateSummaryPDF(doc) {
-      const total = vehicleData.length;
-      const expired = vehicleData.filter(v => v.statusGeral === 'VENCIDO').length;
-      const ok = vehicleData.filter(v => v.statusGeral === 'OK').length;
-      const pendente = vehicleData.filter(v => v.statusGeral === 'PENDENTE').length;
-      
-      const percentOk = total > 0 ? ((ok / total) * 100).toFixed(1) : 0;
-      const percentExpired = total > 0 ? ((expired / total) * 100).toFixed(1) : 0;
-
-      doc.setFontSize(16);
-      doc.setTextColor(0, 0, 0);
-      doc.text('RESUMO EXECUTIVO - SITUAÇÃO DA FROTA', 20, 35);
-
-      doc.setFontSize(10);
-      doc.text(`Total de Veículos: ${total}`, 20, 50);
-      doc.text(`Checklists OK: ${ok} (${percentOk}%)`, 20, 60);
-      doc.text(`Checklists Pendentes: ${pendente}`, 20, 70);
-      doc.text(`Checklists Vencidos: ${expired} (${percentExpired}%)`, 20, 80);
-
-      const criticalVehicles = vehicleData.filter(v => v.statusGeral === 'VENCIDO' || v.statusGeral === 'PENDENTE');
-      if (criticalVehicles.length > 0) {
-        doc.setFontSize(14);
-        doc.text('SITUAÇÕES CRÍTICAS:', 20, 100);
-        
-        let yPosition = 110;
-        criticalVehicles.slice(0, 10).forEach((vehicle, index) => {
-          if (yPosition > 270) {
-            doc.addPage();
-            yPosition = 20;
-          }
-          
-          doc.setFontSize(9);
-          doc.setTextColor(0, 0, 0);
-          doc.text(`${vehicle.placa || 'Sem placa'}`, 25, yPosition);
-          
-          doc.setFontSize(8);
-          doc.setTextColor(100, 100, 100);
-          
-          let statusText = vehicle.statusGeral;
-          if (vehicle.statusGeral === 'VENCIDO') {
-            doc.setTextColor(255, 0, 0);
-          } else if (vehicle.statusGeral === 'PENDENTE') {
-            doc.setTextColor(255, 165, 0);
-          }
-          
-          doc.text(statusText, 80, yPosition);
-          doc.setTextColor(100, 100, 100);
-          doc.text(`Validade: ${formatDate(vehicle.vigenciaChecklist)}`, 120, yPosition);
-          
-          yPosition += 10;
-        });
-      }
-
-      const pageCount = doc.internal.getNumberOfPages();
-      for(let i = 1; i <= pageCount; i++) {
-        doc.setPage(i);
-        doc.setFontSize(8);
-        doc.setTextColor(100, 100, 100);
-        doc.text(`Página ${i} de ${pageCount} - RONDOLOG Sistema de Gestão`, 105, 285, { align: 'center' });
-      }
-
-      doc.save(`resumo_executivo_${new Date().toISOString().split('T')[0]}.pdf`);
+      doc.save(`relatorio_checklist_${new Date().toISOString().split('T')[0]}.pdf`);
     }
 
     // 🎯 FUNÇÕES GLOBAIS
@@ -1859,7 +2006,9 @@
     window.exportPDF = exportPDF;
     window.exportXLS = exportXLS;
     window.applyFiltersAndRender = applyFiltersAndRender;
-    window.clearAllData = clearAllData;
+    window.testGoogleSheetsConnection = testGoogleSheetsConnection;
+    window.loadFromGoogleSheets = loadFromGoogleSheets;
+    window.saveToGoogleSheets = saveToGoogleSheets;
   </script>
 </body>
 </html>
