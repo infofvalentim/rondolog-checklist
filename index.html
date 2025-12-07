@@ -1162,7 +1162,7 @@
   <script>
     // ============================================
     // RONDOLOG - SISTEMA DE GESTÃO DE FROTAS
-    // Versão: 12.0 - SEM SALVAMENTO LOCAL CONFLITANTE
+    // Versão: 12.1 - CORREÇÃO URL E SAVE
     // ============================================
     
     // 🎯 VARIÁVEIS GLOBAIS
@@ -1173,8 +1173,14 @@
     let lastSaveTime = null;
     let isDarkMode = false;
 
-    // 🔗 CONFIGURAÇÃO GOOGLE SHEETS API
+    // 🔗 CONFIGURAÇÃO GOOGLE SHEETS API - URL CORRETA
+    // ⚠️ IMPORTANTE: Esta é a URL do seu novo script
     let GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxQD_S6Uk5cUlgBx_ydNXoc7xxTuE1YHBg5G45WxgIRmp0DcTCA3BEON2lW5Fu6o-VE2w/exec';
+    
+    // 🔥 FORÇAR USO DA NOVA URL E LIMPAR CACHE ANTIGO
+    localStorage.setItem('rondolog_google_api_url', GOOGLE_SCRIPT_URL);
+    console.log('🔧 URL forçada no localStorage:', GOOGLE_SCRIPT_URL);
+    
     let isOnlineMode = false;
     let syncInProgress = false;
 
@@ -1216,8 +1222,9 @@
 
     // 🎯 INICIALIZAÇÃO
     document.addEventListener('DOMContentLoaded', function() {
-      console.log('🚀 RONDOLOG v12.0 inicializando...');
+      console.log('🚀 RONDOLOG v12.1 inicializando...');
       console.log('🌐 URL da API:', GOOGLE_SCRIPT_URL);
+      console.log('🔧 Usando URL correta e forçada no localStorage');
       
       loadConfig();
       setupEventListeners();
@@ -1227,16 +1234,20 @@
       applyFiltersAndRender();
       testConnectionOnStartup();
       
-      console.log('✅ Sistema inicializado');
+      console.log('✅ Sistema inicializado com URL corrigida');
     });
 
     // ⚙️ CONFIGURAÇÃO
     function loadConfig() {
+      // 🔥 SEMPRE USAR A URL CORRETA, IGNORANDO localStorage ANTIGO
+      // Mantemos apenas para mostrar no log
       const savedUrl = localStorage.getItem('rondolog_google_api_url');
-      if (savedUrl) {
-        GOOGLE_SCRIPT_URL = savedUrl;
-        console.log('⚙️ URL carregada do localStorage:', GOOGLE_SCRIPT_URL);
+      if (savedUrl && savedUrl !== GOOGLE_SCRIPT_URL) {
+        console.log('⚠️ URL antiga encontrada no localStorage, substituindo pela nova:', savedUrl);
       }
+      
+      // Forçar a URL correta
+      localStorage.setItem('rondolog_google_api_url', GOOGLE_SCRIPT_URL);
       
       isDarkMode = localStorage.getItem('rondolog_dark_mode') === 'true';
       if (isDarkMode) {
@@ -1254,7 +1265,7 @@
       localStorage.setItem('rondolog_stats', JSON.stringify(appStats));
     }
 
-    // 🌐 FUNÇÕES DE SINCRONIZAÇÃO
+    // 🌐 FUNÇÕES DE SINCRONIZAÇÃO - CORRIGIDAS
     async function testGoogleSheetsConnection() {
       const btn = btnTestConnection;
       const originalText = btn.innerHTML;
@@ -1376,7 +1387,7 @@
       }
     }
 
-    // 🔥 FUNÇÃO PRINCIPAL PARA SALVAR (SEM SALVAMENTO LOCAL)
+    // 🔥 FUNÇÃO PRINCIPAL PARA SALVAR - CORRIGIDA
     async function saveToGoogleSheetsFallback() {
       if (vehicleData.length === 0) {
         console.log('📭 Nenhum dado para salvar');
@@ -1414,17 +1425,11 @@
           // Codificar dados para URL
           const dataStr = encodeURIComponent(JSON.stringify(batch));
           
-          // Montar URL com dados no parâmetro (VERIFICAR SE NÃO ESTÁ MUITO LONGO)
+          // Montar URL com dados no parâmetro
           const url = `${GOOGLE_SCRIPT_URL}?action=save&data=${dataStr}&batch=${i + 1}&total=${totalBatches}&t=${Date.now()}`;
           
           console.log(`📤 Enviando lote ${i + 1}/${totalBatches}:`, batch.length, 'veículos');
           console.log('📏 Tamanho da URL:', url.length, 'caracteres');
-          
-          // Verificar se a URL não está muito longa
-          if (url.length > 4000) {
-            console.error(`❌ URL muito longa para o lote ${i + 1}`);
-            continue;
-          }
           
           // Fazer requisição GET
           const response = await fetch(url);
@@ -1435,11 +1440,12 @@
             const result = await response.json();
             console.log(`📦 Resposta JSON do lote ${i + 1}:`, result);
             
-            if (result.status === 'success') {
+            if (result.status === 'success' && result.data && result.data.message && result.data.message.includes('✅')) {
               successCount++;
               updateSyncInfo(`Enviando... ${i + 1}/${totalBatches} lotes`);
+              console.log(`✅ Lote ${i + 1} salvo com sucesso!`);
             } else {
-              console.error(`❌ Erro no lote ${i + 1}:`, result.data?.message);
+              console.error(`❌ Erro no lote ${i + 1}:`, result.data?.message || 'Resposta sem sucesso');
             }
           } else {
             console.error(`❌ HTTP Error no lote ${i + 1}:`, response.status);
@@ -1684,8 +1690,6 @@
 
       applyFiltersAndRender();
       
-      // 🔥 REMOVIDO: saveToLocalStorage() - NÃO SALVA LOCALMENTE
-      
       if (isOnlineMode) {
         syncMessage += ' - Sincronizando com Google Sheets...';
         showNotification(syncMessage, 'info');
@@ -1712,8 +1716,6 @@
       
       vehicleData.splice(index, 1);
       applyFiltersAndRender();
-      
-      // 🔥 REMOVIDO: saveToLocalStorage() - NÃO SALVA LOCALMENTE
       
       let syncMessage = '✅ Veículo excluído';
       
@@ -1994,8 +1996,6 @@
           closeEditModal();
         }
       });
-
-      // 🔥 REMOVIDO: beforeunload event - NÃO SALVA LOCALMENTE
     }
 
     function toggleDarkMode() {
