@@ -964,7 +964,7 @@
             <span>🌙</span> Modo Escuro
           </button>
           
-          <!-- 📊 DROPDOWN DE EXPORTAÇÃO (SIMPLIFICADO) -->
+          <!-- 📊 DROPDOWN DE EXPORTAÇÃO -->
           <div class="export-dropdown" id="exportDropdown">
             <button class="btn btn-warning" type="button" id="btnExport">
               <span>📊</span> Exportar
@@ -1008,6 +1008,10 @@
         
         <button class="btn btn-primary" id="btnSaveOnline" type="button">
           <span>💾</span> Salvar no Sheets
+        </button>
+        
+        <button class="btn btn-warning" id="btnDiagnose" type="button">
+          <span>🔍</span> Diagnóstico
         </button>
         
         <div class="online-status offline" id="onlineStatus">
@@ -1113,12 +1117,12 @@
       <form id="editForm">
         <div class="form-group">
           <label>Placa do Veículo *</label>
-          <input type="text" class="form-control" id="editPlaca" required aria-label="Placa do veículo">
+          <input type="text" class="form-control" id="editPlaca" required>
           <div class="error-message" id="placaError">Placa é obrigatória</div>
         </div>
         <div class="form-group">
           <label>Status da Placa</label>
-          <select class="form-control" id="editStatusPlaca" aria-label="Status da placa">
+          <select class="form-control" id="editStatusPlaca">
             <option value="">Selecione...</option>
             <option value="Regular">Regular</option>
             <option value="Irregular">Irregular</option>
@@ -1128,16 +1132,16 @@
         </div>
         <div class="form-group">
           <label>Vigência Pesquisa Placa</label>
-          <input type="date" class="form-control" id="editVigenciaPlaca" aria-label="Vigência pesquisa placa">
+          <input type="date" class="form-control" id="editVigenciaPlaca">
         </div>
         <div class="form-group">
           <label>Checklist Vigência *</label>
-          <input type="date" class="form-control" id="editVigenciaChecklist" required aria-label="Checklist vigência">
+          <input type="date" class="form-control" id="editVigenciaChecklist" required>
           <div class="error-message" id="vigenciaChecklistError">Vigência do checklist é obrigatória</div>
         </div>
         <div class="form-group">
           <label>Checklist Status *</label>
-          <select class="form-control" id="editStatusChecklist" required aria-label="Checklist status">
+          <select class="form-control" id="editStatusChecklist" required>
             <option value="">Selecione...</option>
             <option value="Aprovado">Aprovado</option>
             <option value="Reprovado">Reprovado</option>
@@ -1156,6 +1160,11 @@
   </div>
 
   <script>
+    // ============================================
+    // RONDOLOG - SISTEMA DE GESTÃO DE FROTAS
+    // Versão: 10.1 - COM CORS CORRIGIDO
+    // ============================================
+    
     // 🎯 VARIÁVEIS GLOBAIS
     let vehicleData = [];
     let filteredData = [];
@@ -1163,11 +1172,20 @@
     let currentEditIndex = -1;
     let lastSaveTime = null;
     let autoSaveInterval;
+    let isDarkMode = false;
 
-    // 🔗 CONFIGURAÇÃO GOOGLE SHEETS API
-    let GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbynMU4xiEL0h-VnLmbK62YIPVkGJA1pcWdE1bGzxuZ2xBurIzlqjqP3gqbfgUJWC_w5/exec';
+    // 🔗 CONFIGURAÇÃO GOOGLE SHEETS API - NOVA URL ATUALIZADA
+    let GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxCi529gmVgSYWXxMMfT_7ohrfnLku3S5BKr-VrfkJgO2iikeAXipyLmoxDE-Qgdcor9g/exec';
     let isOnlineMode = false;
     let syncInProgress = false;
+
+    // 📊 ESTATÍSTICAS
+    let appStats = {
+      loads: 0,
+      saves: 0,
+      lastSync: null,
+      errors: 0
+    };
 
     // 🎯 ELEMENTOS DOM
     const btnDarkMode = document.getElementById('btnDarkMode');
@@ -1191,33 +1209,18 @@
     const filteredCount = document.getElementById('filteredCount');
     const exportDropdown = document.getElementById('exportDropdown');
     const syncInfo = document.getElementById('syncInfo');
-
-    // 🔄 FUNÇÃO AUXILIAR PARA GERENCIAR LOADING STATES
-    function setButtonLoading(buttonId, isLoading, loadingText = 'Processando...') {
-      const button = document.getElementById(buttonId);
-      if (!button) return;
-      
-      if (isLoading) {
-        // Salvar estado original
-        button.dataset.originalText = button.innerHTML;
-        button.dataset.originalDisabled = button.disabled;
-        
-        // Aplicar estado de loading
-        button.innerHTML = `<span>⏳</span> ${loadingText}`;
-        button.disabled = true;
-        button.classList.add('loading');
-      } else {
-        // Restaurar estado original
-        if (button.dataset.originalText) {
-          button.innerHTML = button.dataset.originalText;
-        }
-        button.disabled = button.dataset.originalDisabled === 'true';
-        button.classList.remove('loading');
-      }
-    }
+    const onlineStatus = document.getElementById('onlineStatus');
+    const btnTestConnection = document.getElementById('btnTestConnection');
+    const btnLoadOnline = document.getElementById('btnLoadOnline');
+    const btnSaveOnline = document.getElementById('btnSaveOnline');
+    const btnDiagnose = document.getElementById('btnDiagnose');
 
     // 🎯 INICIALIZAÇÃO
     document.addEventListener('DOMContentLoaded', function() {
+      console.log('🚀 RONDOLOG v10.1 inicializando...');
+      console.log('🌐 URL da API:', GOOGLE_SCRIPT_URL);
+      
+      loadConfig();
       loadFromLocalStorage();
       setupEventListeners();
       setupSorting();
@@ -1225,246 +1228,377 @@
       startAutoSave();
       updateSaveStatus();
       applyFiltersAndRender();
+      testConnectionOnStartup();
       
-      // Inicializar configuração online
-      initOnlineConfig();
+      console.log('✅ Sistema inicializado');
     });
 
-    // 🔗 INICIALIZAR CONFIGURAÇÃO ONLINE
-    function initOnlineConfig() {
-      isOnlineMode = true;
-      localStorage.setItem('rondolog_google_api_url', GOOGLE_SCRIPT_URL);
-      updateSyncInfo('Conecte-se ao Google Sheets para carregar os dados.');
-      updateOnlineStatus(true);
-    }
-
-    // 🌐 FUNÇÕES DE SINCRONIZAÇÃO
-
-    // 🧪 TESTAR CONEXÃO
-    async function testGoogleSheetsConnection() {
-      if (!GOOGLE_SCRIPT_URL) {
-        showNotification('❌ URL da API não configurada', 'error');
-        updateSyncInfo('API não configurada');
-        return false;
+    // ⚙️ CONFIGURAÇÃO
+    function loadConfig() {
+      const savedUrl = localStorage.getItem('rondolog_google_api_url');
+      if (savedUrl) {
+        GOOGLE_SCRIPT_URL = savedUrl;
+        console.log('⚙️ URL carregada do localStorage:', GOOGLE_SCRIPT_URL);
       }
       
-      // 🔴 ADICIONAR LOADING
-      setButtonLoading('btnTestConnection', true, 'Testando...');
-      setButtonLoading('btnLoadOnline', true);
-      setButtonLoading('btnSaveOnline', true);
+      isDarkMode = localStorage.getItem('rondolog_dark_mode') === 'true';
+      if (isDarkMode) {
+        document.body.classList.add('dark-mode');
+        btnDarkMode.innerHTML = '<span>☀️</span> Modo Claro';
+      }
       
-      showNotification('🔌 Testando conexão com Google Sheets...', 'info');
+      const savedStats = localStorage.getItem('rondolog_stats');
+      if (savedStats) appStats = JSON.parse(savedStats);
+    }
+
+    function saveConfig() {
+      localStorage.setItem('rondolog_google_api_url', GOOGLE_SCRIPT_URL);
+      localStorage.setItem('rondolog_dark_mode', isDarkMode.toString());
+      localStorage.setItem('rondolog_stats', JSON.stringify(appStats));
+    }
+
+    // 🌐 FUNÇÕES DE SINCRONIZAÇÃO - COM CORS CORRIGIDO
+    async function testGoogleSheetsConnection() {
+      const btn = btnTestConnection;
+      const originalText = btn.innerHTML;
+      
+      btn.innerHTML = '<span>⏳</span> Testando...';
+      btn.disabled = true;
+      showNotification('🔌 Testando conexão...', 'info');
       updateSyncInfo('Testando conexão...');
       
       try {
-        const response = await fetch(`${GOOGLE_SCRIPT_URL}?action=test`);
+        const url = `${GOOGLE_SCRIPT_URL}?action=test&t=${Date.now()}`;
+        console.log('🔌 Testando conexão com:', url);
+        
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+          console.error('❌ HTTP Status:', response.status, response.statusText);
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
         const result = await response.json();
+        console.log('📡 Resposta recebida:', result);
         
         if (result.status === 'success') {
           isOnlineMode = true;
-          showNotification('✅ Conectado ao Google Sheets!', 'success');
+          const data = result.data || {};
+          
+          showNotification(`✅ ${data.message || 'Conexão OK!'}`, 'success');
           updateOnlineStatus(true);
-          updateSyncInfo(`Conectado! ${result.data.totalRows || 0} veículos na planilha.`);
+          updateSyncInfo(`Conectado! ${data.totalRows || 0} veículos`);
           return true;
         } else {
-          throw new Error(result.data);
+          throw new Error(result.data?.message || 'Erro na resposta');
         }
       } catch (error) {
-        console.error('❌ Erro na conexão:', error);
-        showNotification('❌ Falha na conexão com Google Sheets', 'error');
+        console.error('❌ Conexão falhou:', error);
+        showNotification(`❌ Falha: ${error.message}`, 'error');
         updateOnlineStatus(false);
-        updateSyncInfo('Falha na conexão. Verifique a URL da API.');
+        updateSyncInfo('Conexão falhou');
         return false;
       } finally {
-        // 🔴 REMOVER LOADING
-        setButtonLoading('btnTestConnection', false);
-        setButtonLoading('btnLoadOnline', false);
-        setButtonLoading('btnSaveOnline', false);
+        btn.innerHTML = originalText;
+        btn.disabled = false;
       }
     }
 
-    // 📥 CARREGAR DADOS DO GOOGLE SHEETS
     async function loadFromGoogleSheets() {
-      if (!GOOGLE_SCRIPT_URL) {
-        showNotification('⚠️ API não configurada', 'warning');
-        return false;
-      }
-      
       if (syncInProgress) {
-        showNotification('⏳ Sincronização já em andamento...', 'info');
+        showNotification('⏳ Já sincronizando...', 'info');
         return false;
       }
       
-      if (!confirm('Carregar dados do Google Sheets? Isso substituirá os dados locais atuais.')) {
+      if (!confirm('Carregar dados do Google Sheets? Dados locais serão substituídos.')) {
         return false;
       }
       
-      // 🔴 ADICIONAR ESTADO DE LOADING
-      setButtonLoading('btnLoadOnline', true, 'Carregando...');
-      setButtonLoading('btnTestConnection', true);
-      setButtonLoading('btnSaveOnline', true);
+      const btn = btnLoadOnline;
+      const originalText = btn.innerHTML;
       
+      btn.innerHTML = '<span>⏳</span> Carregando...';
+      btn.disabled = true;
       syncInProgress = true;
-      showNotification('⏳ Carregando dados do Google Sheets...', 'info');
+      showNotification('📥 Carregando dados...', 'info');
       updateSyncInfo('Carregando dados...');
       
       try {
-        const response = await fetch(`${GOOGLE_SCRIPT_URL}?action=getData`);
+        const url = `${GOOGLE_SCRIPT_URL}?action=getData&t=${Date.now()}`;
+        console.log('📥 Fazendo request para:', url);
+        
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+          console.error('❌ HTTP Status:', response.status, response.statusText);
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
         const result = await response.json();
+        console.log('📦 Resposta recebida:', result);
         
         if (result.status === 'success') {
-          // Converter dados para o formato do sistema
-          vehicleData = result.data.map(vehicle => ({
-            placa: vehicle.placa || '',
-            statusPlaca: vehicle.statusPlaca || '',
-            vigenciaPlaca: vehicle.vigenciaPlaca || '',
-            vigenciaChecklist: vehicle.vigenciaChecklist || '',
-            statusChecklist: vehicle.statusChecklist || '',
-            statusGeral: calculateStatusGeral(vehicle.vigenciaChecklist, vehicle.statusChecklist)
+          const data = result.data || {};
+          const vehicles = data.data || data || [];
+          
+          vehicleData = vehicles.map(v => ({
+            placa: v.placa || '',
+            statusPlaca: v.statusPlaca || '',
+            vigenciaPlaca: v.vigenciaPlaca || '',
+            vigenciaChecklist: v.vigenciaChecklist || '',
+            statusChecklist: v.statusChecklist || '',
+            statusGeral: calculateStatusGeral(v.vigenciaChecklist, v.statusChecklist)
           }));
+          
+          console.log(`✅ ${vehicleData.length} veículos carregados`);
           
           applyFiltersAndRender();
           saveToLocalStorage();
           
+          appStats.loads++;
+          appStats.lastSync = new Date().toISOString();
+          saveConfig();
+          
           showNotification(`✅ ${vehicleData.length} veículos carregados!`, 'success');
-          updateSyncInfo(`${vehicleData.length} veículos carregados com sucesso.`);
+          updateSyncInfo(`${vehicleData.length} veículos carregados`);
+          
+          return true;
         } else {
-          throw new Error(JSON.stringify(result.data));
+          throw new Error(result.data?.message || 'Erro ao carregar');
         }
       } catch (error) {
         console.error('❌ Erro ao carregar:', error);
-        showNotification('❌ Erro ao carregar dados online', 'error');
-        updateSyncInfo('Erro ao carregar dados.');
+        showNotification(`❌ Erro: ${error.message}`, 'error');
+        updateSyncInfo('Erro ao carregar');
+        appStats.errors++;
+        saveConfig();
+        return false;
       } finally {
-        // 🔴 SEMPRE REMOVER ESTADO DE LOADING (mesmo em caso de erro)
-        setButtonLoading('btnLoadOnline', false);
-        setButtonLoading('btnTestConnection', false);
-        setButtonLoading('btnSaveOnline', false);
+        btn.innerHTML = originalText;
+        btn.disabled = false;
         syncInProgress = false;
       }
     }
 
-    // 💾 SALVAR DADOS NO GOOGLE SHEETS
     async function saveToGoogleSheets() {
-      if (!GOOGLE_SCRIPT_URL) {
-        showNotification('⚠️ API não configurada', 'warning');
-        return false;
-      }
-      
       if (vehicleData.length === 0) {
         showNotification('📭 Nenhum dado para salvar', 'warning');
         return false;
       }
       
       if (syncInProgress) {
-        showNotification('⏳ Aguarde a sincronização atual...', 'info');
+        showNotification('⏳ Aguarde...', 'info');
         return false;
       }
       
-      if (!confirm(`Salvar ${vehicleData.length} veículos no Google Sheets?\n\nTodos os usuários verão esta atualização!`)) {
+      if (!confirm(`Salvar ${vehicleData.length} veículos no Google Sheets?\n\n✅ Esta ação atualizará completamente a planilha.`)) {
         return false;
       }
       
-      // 🔴 ADICIONAR LOADING
-      setButtonLoading('btnSaveOnline', true, 'Salvando...');
-      setButtonLoading('btnTestConnection', true);
-      setButtonLoading('btnLoadOnline', true);
+      const btn = btnSaveOnline;
+      const originalText = btn.innerHTML;
       
+      btn.innerHTML = '<span>⏳</span> Salvando...';
+      btn.disabled = true;
       syncInProgress = true;
-      showNotification('💾 Salvando no Google Sheets...', 'info');
+      showNotification('💾 Salvando dados...', 'info');
       updateSyncInfo('Salvando dados...');
       
       try {
+        const dataToSave = vehicleData.map(v => ({
+          placa: v.placa || '',
+          vigenciaPlaca: v.vigenciaPlaca || '',
+          statusPlaca: v.statusPlaca || '',
+          vigenciaChecklist: v.vigenciaChecklist || '',
+          statusChecklist: v.statusChecklist || ''
+        }));
+        
+        console.log(`📤 Enviando ${dataToSave.length} registros via POST`);
+        console.log('📋 Primeiro registro:', dataToSave[0]);
+        
+        // 🔥 MÉTODO PRINCIPAL: POST COM CORS 🔥
         const response = await fetch(GOOGLE_SCRIPT_URL, {
           method: 'POST',
-          body: JSON.stringify(vehicleData)
+          headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify(dataToSave)
         });
         
+        console.log('📡 Response status:', response.status, response.statusText);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('❌ Response error text:', errorText);
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
         const result = await response.json();
+        console.log('📦 Resposta do salvamento:', result);
         
         if (result.status === 'success') {
-          showNotification(`✅ ${result.data.count} veículos sincronizados!`, 'success');
-          updateSyncInfo(`Dados salvos: ${result.data.count} veículos.`);
+          const data = result.data || {};
+          
+          showNotification(`✅ ${data.message || 'Dados salvos!'} (${data.count || vehicleData.length} veículos)`, 'success');
+          updateSyncInfo(`Salvo: ${data.count || vehicleData.length} veículos`);
+          
+          appStats.saves++;
+          appStats.lastSync = new Date().toISOString();
+          saveConfig();
+          updateOnlineStatus(true);
+          
           return true;
         } else {
-          throw new Error(JSON.stringify(result.data));
+          throw new Error(result.data?.message || 'Erro ao salvar');
         }
       } catch (error) {
-        console.error('❌ Erro ao salvar:', error);
-        showNotification('❌ Erro ao salvar online. Verifique a conexão.', 'error');
-        updateSyncInfo('Erro ao salvar dados.');
+        console.error('❌ Erro ao salvar (POST):', error);
+        
+        // 🔥 FALLBACK: Tentar método GET em lotes se POST falhar
+        console.log('🔄 Tentando método alternativo (GET em lotes)...');
+        showNotification('🔄 Tentando método alternativo...', 'info');
+        
+        try {
+          const fallbackSuccess = await saveToGoogleSheetsFallback();
+          if (fallbackSuccess) {
+            return true;
+          }
+        } catch (fallbackError) {
+          console.error('❌ Fallback também falhou:', fallbackError);
+        }
+        
+        showNotification(`❌ Erro: ${error.message}`, 'error');
+        updateSyncInfo('Erro ao salvar');
+        updateOnlineStatus(false);
+        appStats.errors++;
+        saveConfig();
         return false;
       } finally {
-        // 🔴 REMOVER LOADING
-        setButtonLoading('btnSaveOnline', false);
-        setButtonLoading('btnTestConnection', false);
-        setButtonLoading('btnLoadOnline', false);
+        btn.innerHTML = originalText;
+        btn.disabled = false;
         syncInProgress = false;
       }
     }
 
-    // 📊 ATUALIZAR STATUS ONLINE/OFFLINE
+    // 🔥 FUNÇÃO FALLBACK: Salvar em lotes via GET
+    async function saveToGoogleSheetsFallback() {
+      if (vehicleData.length === 0) return false;
+      
+      const dataToSave = vehicleData.map(v => ({
+        placa: v.placa || '',
+        vigenciaPlaca: v.vigenciaPlaca || '',
+        statusPlaca: v.statusPlaca || '',
+        vigenciaChecklist: v.vigenciaChecklist || '',
+        statusChecklist: v.statusChecklist || ''
+      }));
+      
+      // Dividir em lotes de 15 para não exceder limite de URL
+      const batchSize = 15;
+      const batches = [];
+      
+      for (let i = 0; i < dataToSave.length; i += batchSize) {
+        batches.push(dataToSave.slice(i, i + batchSize));
+      }
+      
+      let successCount = 0;
+      let totalBatches = batches.length;
+      
+      showNotification(`📦 Enviando em ${totalBatches} lotes...`, 'info');
+      
+      for (let i = 0; i < batches.length; i++) {
+        const batch = batches[i];
+        const dataStr = encodeURIComponent(JSON.stringify(batch));
+        const url = `${GOOGLE_SCRIPT_URL}?action=save&batch=${i + 1}&total=${totalBatches}&data=${dataStr}&t=${Date.now()}`;
+        
+        // Verificar se a URL não está muito longa
+        if (url.length > 4000) {
+          console.warn(`⚠️ Lote ${i + 1} muito grande, dividindo...`);
+          // Dividir ainda mais se necessário
+          const subBatchSize = Math.ceil(batch.length / 2);
+          for (let j = 0; j < batch.length; j += subBatchSize) {
+            const subBatch = batch.slice(j, j + subBatchSize);
+            const subDataStr = encodeURIComponent(JSON.stringify(subBatch));
+            const subUrl = `${GOOGLE_SCRIPT_URL}?action=save&batch=${i + 1}-${Math.floor(j/subBatchSize)+1}&data=${subDataStr}&t=${Date.now()}`;
+            
+            try {
+              const subResponse = await fetch(subUrl);
+              if (subResponse.ok) {
+                successCount++;
+              }
+            } catch (subError) {
+              console.error(`❌ Erro no sub-lote ${i + 1}-${Math.floor(j/subBatchSize)+1}:`, subError);
+            }
+          }
+        } else {
+          try {
+            const response = await fetch(url);
+            if (response.ok) {
+              successCount++;
+            }
+          } catch (batchError) {
+            console.error(`❌ Erro no lote ${i + 1}:`, batchError);
+          }
+        }
+        
+        updateSyncInfo(`Enviando... ${i + 1}/${totalBatches} lotes`);
+      }
+      
+      if (successCount > 0) {
+        showNotification(`✅ ${successCount} lotes salvos com sucesso!`, 'success');
+        appStats.saves++;
+        appStats.lastSync = new Date().toISOString();
+        saveConfig();
+        updateOnlineStatus(true);
+        return true;
+      }
+      
+      return false;
+    }
+
+    async function testConnectionOnStartup() {
+      try {
+        const url = `${GOOGLE_SCRIPT_URL}?action=test&t=${Date.now()}`;
+        console.log('🔍 Testando conexão inicial:', url);
+        
+        const response = await fetch(url);
+        
+        if (response.ok) {
+          const result = await response.json();
+          if (result.status === 'success') {
+            isOnlineMode = true;
+            updateOnlineStatus(true);
+            updateSyncInfo('Conectado ao Google Sheets');
+            console.log('✅ Conexão online detectada na inicialização');
+          }
+        }
+      } catch (error) {
+        console.log('⚠️ Modo offline inicial:', error.message);
+        updateSyncInfo('Modo offline - Conecte-se para sincronizar');
+      }
+    }
+
+    // 📊 ATUALIZAR STATUS
     function updateOnlineStatus(connected) {
       isOnlineMode = connected;
-      const statusElement = document.getElementById('onlineStatus');
       
-      if (statusElement) {
+      if (onlineStatus) {
         if (connected) {
-          statusElement.className = 'online-status online';
-          statusElement.innerHTML = '<span class="online-dot"></span> Online';
+          onlineStatus.className = 'online-status online';
+          onlineStatus.innerHTML = '<span class="online-dot"></span> Online';
         } else {
-          statusElement.className = 'online-status offline';
-          statusElement.innerHTML = '<span class="offline-dot"></span> Offline';
+          onlineStatus.className = 'online-status offline';
+          onlineStatus.innerHTML = '<span class="offline-dot"></span> Offline';
         }
       }
     }
 
-    // 📝 ATUALIZAR INFORMAÇÕES DE SINCRONIZAÇÃO
     function updateSyncInfo(message) {
       if (syncInfo) {
-        syncInfo.textContent = message;
-        
-        // Adicionar timestamp
         const now = new Date();
         const timeStr = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
         syncInfo.innerHTML = `${message} <small style="opacity:0.7;">(${timeStr})</small>`;
       }
-    }
-
-    // 🔔 FUNÇÃO DE NOTIFICAÇÃO
-    function showNotification(message, type = 'info') {
-      const notification = document.createElement('div');
-      notification.className = `notification ${type}`;
-      notification.innerHTML = `
-        <div style="display: flex; align-items: center; gap: 10px; padding: 15px 20px;">
-          <span style="font-size: 20px;">
-            ${type === 'success' ? '✅' : type === 'error' ? '❌' : type === 'warning' ? '⚠️' : '⏳'}
-          </span>
-          <span>${message}</span>
-        </div>
-      `;
-      
-      notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: ${type === 'success' ? '#00c853' : type === 'error' ? '#ff0000' : type === 'warning' ? '#ff9800' : '#2196f3'};
-        color: white;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        z-index: 9999;
-        max-width: 400px;
-        animation: slideIn 0.3s ease;
-      `;
-      
-      document.body.appendChild(notification);
-      
-      setTimeout(() => {
-        if (notification.parentNode) {
-          notification.style.animation = 'slideOut 0.3s ease';
-          setTimeout(() => notification.remove(), 300);
-        }
-      }, 4000);
     }
 
     // 🎯 CONFIGURAÇÃO DO DROPDOWN DE EXPORTAÇÃO
@@ -1545,30 +1679,22 @@
         document.getElementById('placaError').style.display = 'block';
         document.getElementById('editPlaca').classList.add('error');
         isValid = false;
-      } else {
-        document.getElementById('placaError').style.display = 'none';
-        document.getElementById('editPlaca').classList.remove('error');
       }
       
       if (!vigenciaChecklist) {
         document.getElementById('vigenciaChecklistError').style.display = 'block';
         document.getElementById('editVigenciaChecklist').classList.add('error');
         isValid = false;
-      } else {
-        document.getElementById('vigenciaChecklistError').style.display = 'none';
-        document.getElementById('editVigenciaChecklist').classList.remove('error');
       }
       
       if (!statusChecklist) {
         document.getElementById('statusChecklistError').style.display = 'block';
         document.getElementById('editStatusChecklist').classList.add('error');
         isValid = false;
-      } else {
-        document.getElementById('statusChecklistError').style.display = 'none';
-        document.getElementById('editStatusChecklist').classList.remove('error');
       }
       
       if (!isValid) {
+        showNotification('⚠️ Preencha todos os campos obrigatórios', 'warning');
         return;
       }
       
@@ -1594,7 +1720,7 @@
       applyFiltersAndRender();
       saveToLocalStorage();
       
-      if (isOnlineMode && GOOGLE_SCRIPT_URL) {
+      if (isOnlineMode) {
         syncMessage += ' e sincronizado com Google Sheets!';
         setTimeout(async () => {
           const success = await saveToGoogleSheets();
@@ -1615,14 +1741,14 @@
       const vehicle = vehicleData[index];
       if (!confirm(`Excluir veículo ${vehicle.placa}?`)) return;
       
-      let syncMessage = '';
-      
       vehicleData.splice(index, 1);
       applyFiltersAndRender();
       saveToLocalStorage();
       
-      if (isOnlineMode && GOOGLE_SCRIPT_URL) {
-        syncMessage = '✅ Veículo excluído e sincronizado online!';
+      let syncMessage = '✅ Veículo excluído';
+      
+      if (isOnlineMode) {
+        syncMessage += ' e sincronizado online!';
         setTimeout(async () => {
           const success = await saveToGoogleSheets();
           if (!success) {
@@ -1630,7 +1756,7 @@
           }
         }, 500);
       } else {
-        syncMessage = '✅ Veículo excluído (modo offline)';
+        syncMessage += ' (modo offline)';
       }
       
       showNotification(syncMessage, 'success');
@@ -1832,8 +1958,8 @@
             <td><span class="status-badge ${statusClass}">${statusText}</span></td>
             <td>
               <div class="action-buttons">
-                <button class="btn-edit" onclick="openEditModal(${originalIndex})" aria-label="Editar veículo ${vehicle.placa}">Editar</button>
-                <button class="btn-delete" onclick="deleteVehicle(${originalIndex})" aria-label="Excluir veículo ${vehicle.placa}">Excluir</button>
+                <button class="btn-edit" onclick="openEditModal(${originalIndex})">Editar</button>
+                <button class="btn-delete" onclick="deleteVehicle(${originalIndex})">Excluir</button>
               </div>
             </td>
           </tr>
@@ -1846,7 +1972,6 @@
 
     function updateSummaryCards() {
       const total = vehicleData.length;
-      
       const expired = vehicleData.filter(v => v.statusGeral === 'VENCIDO').length;
       const ok = vehicleData.filter(v => v.statusGeral === 'OK').length;
       const pendente = vehicleData.filter(v => v.statusGeral === 'PENDENTE').length;
@@ -1875,7 +2000,7 @@
         const saveInfo = {
           lastSave: new Date().toISOString(),
           totalRecords: vehicleData.length,
-          version: '1.0'
+          version: '10.1'
         };
         localStorage.setItem('rondolog_save_info', JSON.stringify(saveInfo));
         
@@ -1956,17 +2081,15 @@
     function setupEventListeners() {
       btnDarkMode.addEventListener('click', toggleDarkMode);
       btnAddNew.addEventListener('click', openAddModal);
-      
       statusFilter.addEventListener('change', applyFiltersAndRender);
       dateFilter.addEventListener('change', applyFiltersAndRender);
       searchInput.addEventListener('input', applyFiltersAndRender);
-      
       btnCancelModal.addEventListener('click', closeEditModal);
       editForm.addEventListener('submit', handleFormSubmit);
-      
-      document.getElementById('btnTestConnection').addEventListener('click', testGoogleSheetsConnection);
-      document.getElementById('btnLoadOnline').addEventListener('click', loadFromGoogleSheets);
-      document.getElementById('btnSaveOnline').addEventListener('click', saveToGoogleSheets);
+      btnTestConnection.addEventListener('click', testGoogleSheetsConnection);
+      btnLoadOnline.addEventListener('click', loadFromGoogleSheets);
+      btnSaveOnline.addEventListener('click', saveToGoogleSheets);
+      btnDiagnose.addEventListener('click', diagnoseConnection);
       
       window.addEventListener('click', function(e) {
         if (e.target === editModal) {
@@ -1983,9 +2106,15 @@
 
     function toggleDarkMode() {
       document.body.classList.toggle('dark-mode');
-      btnDarkMode.innerHTML = document.body.classList.contains('dark-mode') 
-        ? '<span>☀️</span> Modo Claro' 
-        : '<span>🌙</span> Modo Escuro';
+      isDarkMode = document.body.classList.contains('dark-mode');
+      
+      if (isDarkMode) {
+        btnDarkMode.innerHTML = '<span>☀️</span> Modo Claro';
+        localStorage.setItem('rondolog_dark_mode', 'true');
+      } else {
+        btnDarkMode.innerHTML = '<span>🌙</span> Modo Escuro';
+        localStorage.setItem('rondolog_dark_mode', 'false');
+      }
     }
 
     // 🎯 FUNÇÕES DE EXPORTAÇÃO
@@ -2079,6 +2208,81 @@
       doc.save(`relatorio_checklist_${new Date().toISOString().split('T')[0]}.pdf`);
     }
 
+    // 🔔 FUNÇÃO DE NOTIFICAÇÃO
+    function showNotification(message, type = 'info') {
+      const notification = document.createElement('div');
+      notification.className = `notification ${type}`;
+      notification.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 10px; padding: 15px 20px;">
+          <span style="font-size: 20px;">
+            ${type === 'success' ? '✅' : type === 'error' ? '❌' : type === 'warning' ? '⚠️' : '⏳'}
+          </span>
+          <span>${message}</span>
+        </div>
+      `;
+      
+      notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: ${type === 'success' ? '#00c853' : type === 'error' ? '#ff0000' : type === 'warning' ? '#ff9800' : '#2196f3'};
+        color: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 9999;
+        max-width: 400px;
+        animation: slideIn 0.3s ease;
+      `;
+      
+      document.body.appendChild(notification);
+      
+      setTimeout(() => {
+        if (notification.parentNode) {
+          notification.style.animation = 'slideOut 0.3s ease';
+          setTimeout(() => notification.remove(), 300);
+        }
+      }, 4000);
+    }
+
+    // 🐛 FUNÇÃO DE DIAGNÓSTICO
+    async function diagnoseConnection() {
+      console.log('🔍 DIAGNÓSTICO INICIADO');
+      console.log('🌐 URL da API:', GOOGLE_SCRIPT_URL);
+      console.log('📊 Modo online:', isOnlineMode);
+      console.log('📈 Dados locais:', vehicleData.length, 'veículos');
+      
+      try {
+        const testUrl = `${GOOGLE_SCRIPT_URL}?action=test&t=${Date.now()}`;
+        console.log('🔄 Testando PING...');
+        
+        const pingResponse = await fetch(testUrl);
+        const pingResult = await pingResponse.json();
+        console.log('📡 Resposta:', pingResult);
+        
+        if (pingResult.status === 'success') {
+          showNotification('✅ Ping bem-sucedido!', 'success');
+          
+          const dataUrl = `${GOOGLE_SCRIPT_URL}?action=getData&t=${Date.now()}`;
+          const dataResponse = await fetch(dataUrl);
+          const dataResult = await dataResponse.json();
+          console.log('📡 Dados:', dataResult);
+          
+          if (dataResult.status === 'success') {
+            const data = dataResult.data || {};
+            const vehicleCount = data.data ? data.data.length : 0;
+            showNotification(`✅ Diagnóstico OK! ${vehicleCount} veículos.`, 'success');
+            updateSyncInfo(`Diagnóstico: ${vehicleCount} veículos`);
+          }
+        } else {
+          showNotification('❌ Ping falhou', 'error');
+        }
+        
+      } catch (error) {
+        console.error('❌ Erro no diagnóstico:', error);
+        showNotification(`❌ Erro: ${error.message}`, 'error');
+      }
+    }
+
     // 🎯 FUNÇÕES GLOBAIS
     window.openEditModal = openEditModal;
     window.deleteVehicle = deleteVehicle;
@@ -2088,6 +2292,7 @@
     window.testGoogleSheetsConnection = testGoogleSheetsConnection;
     window.loadFromGoogleSheets = loadFromGoogleSheets;
     window.saveToGoogleSheets = saveToGoogleSheets;
+    window.diagnoseConnection = diagnoseConnection;
   </script>
 </body>
 </html>
