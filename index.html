@@ -1162,7 +1162,7 @@
   <script>
     // ============================================
     // RONDOLOG - SISTEMA DE GESTÃO DE FROTAS
-    // Versão: 10.1 - COM CORS CORRIGIDO
+    // Versão: 11.0 - CORS CORRIGIDO PARA GITHUB PAGES
     // ============================================
     
     // 🎯 VARIÁVEIS GLOBAIS
@@ -1175,7 +1175,7 @@
     let isDarkMode = false;
 
     // 🔗 CONFIGURAÇÃO GOOGLE SHEETS API - NOVA URL ATUALIZADA
-    let GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxCi529gmVgSYWXxMMfT_7ohrfnLku3S5BKr-VrfkJgO2iikeAXipyLmoxDE-Qgdcor9g/exec';
+    let GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxQD_S6Uk5cUlgBx_ydNXoc7xxTuE1YHBg5G45WxgIRmp0DcTCA3BEON2lW5Fu6o-VE2w/exec';
     let isOnlineMode = false;
     let syncInProgress = false;
 
@@ -1217,7 +1217,7 @@
 
     // 🎯 INICIALIZAÇÃO
     document.addEventListener('DOMContentLoaded', function() {
-      console.log('🚀 RONDOLOG v10.1 inicializando...');
+      console.log('🚀 RONDOLOG v11.0 inicializando...');
       console.log('🌐 URL da API:', GOOGLE_SCRIPT_URL);
       
       loadConfig();
@@ -1257,7 +1257,7 @@
       localStorage.setItem('rondolog_stats', JSON.stringify(appStats));
     }
 
-    // 🌐 FUNÇÕES DE SINCRONIZAÇÃO - COM CORS CORRIGIDO
+    // 🌐 FUNÇÕES DE SINCRONIZAÇÃO - CORS CORRIGIDO
     async function testGoogleSheetsConnection() {
       const btn = btnTestConnection;
       const originalText = btn.innerHTML;
@@ -1380,6 +1380,73 @@
       }
     }
 
+    // 🔥 FUNÇÃO PRINCIPAL PARA SALVAR (AGORA USANDO APENAS GET)
+    async function saveToGoogleSheetsFallback() {
+      if (vehicleData.length === 0) return false;
+      
+      // Preparar dados para envio
+      const dataToSave = vehicleData.map(v => ({
+        placa: v.placa || '',
+        vigenciaPlaca: v.vigenciaPlaca || '',
+        statusPlaca: v.statusPlaca || '',
+        vigenciaChecklist: v.vigenciaChecklist || '',
+        statusChecklist: v.statusChecklist || ''
+      }));
+      
+      // Dividir em lotes menores (10 veículos por lote)
+      const batchSize = 10;
+      const batches = [];
+      
+      for (let i = 0; i < dataToSave.length; i += batchSize) {
+        batches.push(dataToSave.slice(i, i + batchSize));
+      }
+      
+      let successCount = 0;
+      let totalBatches = batches.length;
+      
+      showNotification(`📦 Enviando ${totalBatches} lotes...`, 'info');
+      
+      // Enviar cada lote individualmente
+      for (let i = 0; i < batches.length; i++) {
+        const batch = batches[i];
+        
+        try {
+          // Codificar dados para URL
+          const dataStr = encodeURIComponent(JSON.stringify(batch));
+          
+          // Montar URL com dados no parâmetro
+          const url = `${GOOGLE_SCRIPT_URL}?action=save&data=${dataStr}&batch=${i + 1}&total=${totalBatches}&t=${Date.now()}`;
+          
+          console.log(`📤 Enviando lote ${i + 1}/${totalBatches}:`, batch.length, 'veículos');
+          
+          // Fazer requisição GET
+          const response = await fetch(url);
+          
+          if (response.ok) {
+            const result = await response.json();
+            if (result.status === 'success') {
+              successCount++;
+              updateSyncInfo(`Salvando... ${i + 1}/${totalBatches} lotes`);
+            }
+          }
+        } catch (batchError) {
+          console.error(`❌ Erro no lote ${i + 1}:`, batchError);
+        }
+        
+        // Pequena pausa entre lotes para evitar rate limiting
+        if (i < batches.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+      }
+      
+      if (successCount > 0) {
+        console.log(`✅ ${successCount} lotes salvos com sucesso`);
+        return true;
+      }
+      
+      return false;
+    }
+
     async function saveToGoogleSheets() {
       if (vehicleData.length === 0) {
         showNotification('📭 Nenhum dado para salvar', 'warning');
@@ -1387,7 +1454,7 @@
       }
       
       if (syncInProgress) {
-        showNotification('⏳ Aguarde...', 'info');
+        showNotification('⏳ Já sincronizando...', 'info');
         return false;
       }
       
@@ -1405,43 +1472,12 @@
       updateSyncInfo('Salvando dados...');
       
       try {
-        const dataToSave = vehicleData.map(v => ({
-          placa: v.placa || '',
-          vigenciaPlaca: v.vigenciaPlaca || '',
-          statusPlaca: v.statusPlaca || '',
-          vigenciaChecklist: v.vigenciaChecklist || '',
-          statusChecklist: v.statusChecklist || ''
-        }));
+        // 🔥 USAR APENAS MÉTODO GET (SEM CORS ISSUES)
+        const success = await saveToGoogleSheetsFallback();
         
-        console.log(`📤 Enviando ${dataToSave.length} registros via POST`);
-        console.log('📋 Primeiro registro:', dataToSave[0]);
-        
-        // 🔥 MÉTODO PRINCIPAL: POST COM CORS 🔥
-        const response = await fetch(GOOGLE_SCRIPT_URL, {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          body: JSON.stringify(dataToSave)
-        });
-        
-        console.log('📡 Response status:', response.status, response.statusText);
-        
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('❌ Response error text:', errorText);
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        
-        const result = await response.json();
-        console.log('📦 Resposta do salvamento:', result);
-        
-        if (result.status === 'success') {
-          const data = result.data || {};
-          
-          showNotification(`✅ ${data.message || 'Dados salvos!'} (${data.count || vehicleData.length} veículos)`, 'success');
-          updateSyncInfo(`Salvo: ${data.count || vehicleData.length} veículos`);
+        if (success) {
+          showNotification(`✅ ${vehicleData.length} veículos salvos com sucesso!`, 'success');
+          updateSyncInfo(`Salvo: ${vehicleData.length} veículos`);
           
           appStats.saves++;
           appStats.lastSync = new Date().toISOString();
@@ -1450,24 +1486,10 @@
           
           return true;
         } else {
-          throw new Error(result.data?.message || 'Erro ao salvar');
+          throw new Error('Falha ao salvar os dados');
         }
       } catch (error) {
-        console.error('❌ Erro ao salvar (POST):', error);
-        
-        // 🔥 FALLBACK: Tentar método GET em lotes se POST falhar
-        console.log('🔄 Tentando método alternativo (GET em lotes)...');
-        showNotification('🔄 Tentando método alternativo...', 'info');
-        
-        try {
-          const fallbackSuccess = await saveToGoogleSheetsFallback();
-          if (fallbackSuccess) {
-            return true;
-          }
-        } catch (fallbackError) {
-          console.error('❌ Fallback também falhou:', fallbackError);
-        }
-        
+        console.error('❌ Erro ao salvar:', error);
         showNotification(`❌ Erro: ${error.message}`, 'error');
         updateSyncInfo('Erro ao salvar');
         updateOnlineStatus(false);
@@ -1479,81 +1501,6 @@
         btn.disabled = false;
         syncInProgress = false;
       }
-    }
-
-    // 🔥 FUNÇÃO FALLBACK: Salvar em lotes via GET
-    async function saveToGoogleSheetsFallback() {
-      if (vehicleData.length === 0) return false;
-      
-      const dataToSave = vehicleData.map(v => ({
-        placa: v.placa || '',
-        vigenciaPlaca: v.vigenciaPlaca || '',
-        statusPlaca: v.statusPlaca || '',
-        vigenciaChecklist: v.vigenciaChecklist || '',
-        statusChecklist: v.statusChecklist || ''
-      }));
-      
-      // Dividir em lotes de 15 para não exceder limite de URL
-      const batchSize = 15;
-      const batches = [];
-      
-      for (let i = 0; i < dataToSave.length; i += batchSize) {
-        batches.push(dataToSave.slice(i, i + batchSize));
-      }
-      
-      let successCount = 0;
-      let totalBatches = batches.length;
-      
-      showNotification(`📦 Enviando em ${totalBatches} lotes...`, 'info');
-      
-      for (let i = 0; i < batches.length; i++) {
-        const batch = batches[i];
-        const dataStr = encodeURIComponent(JSON.stringify(batch));
-        const url = `${GOOGLE_SCRIPT_URL}?action=save&batch=${i + 1}&total=${totalBatches}&data=${dataStr}&t=${Date.now()}`;
-        
-        // Verificar se a URL não está muito longa
-        if (url.length > 4000) {
-          console.warn(`⚠️ Lote ${i + 1} muito grande, dividindo...`);
-          // Dividir ainda mais se necessário
-          const subBatchSize = Math.ceil(batch.length / 2);
-          for (let j = 0; j < batch.length; j += subBatchSize) {
-            const subBatch = batch.slice(j, j + subBatchSize);
-            const subDataStr = encodeURIComponent(JSON.stringify(subBatch));
-            const subUrl = `${GOOGLE_SCRIPT_URL}?action=save&batch=${i + 1}-${Math.floor(j/subBatchSize)+1}&data=${subDataStr}&t=${Date.now()}`;
-            
-            try {
-              const subResponse = await fetch(subUrl);
-              if (subResponse.ok) {
-                successCount++;
-              }
-            } catch (subError) {
-              console.error(`❌ Erro no sub-lote ${i + 1}-${Math.floor(j/subBatchSize)+1}:`, subError);
-            }
-          }
-        } else {
-          try {
-            const response = await fetch(url);
-            if (response.ok) {
-              successCount++;
-            }
-          } catch (batchError) {
-            console.error(`❌ Erro no lote ${i + 1}:`, batchError);
-          }
-        }
-        
-        updateSyncInfo(`Enviando... ${i + 1}/${totalBatches} lotes`);
-      }
-      
-      if (successCount > 0) {
-        showNotification(`✅ ${successCount} lotes salvos com sucesso!`, 'success');
-        appStats.saves++;
-        appStats.lastSync = new Date().toISOString();
-        saveConfig();
-        updateOnlineStatus(true);
-        return true;
-      }
-      
-      return false;
     }
 
     async function testConnectionOnStartup() {
@@ -2000,7 +1947,7 @@
         const saveInfo = {
           lastSave: new Date().toISOString(),
           totalRecords: vehicleData.length,
-          version: '10.1'
+          version: '11.0'
         };
         localStorage.setItem('rondolog_save_info', JSON.stringify(saveInfo));
         
