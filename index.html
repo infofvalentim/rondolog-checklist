@@ -952,6 +952,64 @@
         justify-content: center;
       }
     }
+
+    /* 🆕 ESTILOS PARA PAINEL DE ESTATÍSTICAS */
+    .stats-panel {
+      background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+      padding: 15px 30px;
+      border-bottom: 3px solid var(--primary-red);
+      margin-top: -1px;
+    }
+
+    .stats-header {
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .stats-controls {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .stats-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: var(--radius-sm);
+      color: white;
+      font-size: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .stats-item span:first-child {
+      opacity: 0.8;
+    }
+
+    .stats-item span:last-child {
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .stats-item.warning {
+      background: rgba(255, 193, 7, 0.2);
+      border-color: rgba(255, 193, 7, 0.4);
+    }
+
+    .stats-item.error {
+      background: rgba(255, 0, 0, 0.2);
+      border-color: rgba(255, 0, 0, 0.4);
+    }
+
+    .stats-item.success {
+      background: rgba(0, 200, 83, 0.2);
+      border-color: rgba(0, 200, 83, 0.4);
+    }
   </style>
 </head>
 <body>
@@ -1040,6 +1098,39 @@
         Conecte-se ao Firebase para carregar os dados da frota.
       </div>
     </div>
+
+    <!-- 📊 PAINEL DE ESTATÍSTICAS DETALHADAS -->
+    <div class="stats-panel">
+      <div class="stats-header">
+        <h4 style="margin: 0; color: white;">📊 Estatísticas Detalhadas</h4>
+        <button class="btn btn-info" id="btnShowStats" style="font-size: 12px; padding: 8px 12px;">
+          <span>📈</span> Ver Detalhes
+        </button>
+      </div>
+      
+      <div class="stats-controls">
+        <div class="stats-item">
+          <span>📦 Firebase:</span>
+          <span id="statFirebaseCount">0</span>
+        </div>
+        <div class="stats-item">
+          <span>💻 Local:</span>
+          <span id="statLocalCount">0</span>
+        </div>
+        <div class="stats-item">
+          <span>🔄 Sincs:</span>
+          <span id="statSyncCount">0</span>
+        </div>
+        <div class="stats-item">
+          <span>⚠️ Erros:</span>
+          <span id="statErrorCount">0</span>
+        </div>
+        <div class="stats-item">
+          <span>📝 Logs:</span>
+          <span id="statLogCount">0</span>
+        </div>
+      </div>
+    </div>
     
     <!-- 📊 CARDS DE RESUMO -->
     <div class="summary-cards" id="summaryCards">
@@ -1084,6 +1175,12 @@
         <div class="filter-label">Busca Inteligente</div>
         <input type="text" class="filter-input" id="searchInput" placeholder="Placa, status, data...">
       </div>
+      <button class="btn btn-info" id="btnCheckIntegrity" style="font-size: 12px; padding: 8px 12px;">
+        <span>✅</span> Verificar Integridade
+      </button>
+      <button class="btn btn-warning" id="btnAnalyzeCount" style="font-size: 12px; padding: 8px 12px;">
+        <span>🔢</span> Analisar Contagem
+      </button>
     </div>
 
     <!-- 📋 TABELA -->
@@ -1179,7 +1276,7 @@
   <script>
     // ============================================
     // RONDOLOG - SISTEMA DE GESTÃO DE FROTAS
-    // Versão: 13.2 - DIAGNÓSTICO E RECUPERAÇÃO
+    // Versão: 13.3 - DIAGNÓSTICO E RECUPERAÇÃO COMPLETA
     // ============================================
     
     // 🎯 VARIÁVEIS GLOBAIS
@@ -1198,7 +1295,45 @@
       loads: 0,
       saves: 0,
       lastSync: null,
-      errors: 0
+      errors: 0,
+      firebaseCount: 0,
+      localCount: 0
+    };
+
+    // 📋 LOG DE SINCRONIZAÇÃO DETALHADO
+    const syncLog = {
+      entries: [],
+      
+      add: function(type, message, details = {}) {
+        const entry = {
+          timestamp: new Date().toISOString(),
+          type,
+          message,
+          details
+        };
+        
+        this.entries.push(entry);
+        console.log(`[${type.toUpperCase()}] ${message}`, details);
+        
+        // Atualizar contador de logs
+        updateStatsPanel();
+        
+        // Manter apenas últimos 100 logs
+        if (this.entries.length > 100) {
+          this.entries.shift();
+        }
+        
+        return entry;
+      },
+      
+      getRecent: function(count = 20) {
+        return this.entries.slice(-count).reverse();
+      },
+      
+      clear: function() {
+        this.entries = [];
+        updateStatsPanel();
+      }
     };
 
     // 🎯 ELEMENTOS DOM
@@ -1228,9 +1363,19 @@
     const btnLoadOnline = document.getElementById('btnLoadOnline');
     const btnSaveOnline = document.getElementById('btnSaveOnline');
     const btnMigrateSheets = document.getElementById('btnMigrateSheets');
-    const btnDiagnose = document.getElementById('btnDiagnose'); // NOVO
+    const btnDiagnose = document.getElementById('btnDiagnose');
     const btnFixData = document.getElementById('btnFixData');
-    const btnRecover = document.getElementById('btnRecover'); // NOVO
+    const btnRecover = document.getElementById('btnRecover');
+    const btnShowStats = document.getElementById('btnShowStats');
+    const btnCheckIntegrity = document.getElementById('btnCheckIntegrity');
+    const btnAnalyzeCount = document.getElementById('btnAnalyzeCount');
+    
+    // Elementos do painel de estatísticas
+    const statFirebaseCount = document.getElementById('statFirebaseCount');
+    const statLocalCount = document.getElementById('statLocalCount');
+    const statSyncCount = document.getElementById('statSyncCount');
+    const statErrorCount = document.getElementById('statErrorCount');
+    const statLogCount = document.getElementById('statLogCount');
 
     // 🔥 FIREBASE SERVICE - VERSÃO CORRIGIDA
     class FirebaseService {
@@ -1264,6 +1409,7 @@
       async connect() {
         try {
           console.log('🔌 Conectando ao Firebase...');
+          syncLog.add('connection', 'Conectando ao Firebase...');
           
           // Autenticação anônima
           const userCredential = await this.auth.signInAnonymously();
@@ -1274,14 +1420,17 @@
           connectedRef.on('value', (snap) => {
             this.isConnected = snap.val() === true;
             console.log(this.isConnected ? '✅ Conectado ao Firebase' : '⚠️ Desconectado');
+            syncLog.add('connection', this.isConnected ? 'Conectado ao Firebase' : 'Desconectado do Firebase');
             updateOnlineStatus(this.isConnected);
           });
           
           console.log('👤 Usuário anônimo conectado:', this.userId);
+          syncLog.add('connection', `Usuário anônimo conectado: ${this.userId.substring(0, 8)}...`);
           return true;
           
         } catch (error) {
           console.error('❌ Erro na conexão Firebase:', error);
+          syncLog.add('error', 'Erro na conexão Firebase', { error: error.message });
           return false;
         }
       }
@@ -1290,6 +1439,7 @@
       async saveAllVehicles(vehicles) {
         try {
           console.log(`💾 Salvando ${vehicles.length} veículos...`);
+          syncLog.add('save', `Iniciando salvamento de ${vehicles.length} veículos`);
           
           const updates = {};
           
@@ -1304,10 +1454,12 @@
           
           await this.database.ref().update(updates);
           console.log(`✅ ${vehicles.length} veículos salvos`);
+          syncLog.add('save', `${vehicles.length} veículos salvos com sucesso`);
           return true;
           
         } catch (error) {
           console.error('❌ Erro ao salvar:', error);
+          syncLog.add('error', 'Erro ao salvar veículos', { error: error.message, count: vehicles.length });
           throw error;
         }
       }
@@ -1316,11 +1468,13 @@
       async loadVehicles() {
         try {
           console.log('📥 Carregando dados...');
+          syncLog.add('load', 'Carregando dados do Firebase...');
           
           const snapshot = await this.database.ref('vehicles').once('value');
           
           if (!snapshot.exists()) {
             console.log('📭 Nenhum dado encontrado');
+            syncLog.add('load', 'Nenhum dado encontrado no Firebase');
             return [];
           }
           
@@ -1362,6 +1516,12 @@
           });
           
           console.log(`✅ ${vehicles.length} veículos carregados`);
+          syncLog.add('load', `${vehicles.length} veículos carregados`, { corrupted: corruptedCount });
+          
+          // Atualizar estatísticas
+          appStats.firebaseCount = snapshot.numChildren();
+          appStats.localCount = vehicles.length;
+          updateStatsPanel();
           
           if (corruptedCount > 0) {
             console.warn(`⚠️ ${corruptedCount} registros corrompidos encontrados`);
@@ -1372,6 +1532,7 @@
           
         } catch (error) {
           console.error('❌ Erro ao carregar:', error);
+          syncLog.add('error', 'Erro ao carregar veículos', { error: error.message });
           throw error;
         }
       }
@@ -1382,9 +1543,11 @@
           const safeKey = this.normalizeId(placa);
           await this.database.ref(`vehicles/${safeKey}`).remove();
           console.log(`🗑️ ${placa} excluído`);
+          syncLog.add('delete', `Veículo ${placa} excluído`);
           return true;
         } catch (error) {
           console.error('❌ Erro ao excluir:', error);
+          syncLog.add('error', `Erro ao excluir veículo ${placa}`, { error: error.message });
           throw error;
         }
       }
@@ -1393,6 +1556,7 @@
       setupRealtimeListener(callback) {
         try {
           console.log('👂 Configurando listener...');
+          syncLog.add('connection', 'Configurando listener em tempo real');
           
           return this.database.ref('vehicles').on('value', (snapshot) => {
             if (snapshot.exists()) {
@@ -1401,11 +1565,15 @@
                 vehicles.push(childSnapshot.val());
               });
               callback(vehicles);
+              appStats.firebaseCount = snapshot.numChildren();
+              updateStatsPanel();
+              syncLog.add('realtime', 'Dados atualizados em tempo real', { count: vehicles.length });
             }
           });
           
         } catch (error) {
           console.error('❌ Erro no listener:', error);
+          syncLog.add('error', 'Erro no listener em tempo real', { error: error.message });
         }
       }
       
@@ -1451,14 +1619,16 @@
 
     // 🎯 INICIALIZAÇÃO
     document.addEventListener('DOMContentLoaded', async function() {
-      console.log('🚀 RONDOLOG v13.2 - Firebase inicializando...');
+      console.log('🚀 RONDOLOG v13.3 - Firebase inicializando...');
       console.log('🔥 Firebase configurado com versão 8.10.1');
+      syncLog.add('system', 'Sistema RONDOLOG v13.3 inicializando...');
       
       loadConfig();
       setupEventListeners();
       setupSorting();
       setupExportDropdown();
       updateSaveStatus();
+      updateStatsPanel();
       
       // Conectar ao Firebase
       try {
@@ -1473,6 +1643,8 @@
             vehicleData = vehicles;
             applyFiltersAndRender();
             updateSummaryCards();
+            appStats.localCount = vehicles.length;
+            updateStatsPanel();
           });
           
           // Carregar dados iniciais
@@ -1485,6 +1657,7 @@
       }
       
       console.log('✅ Sistema inicializado');
+      syncLog.add('system', 'Sistema inicializado com sucesso');
     });
 
     // 📥 CARREGAR DADOS INICIAIS
@@ -1499,18 +1672,176 @@
           vehicleData = vehicles;
           applyFiltersAndRender();
           appStats.loads++;
+          appStats.localCount = vehicles.length;
+          updateStatsPanel();
           saveConfig();
           
           showNotification(`✅ ${vehicles.length} veículos carregados do servidor`, 'success');
           updateSyncInfo(`${vehicles.length} veículos carregados`);
+          syncLog.add('load', `Dados iniciais carregados: ${vehicles.length} veículos`);
         } else {
           updateSyncInfo('Nenhum dado encontrado - pronto para migrar');
+          syncLog.add('load', 'Nenhum dado encontrado no Firebase');
         }
         
       } catch (error) {
         console.error('❌ Erro ao carregar dados:', error);
         showNotification('⚠️ Erro ao carregar dados do servidor', 'warning');
         updateSyncInfo('Erro ao carregar');
+        syncLog.add('error', 'Erro ao carregar dados iniciais', { error: error.message });
+      }
+    }
+
+    // 🔍 ANALISAR DIFERENÇAS DE CONTAGEM
+    async function analyzeCountDiscrepancy() {
+      try {
+        console.log('🔍 Iniciando análise de contagem...');
+        showNotification('🔍 Analisando diferenças de contagem...', 'info');
+        syncLog.add('diagnose', 'Iniciando análise de contagem');
+        
+        const snapshot = await firebaseService.database.ref('vehicles').once('value');
+        
+        if (!snapshot.exists()) {
+          console.log('📭 Nenhum dado encontrado no Firebase');
+          showNotification('📭 Nenhum dado encontrado no Firebase', 'warning');
+          syncLog.add('diagnose', 'Nenhum dado encontrado para análise');
+          return null;
+        }
+        
+        const firebaseCount = snapshot.numChildren();
+        const localCount = vehicleData.length;
+        
+        console.log('📊 Análise de contagem:');
+        console.log(`   Firebase: ${firebaseCount} registros`);
+        console.log(`   Local: ${localCount} registros`);
+        console.log(`   Diferença: ${Math.abs(firebaseCount - localCount)}`);
+        
+        syncLog.add('diagnose', 'Análise de contagem concluída', {
+          firebase: firebaseCount,
+          local: localCount,
+          difference: Math.abs(firebaseCount - localCount)
+        });
+        
+        // Coletar dados detalhados
+        const allKeys = [];
+        const problemKeys = [];
+        const validVehicles = [];
+        const duplicates = [];
+        
+        // Mapear placas para encontrar duplicados
+        const plateMap = new Map();
+        
+        snapshot.forEach(childSnapshot => {
+          const key = childSnapshot.key;
+          const vehicle = childSnapshot.val();
+          allKeys.push(key);
+          
+          // Verificar problemas
+          if (!vehicle) {
+            problemKeys.push({ key, issue: 'Sem dados' });
+          } else if (!vehicle.placa) {
+            problemKeys.push({ key, issue: 'Sem placa', data: vehicle });
+          } else if (typeof vehicle.placa !== 'string') {
+            problemKeys.push({ key, issue: 'Placa inválida', data: vehicle });
+          } else {
+            validVehicles.push(vehicle);
+            
+            // Verificar duplicados por placa
+            const placa = vehicle.placa.toUpperCase().trim();
+            if (plateMap.has(placa)) {
+              const existing = plateMap.get(placa);
+              existing.count++;
+              existing.keys.push(key);
+              
+              // Registrar apenas uma vez por placa
+              if (existing.count === 2) {
+                duplicates.push({
+                  placa: placa,
+                  keys: existing.keys,
+                  count: existing.count
+                });
+              }
+            } else {
+              plateMap.set(placa, { count: 1, keys: [key] });
+            }
+          }
+        });
+        
+        // Montar relatório
+        let report = `🔍 ANÁLISE DE CONTAGEM - RONDOLOG\n`;
+        report += `══════════════════════════════\n\n`;
+        report += `📊 ESTATÍSTICAS GERAIS:\n`;
+        report += `   • Total no Firebase: ${firebaseCount}\n`;
+        report += `   • Total local: ${localCount}\n`;
+        report += `   • Diferença: ${Math.abs(firebaseCount - localCount)}\n`;
+        report += `   • Veículos válidos: ${validVehicles.length}\n`;
+        report += `   • Problemas: ${problemKeys.length}\n`;
+        report += `   • Duplicados: ${duplicates.length}\n\n`;
+        
+        if (problemKeys.length > 0) {
+          report += `⚠️ PROBLEMAS ENCONTRADOS (${problemKeys.length}):\n`;
+          problemKeys.slice(0, 10).forEach((problem, i) => {
+            report += `   ${i + 1}. ${problem.key}: ${problem.issue}\n`;
+          });
+          if (problemKeys.length > 10) {
+            report += `   ... e mais ${problemKeys.length - 10} problemas\n`;
+          }
+          report += `\n`;
+        }
+        
+        if (duplicates.length > 0) {
+          report += `⚠️ DUPLICADOS ENCONTRADOS (${duplicates.length}):\n`;
+          duplicates.slice(0, 10).forEach((dup, i) => {
+            report += `   ${i + 1}. ${dup.placa}: ${dup.count} registros\n`;
+          });
+          if (duplicates.length > 10) {
+            report += `   ... e mais ${duplicates.length - 10} duplicados\n`;
+          }
+          report += `\n`;
+        }
+        
+        report += `📈 RECOMENDAÇÕES:\n`;
+        
+        if (firebaseCount > localCount) {
+          report += `   • Firebase tem mais dados. Carregue novamente do Firebase.\n`;
+        } else if (localCount > firebaseCount) {
+          report += `   • Local tem mais dados. Sincronize com o Firebase.\n`;
+        }
+        
+        if (problemKeys.length > 0) {
+          report += `   • Execute "Corrigir Dados" para resolver problemas.\n`;
+        }
+        
+        if (duplicates.length > 0) {
+          report += `   • Execute "Recuperar Tudo" para remover duplicados.\n`;
+        }
+        
+        report += `\n══════════════════════════════\n`;
+        report += `🕒 ${new Date().toLocaleString('pt-BR')}`;
+        
+        // Mostrar relatório
+        alert(report);
+        
+        showNotification(
+          `🔍 Análise: ${validVehicles.length} válidos, ${problemKeys.length} problemas`, 
+          problemKeys.length > 0 ? 'warning' : 'success'
+        );
+        
+        return {
+          firebaseCount,
+          localCount,
+          validCount: validVehicles.length,
+          problemCount: problemKeys.length,
+          duplicateCount: duplicates.length,
+          problems: problemKeys,
+          duplicates: duplicates
+        };
+        
+      } catch (error) {
+        console.error('❌ Erro na análise de contagem:', error);
+        showNotification('❌ Erro na análise de contagem', 'error');
+        syncLog.add('error', 'Erro na análise de contagem', { error: error.message });
+        return null;
       }
     }
 
@@ -1519,13 +1850,14 @@
       try {
         console.log('🔍 Iniciando diagnóstico do Firebase...');
         showNotification('🔍 Diagnosticando dados do Firebase...', 'info');
+        syncLog.add('diagnose', 'Iniciando diagnóstico completo do Firebase');
         
-        // Obter snapshot completo
         const snapshot = await firebaseService.database.ref('vehicles').once('value');
         
         if (!snapshot.exists()) {
           console.log('📭 Nenhum dado encontrado no Firebase');
           showNotification('📭 Nenhum dado encontrado no Firebase', 'warning');
+          syncLog.add('diagnose', 'Nenhum dado encontrado no Firebase');
           return;
         }
         
@@ -1600,34 +1932,50 @@
         }
         
         // Mostrar resumo no alerta
-        let alertMessage = `🔍 DIAGNÓSTICO DO FIREBASE\n`;
-        alertMessage += `========================\n`;
-        alertMessage += `Total de chaves: ${allKeys.length}\n`;
-        alertMessage += `Veículos válidos: ${validVehicles.length}\n`;
-        alertMessage += `Problemas: ${problemKeys.length}\n`;
-        alertMessage += `Duplicados: ${duplicates.length}\n\n`;
+        let alertMessage = `🔍 DIAGNÓSTICO DO FIREBASE - RONDOLOG\n`;
+        alertMessage += `══════════════════════════════\n\n`;
+        alertMessage += `📊 ESTATÍSTICAS GERAIS:\n`;
+        alertMessage += `   Total de chaves: ${allKeys.length}\n`;
+        alertMessage += `   Veículos válidos: ${validVehicles.length}\n`;
+        alertMessage += `   Problemas: ${problemKeys.length}\n`;
+        alertMessage += `   Duplicados: ${duplicates.length}\n\n`;
         
         if (problemKeys.length > 0) {
           alertMessage += `⚠️ PROBLEMAS ENCONTRADOS:\n`;
           problemKeys.slice(0, 5).forEach(problem => {
-            alertMessage += `• ${problem.key}: ${problem.issue}\n`;
+            alertMessage += `   • ${problem.key}: ${problem.issue}\n`;
           });
           if (problemKeys.length > 5) {
-            alertMessage += `... e mais ${problemKeys.length - 5} problemas\n`;
+            alertMessage += `   ... e mais ${problemKeys.length - 5} problemas\n`;
           }
         }
         
         if (duplicates.length > 0) {
           alertMessage += `\n⚠️ DUPLICADOS ENCONTRADOS:\n`;
           duplicates.slice(0, 5).forEach(dup => {
-            alertMessage += `• ${dup.placa}: ${dup.count} registros\n`;
+            alertMessage += `   • ${dup.placa}: ${dup.count} registros\n`;
           });
           if (duplicates.length > 5) {
-            alertMessage += `... e mais ${duplicates.length - 5} duplicados\n`;
+            alertMessage += `   ... e mais ${duplicates.length - 5} duplicados\n`;
           }
         }
         
-        alertMessage += `\n📊 Você está vendo ${vehicleData.length} de ${validVehicles.length} veículos válidos.`;
+        alertMessage += `\n📊 CONTEXTUALIZAÇÃO:\n`;
+        alertMessage += `   Você está vendo ${vehicleData.length} de ${validVehicles.length} veículos válidos.\n\n`;
+        
+        alertMessage += `🔧 RECOMENDAÇÕES:\n`;
+        if (problemKeys.length > 0) {
+          alertMessage += `   • Use "Corrigir Dados" para problemas\n`;
+        }
+        if (duplicates.length > 0) {
+          alertMessage += `   • Use "Recuperar Tudo" para duplicados\n`;
+        }
+        if (vehicleData.length !== validVehicles.length) {
+          alertMessage += `   • Carregue novamente para sincronizar\n`;
+        }
+        
+        alertMessage += `\n══════════════════════════════\n`;
+        alertMessage += `🕒 ${new Date().toLocaleString('pt-BR')}`;
         
         alert(alertMessage);
         
@@ -1635,6 +1983,13 @@
           `🔍 Diagnóstico: ${validVehicles.length} válidos, ${problemKeys.length} problemas`, 
           problemKeys.length > 0 ? 'warning' : 'success'
         );
+        
+        syncLog.add('diagnose', 'Diagnóstico concluído', {
+          total: allKeys.length,
+          valid: validVehicles.length,
+          problems: problemKeys.length,
+          duplicates: duplicates.length
+        });
         
         return {
           total: allKeys.length,
@@ -1647,24 +2002,107 @@
       } catch (error) {
         console.error('❌ Erro no diagnóstico:', error);
         showNotification('❌ Erro no diagnóstico', 'error');
+        syncLog.add('error', 'Erro no diagnóstico', { error: error.message });
+      }
+    }
+
+    // 🔍 VERIFICAR INTEGRIDADE DOS DADOS
+    async function checkDataIntegrity() {
+      try {
+        showNotification('🔍 Verificando integridade dos dados...', 'info');
+        syncLog.add('integrity', 'Iniciando verificação de integridade');
+        
+        const issues = [];
+        
+        // Verificar dados locais
+        vehicleData.forEach((vehicle, index) => {
+          if (!vehicle.placa || vehicle.placa.trim() === '') {
+            issues.push(`Veículo ${index}: Sem placa`);
+          }
+          
+          if (vehicle.placa && vehicle.placa.length < 3) {
+            issues.push(`Veículo ${index}: Placa muito curta: "${vehicle.placa}"`);
+          }
+          
+          // Verificar datas inválidas
+          if (vehicle.vigenciaChecklist) {
+            const date = new Date(vehicle.vigenciaChecklist);
+            if (isNaN(date.getTime())) {
+              issues.push(`Veículo ${vehicle.placa}: Data inválida: "${vehicle.vigenciaChecklist}"`);
+            }
+          }
+        });
+        
+        // Verificar duplicados locais
+        const plateMap = new Map();
+        vehicleData.forEach((vehicle, index) => {
+          if (vehicle.placa) {
+            const placa = vehicle.placa.toUpperCase().trim();
+            if (plateMap.has(placa)) {
+              issues.push(`Duplicado local: Placa "${placa}" nas posições ${plateMap.get(placa)} e ${index}`);
+            } else {
+              plateMap.set(placa, index);
+            }
+          }
+        });
+        
+        if (issues.length === 0) {
+          showNotification('✅ Integridade dos dados verificada - Sem problemas encontrados', 'success');
+          syncLog.add('integrity', 'Integridade verificada - Sem problemas', { checked: vehicleData.length });
+          return { valid: true, issues: [] };
+        } else {
+          console.warn(`⚠️ ${issues.length} problemas encontrados:`, issues);
+          showNotification(`⚠️ ${issues.length} problemas de integridade encontrados`, 'warning');
+          syncLog.add('integrity', 'Problemas de integridade encontrados', { 
+            total: issues.length, 
+            checked: vehicleData.length,
+            issues: issues.slice(0, 10) 
+          });
+          
+          // Mostrar resumo
+          alert(`🔍 VERIFICAÇÃO DE INTEGRIDADE - RONDOLOG\n══════════════════════════════\n\n` +
+                `📊 RESULTADO:\n` +
+                `   • Veículos verificados: ${vehicleData.length}\n` +
+                `   • Problemas encontrados: ${issues.length}\n\n` +
+                `⚠️ PROBLEMAS ENCONTRADOS:\n${issues.slice(0, 10).join('\n')}` +
+                (issues.length > 10 ? `\n\n... e mais ${issues.length - 10} problemas` : '') +
+                `\n\n══════════════════════════════\n` +
+                `🔧 Use "Corrigir Dados" para resolver.`);
+          
+          return { valid: false, issues };
+        }
+        
+      } catch (error) {
+        console.error('❌ Erro na verificação:', error);
+        showNotification('❌ Erro na verificação de integridade', 'error');
+        syncLog.add('error', 'Erro na verificação de integridade', { error: error.message });
+        return { valid: false, issues: [`Erro: ${error.message}`] };
       }
     }
 
     // 🔄 FUNÇÃO DE RECUPERAÇÃO COMPLETA
     async function recoverAllData() {
-      if (!confirm('RECUPERAR TODOS OS DADOS?\n\nEsta operação irá:\n1. Fazer backup completo dos dados atuais\n2. Corrigir todos os problemas encontrados\n3. Remover duplicados\n4. Normalizar todas as placas\n\nDeseja continuar?')) {
+      if (!confirm('🔄 RECUPERAR TODOS OS DADOS - RONDOLOG\n══════════════════════════════\n\n' +
+                   'Esta operação irá:\n' +
+                   '1. 📦 Fazer backup completo dos dados atuais\n' +
+                   '2. 🔧 Corrigir todos os problemas encontrados\n' +
+                   '3. 🗑️ Remover duplicados automaticamente\n' +
+                   '4. 🔄 Normalizar todas as placas\n' +
+                   '5. 💾 Salvar apenas dados válidos\n\n' +
+                   '⚠️ OPERAÇÃO IRREVERSÍVEL\n' +
+                   '══════════════════════════════\n' +
+                   'Deseja continuar?')) {
         return;
       }
       
       try {
         showNotification('🔄 Iniciando recuperação completa...', 'info');
         updateSyncInfo('Recuperação iniciada...');
+        syncLog.add('recovery', 'Iniciando recuperação completa de dados');
         
         // 1. Fazer diagnóstico primeiro
         const diagnosis = await diagnoseFirebaseData();
-        if (!diagnosis) return;
-        
-        if (diagnosis.valid === 0) {
+        if (!diagnosis || diagnosis.valid === 0) {
           showNotification('📭 Nenhum dado válido para recuperar', 'warning');
           return;
         }
@@ -1681,6 +2119,12 @@
         const processedVehicles = new Map();
         const removedKeys = [];
         const correctedVehicles = [];
+        const stats = {
+          total: snapshot.numChildren(),
+          valid: 0,
+          invalid: 0,
+          duplicates: 0
+        };
         
         snapshot.forEach(childSnapshot => {
           const key = childSnapshot.key;
@@ -1713,9 +2157,16 @@
             delete correctedVehicle.updatedBy;
             delete correctedVehicle.correctedAt;
             
+            // Verificar se já existe (duplicado)
+            if (processedVehicles.has(safeKey)) {
+              stats.duplicates++;
+              console.warn(`⚠️ Duplicado removido: ${normalizedPlaca} (chave: ${key})`);
+            }
+            
             // Usar Map para evitar duplicados (mantém o último encontrado)
             processedVehicles.set(safeKey, correctedVehicle);
             correctedVehicles.push(correctedVehicle);
+            stats.valid++;
             
             // Marcar chave antiga para remoção se diferente
             if (key !== safeKey) {
@@ -1724,12 +2175,19 @@
           } else {
             // Marcar dados inválidos para remoção
             removedKeys.push(key);
+            stats.invalid++;
+            console.warn(`🗑️ Dado inválido removido: ${key}`, vehicle);
           }
         });
         
         console.log(`📊 Resultado do processamento:`);
-        console.log(`   • Veículos processados: ${processedVehicles.size}`);
+        console.log(`   • Total analisado: ${stats.total}`);
+        console.log(`   • Válidos: ${stats.valid}`);
+        console.log(`   • Inválidos: ${stats.invalid}`);
+        console.log(`   • Duplicados: ${stats.duplicates}`);
         console.log(`   • Chaves para remover: ${removedKeys.length}`);
+        
+        syncLog.add('recovery', 'Processamento concluído', stats);
         
         // 4. Preparar atualizações
         const updates = {};
@@ -1739,7 +2197,8 @@
           updates[`vehicles/${safeKey}`] = {
             ...vehicle,
             updatedAt: firebase.database.ServerValue.TIMESTAMP,
-            updatedBy: firebaseService.userId || 'recovery_system'
+            updatedBy: firebaseService.userId || 'recovery_system',
+            recoveryVersion: '13.3'
           };
         });
         
@@ -1756,8 +2215,17 @@
         console.log(`   • Veículos salvos: ${processedVehicles.size}`);
         console.log(`   • Registros removidos: ${removedKeys.length}`);
         
+        syncLog.add('recovery', 'Recuperação concluída com sucesso', {
+          saved: processedVehicles.size,
+          removed: removedKeys.length,
+          finalCount: processedVehicles.size
+        });
+        
         showNotification(
-          `✅ Recuperação concluída: ${processedVehicles.size} veículos salvos, ${removedKeys.length} removidos`, 
+          `✅ Recuperação concluída!\n` +
+          `📦 ${processedVehicles.size} veículos salvos\n` +
+          `🗑️ ${removedKeys.length} registros removidos\n` +
+          `⚠️ ${stats.duplicates} duplicados eliminados`, 
           'success'
         );
         
@@ -1772,18 +2240,28 @@
         console.error('❌ Erro na recuperação:', error);
         showNotification(`❌ Erro na recuperação: ${error.message}`, 'error');
         updateSyncInfo('Erro na recuperação');
+        syncLog.add('error', 'Erro na recuperação de dados', { error: error.message });
       }
     }
 
-    // 🚚 MIGRAÇÃO DO GOOGLE SHEETS PARA FIREBASE
+    // 🚚 MIGRAÇÃO DO GOOGLE SHEETS PARA FIREBASE - VERSÃO MELHORADA
     async function migrateFromSheets() {
-      if (!confirm('Importar dados do Google Sheets para o Firebase?\n\nIsso substituirá todos os dados atuais.')) {
+      if (!confirm('🚚 MIGRAR DO GOOGLE SHEETS - RONDOLOG\n══════════════════════════════\n\n' +
+                   'Esta operação irá:\n' +
+                   '1. 📥 Importar dados do Google Sheets\n' +
+                   '2. 🔍 Validar e limpar os dados\n' +
+                   '3. 💾 Salvar no Firebase\n' +
+                   '4. 🔄 Substituir dados atuais\n\n' +
+                   '⚠️ Dados atuais serão substituídos\n' +
+                   '══════════════════════════════\n' +
+                   'Deseja continuar?')) {
         return;
       }
       
       try {
         showNotification('🚚 Migrando dados do Google Sheets...', 'info');
         updateSyncInfo('Migrando dados...');
+        syncLog.add('migrate', 'Iniciando migração do Google Sheets');
         
         // URL do seu script antigo
         const SHEETS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxQD_S6Uk5cUlgBx_ydNXoc7xxTuE1YHBg5G45WxgIRmp0DcTCA3BEON2lW5Fu6o-VE2w/exec';
@@ -1794,35 +2272,97 @@
         
         if (result.status === 'success') {
           const data = result.data || {};
-          const vehicles = data.data || data || [];
+          const rawVehicles = data.data || data || [];
           
-          // Converter para formato do sistema
-          vehicleData = vehicles.map(v => {
-            // Extrair dados independentemente do nome da coluna
-            const placa = v.placa || v.Placa || '';
-            const vigenciaPlaca = v.vigenciaPlaca || v['Vigência Pesquisa Placa'] || '';
-            const statusPlaca = v.statusPlaca || v['Status Placa'] || '';
-            const vigenciaChecklist = v.vigenciaChecklist || v['Checklist Vigência'] || '';
-            const statusChecklist = v.statusChecklist || v['Checklist Status'] || '';
-            
-            return {
-              placa: placa.toString().trim().toUpperCase(),
-              statusPlaca: statusPlaca.toString().trim(),
-              vigenciaPlaca: formatDateForInput(vigenciaPlaca),
-              vigenciaChecklist: formatDateForInput(vigenciaChecklist),
-              statusChecklist: statusChecklist.toString().trim(),
-              statusGeral: calculateStatusGeral(vigenciaChecklist, statusChecklist),
-              migrated: true,
-              migratedAt: new Date().toISOString()
-            };
-          }).filter(v => v.placa && v.placa !== '');
+          console.log(`📥 Dados brutos recebidos: ${rawVehicles.length} registros`);
+          syncLog.add('migrate', `Dados brutos recebidos do Sheets: ${rawVehicles.length} registros`);
           
-          // Salvar no Firebase
+          // FILTRAR E LIMPAR DADOS
+          const migrationStats = {
+            total: rawVehicles.length,
+            valid: 0,
+            invalid: 0,
+            empty: 0,
+            errors: 0
+          };
+          
+          vehicleData = rawVehicles
+            .map((v, index) => {
+              try {
+                // Extrair dados independentemente do nome da coluna
+                const placa = v.placa || v.Placa || v.PLACA || '';
+                
+                // Ignorar se placa estiver vazia
+                if (!placa || placa.toString().trim() === '') {
+                  migrationStats.empty++;
+                  console.warn(`⚠️ Registro ${index}: Placa vazia`);
+                  return null;
+                }
+                
+                const vigenciaPlaca = v.vigenciaPlaca || v['Vigência Pesquisa Placa'] || v['VIGENCIA PLACA'] || '';
+                const statusPlaca = v.statusPlaca || v['Status Placa'] || v['STATUS PLACA'] || '';
+                const vigenciaChecklist = v.vigenciaChecklist || v['Checklist Vigência'] || v['CHECKLIST VIGENCIA'] || '';
+                const statusChecklist = v.statusChecklist || v['Checklist Status'] || v['CHECKLIST STATUS'] || '';
+                
+                migrationStats.valid++;
+                
+                return {
+                  placa: placa.toString().trim().toUpperCase(),
+                  statusPlaca: statusPlaca.toString().trim(),
+                  vigenciaPlaca: formatDateForInput(vigenciaPlaca),
+                  vigenciaChecklist: formatDateForInput(vigenciaChecklist),
+                  statusChecklist: statusChecklist.toString().trim(),
+                  statusGeral: calculateStatusGeral(vigenciaChecklist, statusChecklist),
+                  migrated: true,
+                  migratedAt: new Date().toISOString(),
+                  sourceRow: index + 1
+                };
+              } catch (error) {
+                migrationStats.errors++;
+                console.warn(`❌ Erro ao processar registro ${index}:`, v, error);
+                return null;
+              }
+            })
+            .filter(v => v !== null); // Remover nulos
+          
+          migrationStats.invalid = migrationStats.total - migrationStats.valid - migrationStats.empty - migrationStats.errors;
+          
+          console.log(`✅ Dados processados: ${vehicleData.length} veículos válidos`);
+          console.log(`📊 Estatísticas da migração:`, migrationStats);
+          
+          syncLog.add('migrate', 'Dados processados com sucesso', {
+            ...migrationStats,
+            finalCount: vehicleData.length
+          });
+          
+          if (vehicleData.length === 0) {
+            showNotification('📭 Nenhum dado válido para migrar', 'warning');
+            updateSyncInfo('❌ Nenhum dado válido');
+            return;
+          }
+          
+          // Salvar no Firebase com log detalhado
+          showNotification(`💾 Salvando ${vehicleData.length} veículos...`, 'info');
+          updateSyncInfo(`Salvando ${vehicleData.length} veículos...`);
+          
           await firebaseService.saveAllVehicles(vehicleData);
           
           applyFiltersAndRender();
           
-          showNotification(`✅ ${vehicleData.length} veículos migrados para o Firebase!`, 'success');
+          // Montar resumo da migração
+          let summary = `✅ ${vehicleData.length} veículos migrados para o Firebase!`;
+          
+          if (migrationStats.empty > 0) {
+            summary += `\n🗑️ ${migrationStats.empty} registros com placa vazia`;
+          }
+          if (migrationStats.errors > 0) {
+            summary += `\n❌ ${migrationStats.errors} erros de processamento`;
+          }
+          if (migrationStats.invalid > 0) {
+            summary += `\n⚠️ ${migrationStats.invalid} registros inválidos`;
+          }
+          
+          showNotification(summary, 'success');
           updateSyncInfo(`✅ ${vehicleData.length} veículos migrados`);
           
         } else {
@@ -1831,9 +2371,63 @@
         
       } catch (error) {
         console.error('❌ Migração falhou:', error);
-        showNotification('❌ Falha na migração dos dados', 'error');
+        showNotification(`❌ Falha na migração: ${error.message}`, 'error');
         updateSyncInfo('❌ Migração falhou');
+        syncLog.add('error', 'Falha na migração do Google Sheets', { error: error.message });
       }
+    }
+
+    // 📊 ATUALIZAR PAINEL DE ESTATÍSTICAS
+    function updateStatsPanel() {
+      if (statFirebaseCount) {
+        statFirebaseCount.textContent = appStats.firebaseCount || 0;
+      }
+      if (statLocalCount) {
+        statLocalCount.textContent = appStats.localCount || vehicleData.length || 0;
+      }
+      if (statSyncCount) {
+        statSyncCount.textContent = appStats.saves || 0;
+      }
+      if (statErrorCount) {
+        statErrorCount.textContent = appStats.errors || 0;
+      }
+      if (statLogCount) {
+        statLogCount.textContent = syncLog.entries.length || 0;
+      }
+    }
+
+    // 📊 MOSTRAR ESTATÍSTICAS DETALHADAS
+    function showDetailedStats() {
+      const recentLogs = syncLog.getRecent(15);
+      
+      let statsReport = `📊 ESTATÍSTICAS DETALHADAS - RONDOLOG\n`;
+      statsReport += `══════════════════════════════\n\n`;
+      statsReport += `📈 DADOS DO SISTEMA:\n`;
+      statsReport += `   • Veículos locais: ${vehicleData.length}\n`;
+      statsReport += `   • Firebase: ${appStats.firebaseCount || 0}\n`;
+      statsReport += `   • Carregamentos: ${appStats.loads}\n`;
+      statsReport += `   • Salvamentos: ${appStats.saves}\n`;
+      statsReport += `   • Erros: ${appStats.errors}\n`;
+      statsReport += `   • Logs: ${syncLog.entries.length}\n\n`;
+      
+      statsReport += `🕒 ÚLTIMA SINCRONIZAÇÃO:\n`;
+      statsReport += `   • ${appStats.lastSync ? new Date(appStats.lastSync).toLocaleString('pt-BR') : 'Nunca'}\n\n`;
+      
+      statsReport += `📋 ÚLTIMOS LOGS (${recentLogs.length}):\n`;
+      if (recentLogs.length === 0) {
+        statsReport += `   • Nenhum log recente\n`;
+      } else {
+        recentLogs.forEach(log => {
+          const time = new Date(log.timestamp).toLocaleTimeString('pt-BR');
+          statsReport += `   • [${time}] ${log.type.toUpperCase()}: ${log.message}\n`;
+        });
+      }
+      
+      statsReport += `\n══════════════════════════════\n`;
+      statsReport += `🕒 ${new Date().toLocaleString('pt-BR')}`;
+      
+      alert(statsReport);
+      syncLog.add('stats', 'Estatísticas detalhadas visualizadas');
     }
 
     // 💾 SALVAR NO FIREBASE
@@ -1848,7 +2442,11 @@
         return false;
       }
       
-      if (!confirm(`Salvar ${vehicleData.length} veículos no Firebase?\n\n✅ Esta ação atualizará completamente o servidor.`)) {
+      if (!confirm(`💾 SALVAR NO FIREBASE - RONDOLOG\n══════════════════════════════\n\n` +
+                   `Esta ação atualizará completamente o servidor.\n` +
+                   `\n📦 ${vehicleData.length} veículos serão salvos\n` +
+                   `\n══════════════════════════════\n` +
+                   `Deseja continuar?`)) {
         return false;
       }
       
@@ -1860,17 +2458,22 @@
       syncInProgress = true;
       showNotification('💾 Salvando dados no Firebase...', 'info');
       updateSyncInfo('Iniciando salvamento...');
+      syncLog.add('save', `Iniciando salvamento manual de ${vehicleData.length} veículos`);
       
       try {
         await firebaseService.saveAllVehicles(vehicleData);
         
         appStats.saves++;
         appStats.lastSync = new Date().toISOString();
+        appStats.firebaseCount = vehicleData.length;
+        updateStatsPanel();
         saveConfig();
         
         showNotification(`✅ ${vehicleData.length} veículos salvos com sucesso!`, 'success');
         updateSyncInfo(`✅ Salvo: ${vehicleData.length} veículos`);
         updateOnlineStatus(true);
+        
+        syncLog.add('save', `Salvamento manual concluído com sucesso`, { count: vehicleData.length });
         
         return true;
         
@@ -1880,7 +2483,9 @@
         updateSyncInfo('❌ Erro ao salvar');
         updateOnlineStatus(false);
         appStats.errors++;
+        updateStatsPanel();
         saveConfig();
+        syncLog.add('error', 'Erro no salvamento manual', { error: error.message, count: vehicleData.length });
         return false;
         
       } finally {
@@ -1899,6 +2504,7 @@
       btn.disabled = true;
       showNotification('🔌 Testando conexão...', 'info');
       updateSyncInfo('Testando conexão...');
+      syncLog.add('connection', 'Testando conexão com Firebase');
       
       try {
         const isConnected = await firebaseService.testConnection();
@@ -1907,16 +2513,19 @@
           showNotification('✅ Conexão Firebase estabelecida!', 'success');
           updateSyncInfo('✅ Conexão OK');
           updateOnlineStatus(true);
+          syncLog.add('connection', 'Conexão testada com sucesso - ONLINE');
         } else {
           showNotification('❌ Sem conexão com o Firebase', 'error');
           updateSyncInfo('❌ Sem conexão');
           updateOnlineStatus(false);
+          syncLog.add('connection', 'Conexão testada - OFFLINE');
         }
         
       } catch (error) {
         console.error('❌ Erro no teste de conexão:', error);
         showNotification('❌ Erro no teste de conexão', 'error');
         updateSyncInfo('❌ Erro no teste');
+        syncLog.add('error', 'Erro no teste de conexão', { error: error.message });
       } finally {
         btn.innerHTML = originalText;
         btn.disabled = false;
@@ -1955,7 +2564,10 @@
       }
       
       const savedStats = localStorage.getItem('rondolog_stats');
-      if (savedStats) appStats = JSON.parse(savedStats);
+      if (savedStats) {
+        appStats = JSON.parse(savedStats);
+        updateStatsPanel();
+      }
     }
 
     function saveConfig() {
@@ -2072,12 +2684,16 @@
       if (currentEditIndex === -1) {
         vehicleData.push(newVehicle);
         showNotification('✅ Veículo adicionado localmente', 'success');
+        syncLog.add('edit', 'Novo veículo adicionado', { placa: newVehicle.placa });
       } else {
         vehicleData[currentEditIndex] = newVehicle;
         showNotification('✅ Dados atualizados localmente', 'success');
+        syncLog.add('edit', 'Veículo editado', { placa: newVehicle.placa, index: currentEditIndex });
       }
 
       applyFiltersAndRender();
+      appStats.localCount = vehicleData.length;
+      updateStatsPanel();
       
       // Salvar no Firebase em background
       if (isOnlineMode) {
@@ -2085,8 +2701,10 @@
           try {
             await firebaseService.saveAllVehicles(vehicleData);
             console.log('✅ Alterações sincronizadas com Firebase');
+            syncLog.add('sync', 'Alterações sincronizadas em background', { count: vehicleData.length });
           } catch (error) {
             console.error('❌ Erro na sincronização:', error);
+            syncLog.add('error', 'Erro na sincronização em background', { error: error.message });
           }
         }, 500);
       }
@@ -2097,19 +2715,30 @@
     // 🗑️ EXCLUIR VEÍCULO
     async function deleteVehicle(index) {
       const vehicle = vehicleData[index];
-      if (!confirm(`Excluir veículo ${vehicle.placa}?`)) return;
+      if (!confirm(`🗑️ EXCLUIR VEÍCULO\n══════════════════════════════\n\n` +
+                   `Placa: ${vehicle.placa}\n` +
+                   `Status: ${vehicle.statusGeral}\n` +
+                   `\nEsta ação não pode ser desfeita.\n` +
+                   `══════════════════════════════\n` +
+                   `Deseja continuar?`)) return;
       
       vehicleData.splice(index, 1);
       applyFiltersAndRender();
+      appStats.localCount = vehicleData.length;
+      updateStatsPanel();
+      
+      syncLog.add('delete', `Veículo excluído localmente`, { placa: vehicle.placa, index });
       
       // Excluir do Firebase se online
       if (isOnlineMode) {
         try {
           await firebaseService.deleteVehicle(vehicle.placa);
           showNotification('✅ Veículo excluído do servidor', 'success');
+          syncLog.add('delete', `Veículo excluído do Firebase`, { placa: vehicle.placa });
         } catch (error) {
           console.error('❌ Erro ao excluir do Firebase:', error);
           showNotification('⚠️ Erro ao excluir do servidor', 'warning');
+          syncLog.add('error', 'Erro ao excluir do Firebase', { placa: vehicle.placa, error: error.message });
         }
       }
     }
@@ -2371,6 +3000,9 @@
       btnDiagnose.addEventListener('click', diagnoseFirebaseData);
       btnFixData.addEventListener('click', recoverAllData);
       btnRecover.addEventListener('click', recoverAllData);
+      btnShowStats.addEventListener('click', showDetailedStats);
+      btnCheckIntegrity.addEventListener('click', checkDataIntegrity);
+      btnAnalyzeCount.addEventListener('click', analyzeCountDiscrepancy);
       
       window.addEventListener('click', function(e) {
         if (e.target === editModal) {
@@ -2386,16 +3018,18 @@
       if (isDarkMode) {
         btnDarkMode.innerHTML = '<span>☀️</span> Modo Claro';
         localStorage.setItem('rondolog_dark_mode', 'true');
+        syncLog.add('system', 'Modo escuro ativado');
       } else {
         btnDarkMode.innerHTML = '<span>🌙</span> Modo Escuro';
         localStorage.setItem('rondolog_dark_mode', 'false');
+        syncLog.add('system', 'Modo claro ativado');
       }
     }
 
     // 🎯 FUNÇÕES DE EXPORTAÇÃO
     function exportXLS() {
       let dataToExport = filteredData;
-      let filename = `relatorio_frota_${new Date().toISOString().split('T')[0]}.xlsx`;
+      let filename = `rondolog_frota_${new Date().toISOString().split('T')[0]}.xlsx`;
 
       if (dataToExport.length === 0) {
         alert('Nenhum dado para exportar! Aplique filtros diferentes ou carregue dados.');
@@ -2422,6 +3056,7 @@
       worksheet['!cols'] = colWidths;
 
       XLSX.writeFile(workbook, filename);
+      syncLog.add('export', `Exportado para Excel: ${dataToExport.length} registros`, { filename });
     }
 
     function exportPDF() {
@@ -2480,7 +3115,8 @@
         doc.text(`Página ${i} de ${pageCount} - RONDOLOG Sistema de Gestão`, 105, 285, { align: 'center' });
       }
 
-      doc.save(`relatorio_checklist_${new Date().toISOString().split('T')[0]}.pdf`);
+      doc.save(`rondolog_relatorio_${new Date().toISOString().split('T')[0]}.pdf`);
+      syncLog.add('export', `Exportado para PDF: ${dataToExport.length} registros`);
     }
 
     // 🔔 FUNÇÃO DE NOTIFICAÇÃO
@@ -2531,6 +3167,9 @@
     window.migrateFromSheets = migrateFromSheets;
     window.diagnoseFirebaseData = diagnoseFirebaseData;
     window.recoverAllData = recoverAllData;
+    window.showDetailedStats = showDetailedStats;
+    window.checkDataIntegrity = checkDataIntegrity;
+    window.analyzeCountDiscrepancy = analyzeCountDiscrepancy;
   </script>
 </body>
 </html>
