@@ -1018,13 +1018,21 @@
           <span>🚚</span> Migrar do Sheets
         </button>
         
-        <!-- NOVO BOTÃO PARA CORRIGIR DADOS -->
+        <!-- NOVOS BOTÕES DE DIAGNÓSTICO E RECUPERAÇÃO -->
+        <button class="btn btn-info" id="btnDiagnose" type="button">
+          <span>🔍</span> Diagnosticar
+        </button>
+        
         <button class="btn btn-warning" id="btnFixData" type="button">
           <span>🔧</span> Corrigir Dados
         </button>
         
-        <div class="online-status offline" id="onlineStatus">
-          <span class="offline-dot"></span> Offline
+        <button class="btn btn-danger" id="btnRecover" type="button">
+          <span>🔄</span> Recuperar Tudo
+        </button>
+        
+        <div class="online-status online" id="onlineStatus">
+          <span class="online-dot"></span> Online
         </div>
       </div>
       
@@ -1171,7 +1179,7 @@
   <script>
     // ============================================
     // RONDOLOG - SISTEMA DE GESTÃO DE FROTAS
-    // Versão: 13.1 - CORREÇÃO DE DADOS
+    // Versão: 13.2 - DIAGNÓSTICO E RECUPERAÇÃO
     // ============================================
     
     // 🎯 VARIÁVEIS GLOBAIS
@@ -1220,7 +1228,9 @@
     const btnLoadOnline = document.getElementById('btnLoadOnline');
     const btnSaveOnline = document.getElementById('btnSaveOnline');
     const btnMigrateSheets = document.getElementById('btnMigrateSheets');
-    const btnFixData = document.getElementById('btnFixData'); // NOVO BOTÃO
+    const btnDiagnose = document.getElementById('btnDiagnose'); // NOVO
+    const btnFixData = document.getElementById('btnFixData');
+    const btnRecover = document.getElementById('btnRecover'); // NOVO
 
     // 🔥 FIREBASE SERVICE - VERSÃO CORRIGIDA
     class FirebaseService {
@@ -1441,7 +1451,7 @@
 
     // 🎯 INICIALIZAÇÃO
     document.addEventListener('DOMContentLoaded', async function() {
-      console.log('🚀 RONDOLOG v13.1 - Firebase inicializando...');
+      console.log('🚀 RONDOLOG v13.2 - Firebase inicializando...');
       console.log('🔥 Firebase configurado com versão 8.10.1');
       
       loadConfig();
@@ -1504,92 +1514,264 @@
       }
     }
 
-    // 🔧 FUNÇÃO PARA CORRIGIR DADOS CORROMPIDOS
-    async function fixCorruptedData() {
-      if (!confirm('Corrigir dados corrompidos no Firebase?\n\nEsta operação irá normalizar todas as placas e corrigir possíveis problemas nos dados.\n\nOs dados serão normalizados e registros duplicados serão removidos.')) {
+    // 🔍 FUNÇÃO DE DIAGNÓSTICO DETALHADO
+    async function diagnoseFirebaseData() {
+      try {
+        console.log('🔍 Iniciando diagnóstico do Firebase...');
+        showNotification('🔍 Diagnosticando dados do Firebase...', 'info');
+        
+        // Obter snapshot completo
+        const snapshot = await firebaseService.database.ref('vehicles').once('value');
+        
+        if (!snapshot.exists()) {
+          console.log('📭 Nenhum dado encontrado no Firebase');
+          showNotification('📭 Nenhum dado encontrado no Firebase', 'warning');
+          return;
+        }
+        
+        console.log('📊 Análise dos dados no Firebase:');
+        console.log('----------------------------------');
+        
+        const allKeys = [];
+        const problemKeys = [];
+        const validVehicles = [];
+        
+        snapshot.forEach(childSnapshot => {
+          const key = childSnapshot.key;
+          const vehicle = childSnapshot.val();
+          allKeys.push(key);
+          
+          // Verificar problemas
+          if (!vehicle) {
+            console.warn(`❌ Chave sem dados: ${key}`);
+            problemKeys.push({ key, issue: 'Sem dados' });
+          } else if (!vehicle.placa) {
+            console.warn(`❌ Veículo sem placa: ${key}`);
+            problemKeys.push({ key, issue: 'Sem placa', data: vehicle });
+          } else if (typeof vehicle.placa !== 'string') {
+            console.warn(`❌ Placa não é string: ${key}`, vehicle.placa);
+            problemKeys.push({ key, issue: 'Placa inválida', data: vehicle });
+          } else {
+            validVehicles.push(vehicle);
+          }
+        });
+        
+        console.log(`📈 Estatísticas:`);
+        console.log(`   Total de chaves: ${allKeys.length}`);
+        console.log(`   Veículos válidos: ${validVehicles.length}`);
+        console.log(`   Problemas encontrados: ${problemKeys.length}`);
+        console.log('----------------------------------');
+        
+        // Exibir problemas no console
+        if (problemKeys.length > 0) {
+          console.log('⚠️ Problemas encontrados:');
+          problemKeys.forEach(problem => {
+            console.log(`   • ${problem.key}: ${problem.issue}`);
+            if (problem.data) {
+              console.log(`     Dados:`, problem.data);
+            }
+          });
+        }
+        
+        // Agrupar por placa para encontrar duplicados
+        const platesMap = new Map();
+        validVehicles.forEach(vehicle => {
+          const placaNormalizada = vehicle.placa.toString().trim().toUpperCase();
+          if (platesMap.has(placaNormalizada)) {
+            platesMap.get(placaNormalizada).push(vehicle);
+          } else {
+            platesMap.set(placaNormalizada, [vehicle]);
+          }
+        });
+        
+        // Encontrar duplicados
+        const duplicates = [];
+        platesMap.forEach((vehicles, placa) => {
+          if (vehicles.length > 1) {
+            duplicates.push({ placa, count: vehicles.length, vehicles });
+          }
+        });
+        
+        if (duplicates.length > 0) {
+          console.log('⚠️ Duplicados encontrados:');
+          duplicates.forEach(dup => {
+            console.log(`   • ${dup.placa}: ${dup.count} registros`);
+          });
+        }
+        
+        // Mostrar resumo no alerta
+        let alertMessage = `🔍 DIAGNÓSTICO DO FIREBASE\n`;
+        alertMessage += `========================\n`;
+        alertMessage += `Total de chaves: ${allKeys.length}\n`;
+        alertMessage += `Veículos válidos: ${validVehicles.length}\n`;
+        alertMessage += `Problemas: ${problemKeys.length}\n`;
+        alertMessage += `Duplicados: ${duplicates.length}\n\n`;
+        
+        if (problemKeys.length > 0) {
+          alertMessage += `⚠️ PROBLEMAS ENCONTRADOS:\n`;
+          problemKeys.slice(0, 5).forEach(problem => {
+            alertMessage += `• ${problem.key}: ${problem.issue}\n`;
+          });
+          if (problemKeys.length > 5) {
+            alertMessage += `... e mais ${problemKeys.length - 5} problemas\n`;
+          }
+        }
+        
+        if (duplicates.length > 0) {
+          alertMessage += `\n⚠️ DUPLICADOS ENCONTRADOS:\n`;
+          duplicates.slice(0, 5).forEach(dup => {
+            alertMessage += `• ${dup.placa}: ${dup.count} registros\n`;
+          });
+          if (duplicates.length > 5) {
+            alertMessage += `... e mais ${duplicates.length - 5} duplicados\n`;
+          }
+        }
+        
+        alertMessage += `\n📊 Você está vendo ${vehicleData.length} de ${validVehicles.length} veículos válidos.`;
+        
+        alert(alertMessage);
+        
+        showNotification(
+          `🔍 Diagnóstico: ${validVehicles.length} válidos, ${problemKeys.length} problemas`, 
+          problemKeys.length > 0 ? 'warning' : 'success'
+        );
+        
+        return {
+          total: allKeys.length,
+          valid: validVehicles.length,
+          problems: problemKeys.length,
+          duplicates: duplicates.length,
+          problemDetails: problemKeys
+        };
+        
+      } catch (error) {
+        console.error('❌ Erro no diagnóstico:', error);
+        showNotification('❌ Erro no diagnóstico', 'error');
+      }
+    }
+
+    // 🔄 FUNÇÃO DE RECUPERAÇÃO COMPLETA
+    async function recoverAllData() {
+      if (!confirm('RECUPERAR TODOS OS DADOS?\n\nEsta operação irá:\n1. Fazer backup completo dos dados atuais\n2. Corrigir todos os problemas encontrados\n3. Remover duplicados\n4. Normalizar todas as placas\n\nDeseja continuar?')) {
         return;
       }
       
       try {
-        showNotification('🔧 Corrigindo dados corrompidos...', 'info');
-        updateSyncInfo('Corrigindo dados...');
+        showNotification('🔄 Iniciando recuperação completa...', 'info');
+        updateSyncInfo('Recuperação iniciada...');
         
-        // Carregar dados brutos
-        const snapshot = await firebaseService.database.ref('vehicles').once('value');
+        // 1. Fazer diagnóstico primeiro
+        const diagnosis = await diagnoseFirebaseData();
+        if (!diagnosis) return;
         
-        if (!snapshot.exists()) {
-          showNotification('📭 Nenhum dado encontrado para corrigir', 'warning');
+        if (diagnosis.valid === 0) {
+          showNotification('📭 Nenhum dado válido para recuperar', 'warning');
           return;
         }
         
-        const updates = {};
-        const vehiclesMap = new Map(); // Usar Map para evitar duplicados
-        let fixedCount = 0;
-        let removedCount = 0;
+        // 2. Obter todos os dados brutos
+        const snapshot = await firebaseService.database.ref('vehicles').once('value');
+        
+        if (!snapshot.exists()) {
+          showNotification('📭 Nenhum dado encontrado', 'warning');
+          return;
+        }
+        
+        // 3. Processar e corrigir todos os dados
+        const processedVehicles = new Map();
+        const removedKeys = [];
+        const correctedVehicles = [];
         
         snapshot.forEach(childSnapshot => {
           const key = childSnapshot.key;
           const vehicle = childSnapshot.val();
           
-          // Verificar se o veículo tem dados válidos
-          if (vehicle && vehicle.placa) {
-            // Corrigir a placa se necessário
-            const correctedPlaca = vehicle.placa.toString().trim().toUpperCase();
+          // Verificar se o veículo é válido
+          if (vehicle && vehicle.placa && typeof vehicle.placa === 'string') {
+            // Normalizar placa
+            const normalizedPlaca = vehicle.placa.toString().trim().toUpperCase();
             
-            // Criar novo objeto com dados corrigidos
+            // Gerar chave segura
+            const safeKey = firebaseService.normalizeId(normalizedPlaca);
+            
+            // Preparar veículo corrigido
             const correctedVehicle = {
-              ...vehicle,
-              placa: correctedPlaca,
+              placa: normalizedPlaca,
               statusPlaca: vehicle.statusPlaca || '',
               vigenciaPlaca: vehicle.vigenciaPlaca || '',
               vigenciaChecklist: vehicle.vigenciaChecklist || '',
               statusChecklist: vehicle.statusChecklist || '',
               statusGeral: vehicle.statusGeral || calculateStatusGeral(vehicle.vigenciaChecklist, vehicle.statusChecklist),
-              correctedAt: Date.now()
+              originalKey: key,
+              recoveredAt: Date.now(),
+              // Preservar outros campos se existirem
+              ...vehicle
             };
             
-            // Usar a função normalizeId corrigida
-            const safeKey = firebaseService.normalizeId(correctedPlaca);
+            // Remover campos de sistema antigos se existirem
+            delete correctedVehicle.updatedAt;
+            delete correctedVehicle.updatedBy;
+            delete correctedVehicle.correctedAt;
             
-            // Verificar se já existe um veículo com esta placa (evitar duplicados)
-            if (!vehiclesMap.has(safeKey)) {
-              // Adicionar ao mapa
-              vehiclesMap.set(safeKey, correctedVehicle);
-              
-              // Adicionar ao objeto de updates
-              updates[`vehicles/${safeKey}`] = correctedVehicle;
-              
-              // Remover a entrada antiga se a chave foi alterada
-              if (key !== safeKey) {
-                updates[`vehicles/${key}`] = null;
-                fixedCount++;
-              }
-            } else {
-              // Se já existe, remover o duplicado
-              updates[`vehicles/${key}`] = null;
-              removedCount++;
+            // Usar Map para evitar duplicados (mantém o último encontrado)
+            processedVehicles.set(safeKey, correctedVehicle);
+            correctedVehicles.push(correctedVehicle);
+            
+            // Marcar chave antiga para remoção se diferente
+            if (key !== safeKey) {
+              removedKeys.push(key);
             }
           } else {
-            // Remover dados inválidos
-            updates[`vehicles/${key}`] = null;
-            removedCount++;
+            // Marcar dados inválidos para remoção
+            removedKeys.push(key);
           }
         });
         
-        // Aplicar todas as correções de uma vez
+        console.log(`📊 Resultado do processamento:`);
+        console.log(`   • Veículos processados: ${processedVehicles.size}`);
+        console.log(`   • Chaves para remover: ${removedKeys.length}`);
+        
+        // 4. Preparar atualizações
+        const updates = {};
+        
+        // Adicionar veículos corrigidos
+        processedVehicles.forEach((vehicle, safeKey) => {
+          updates[`vehicles/${safeKey}`] = {
+            ...vehicle,
+            updatedAt: firebase.database.ServerValue.TIMESTAMP,
+            updatedBy: firebaseService.userId || 'recovery_system'
+          };
+        });
+        
+        // Remover chaves antigas/inválidas
+        removedKeys.forEach(key => {
+          updates[`vehicles/${key}`] = null;
+        });
+        
+        // 5. Aplicar todas as atualizações
         await firebaseService.database.ref().update(updates);
         
-        const totalFixed = fixedCount + removedCount;
-        showNotification(`✅ ${totalFixed} correções aplicadas (${fixedCount} corrigidos, ${removedCount} removidos)`, 'success');
-        updateSyncInfo(`Correções: ${vehiclesMap.size} veículos válidos`);
+        // 6. Log dos resultados
+        console.log('✅ Recuperação concluída:');
+        console.log(`   • Veículos salvos: ${processedVehicles.size}`);
+        console.log(`   • Registros removidos: ${removedKeys.length}`);
         
-        // Recarregar os dados
-        await loadInitialData();
+        showNotification(
+          `✅ Recuperação concluída: ${processedVehicles.size} veículos salvos, ${removedKeys.length} removidos`, 
+          'success'
+        );
+        
+        updateSyncInfo(`Recuperado: ${processedVehicles.size} veículos`);
+        
+        // 7. Recarregar os dados
+        setTimeout(() => {
+          loadInitialData();
+        }, 2000);
         
       } catch (error) {
-        console.error('❌ Erro ao corrigir dados:', error);
-        showNotification('❌ Erro ao corrigir dados', 'error');
-        updateSyncInfo('Erro na correção');
+        console.error('❌ Erro na recuperação:', error);
+        showNotification(`❌ Erro na recuperação: ${error.message}`, 'error');
+        updateSyncInfo('Erro na recuperação');
       }
     }
 
@@ -2186,7 +2368,9 @@
       btnLoadOnline.addEventListener('click', loadInitialData);
       btnSaveOnline.addEventListener('click', saveToFirebase);
       btnMigrateSheets.addEventListener('click', migrateFromSheets);
-      btnFixData.addEventListener('click', fixCorruptedData); // NOVO
+      btnDiagnose.addEventListener('click', diagnoseFirebaseData);
+      btnFixData.addEventListener('click', recoverAllData);
+      btnRecover.addEventListener('click', recoverAllData);
       
       window.addEventListener('click', function(e) {
         if (e.target === editModal) {
@@ -2345,7 +2529,8 @@
     window.loadInitialData = loadInitialData;
     window.saveToFirebase = saveToFirebase;
     window.migrateFromSheets = migrateFromSheets;
-    window.fixCorruptedData = fixCorruptedData;
+    window.diagnoseFirebaseData = diagnoseFirebaseData;
+    window.recoverAllData = recoverAllData;
   </script>
 </body>
 </html>
