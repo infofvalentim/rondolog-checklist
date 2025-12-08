@@ -1162,7 +1162,7 @@
   <script>
     // ============================================
     // RONDOLOG - SISTEMA DE GESTÃO DE FROTAS
-    // Versão: 12.1 - CORREÇÃO URL E SAVE
+    // Versão: 12.2 - CORREÇÃO COMPLETA DO CARREGAMENTO
     // ============================================
     
     // 🎯 VARIÁVEIS GLOBAIS
@@ -1222,7 +1222,7 @@
 
     // 🎯 INICIALIZAÇÃO
     document.addEventListener('DOMContentLoaded', function() {
-      console.log('🚀 RONDOLOG v12.1 inicializando...');
+      console.log('🚀 RONDOLOG v12.2 inicializando...');
       console.log('🌐 URL da API:', GOOGLE_SCRIPT_URL);
       console.log('🔧 Usando URL correta e forçada no localStorage');
       
@@ -1312,6 +1312,7 @@
       }
     }
 
+    // 📥 FUNÇÃO CORRIGIDA PARA CARREGAR DADOS
     async function loadFromGoogleSheets() {
       if (syncInProgress) {
         showNotification('⏳ Já sincronizando...', 'info');
@@ -1343,22 +1344,61 @@
         }
         
         const result = await response.json();
-        console.log('📦 Resposta recebida:', result);
+        console.log('📦 Resposta completa:', result);
         
         if (result.status === 'success') {
-          const data = result.data || {};
-          const vehicles = data.data || data || [];
+          // Verificar diferentes estruturas de resposta
+          let vehicles = [];
           
-          vehicleData = vehicles.map(v => ({
-            placa: v.placa || '',
-            statusPlaca: v.statusPlaca || '',
-            vigenciaPlaca: v.vigenciaPlaca || '',
-            vigenciaChecklist: v.vigenciaChecklist || '',
-            statusChecklist: v.statusChecklist || '',
-            statusGeral: calculateStatusGeral(v.vigenciaChecklist, v.statusChecklist)
-          }));
+          if (result.data && result.data.data) {
+            // Estrutura: { data: { data: [...] } }
+            vehicles = result.data.data;
+            console.log(`📊 Estrutura 1: ${vehicles.length} veículos`);
+          } else if (result.data && Array.isArray(result.data)) {
+            // Estrutura: { data: [...] }
+            vehicles = result.data;
+            console.log(`📊 Estrutura 2: ${vehicles.length} veículos`);
+          } else if (Array.isArray(result)) {
+            // Estrutura: [...]
+            vehicles = result;
+            console.log(`📊 Estrutura 3: ${vehicles.length} veículos`);
+          } else {
+            console.warn('⚠️ Estrutura de dados não reconhecida:', result);
+          }
           
-          console.log(`✅ ${vehicleData.length} veículos carregados`);
+          console.log('🚗 Dados brutos recebidos (primeiros 3):', vehicles.slice(0, 3));
+          
+          // Converter os dados para o formato do sistema
+          vehicleData = vehicles.map(v => {
+            // Extrair valores independentemente dos nomes das colunas
+            const placa = v.placa || v.Placa || v.PLACA || v[0] || '';
+            const vigenciaPlaca = v.vigenciaPlaca || v['Vigência Pesquisa Placa'] || v['Vigencia Pesquisa Placa'] || v.vigenciaPlaca || v[1] || '';
+            const statusPlaca = v.statusPlaca || v['Status Placa'] || v.statusPlaca || v[2] || '';
+            const vigenciaChecklist = v.vigenciaChecklist || v['Checklist Vigência'] || v['Checklist Vigencia'] || v.checklistVigencia || v[3] || '';
+            const statusChecklist = v.statusChecklist || v['Checklist Status'] || v.checklistStatus || v[4] || '';
+            
+            // Formatar datas se necessário
+            const formatarData = (dataStr) => {
+              if (!dataStr) return '';
+              // Se já for uma string de data válida, retornar como está
+              if (typeof dataStr === 'string' && dataStr.includes('-')) {
+                return dataStr.split(' ')[0]; // Remover hora se existir
+              }
+              return dataStr;
+            };
+            
+            return {
+              placa: placa.toString().trim(),
+              statusPlaca: statusPlaca.toString().trim(),
+              vigenciaPlaca: formatarData(vigenciaPlaca),
+              vigenciaChecklist: formatarData(vigenciaChecklist),
+              statusChecklist: statusChecklist.toString().trim(),
+              statusGeral: calculateStatusGeral(formatarData(vigenciaChecklist), statusChecklist.toString().trim())
+            };
+          }).filter(v => v.placa && v.placa !== ''); // Remover entradas sem placa
+          
+          console.log(`✅ ${vehicleData.length} veículos processados`);
+          console.log('📋 Primeiros 3 veículos processados:', vehicleData.slice(0, 3));
           
           applyFiltersAndRender();
           
@@ -1371,7 +1411,7 @@
           
           return true;
         } else {
-          throw new Error(result.data?.message || 'Erro ao carregar');
+          throw new Error(result.data?.message || 'Erro ao carregar: Status não é success');
         }
       } catch (error) {
         console.error('❌ Erro ao carregar:', error);
