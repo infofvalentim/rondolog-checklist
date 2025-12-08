@@ -1018,6 +1018,11 @@
           <span>🚚</span> Migrar do Sheets
         </button>
         
+        <!-- NOVO BOTÃO PARA CORRIGIR DADOS -->
+        <button class="btn btn-warning" id="btnFixData" type="button">
+          <span>🔧</span> Corrigir Dados
+        </button>
+        
         <div class="online-status offline" id="onlineStatus">
           <span class="offline-dot"></span> Offline
         </div>
@@ -1166,7 +1171,7 @@
   <script>
     // ============================================
     // RONDOLOG - SISTEMA DE GESTÃO DE FROTAS
-    // Versão: 13.0 - FIREBASE INTEGRATION (8.10.1)
+    // Versão: 13.1 - CORREÇÃO DE DADOS
     // ============================================
     
     // 🎯 VARIÁVEIS GLOBAIS
@@ -1215,8 +1220,9 @@
     const btnLoadOnline = document.getElementById('btnLoadOnline');
     const btnSaveOnline = document.getElementById('btnSaveOnline');
     const btnMigrateSheets = document.getElementById('btnMigrateSheets');
+    const btnFixData = document.getElementById('btnFixData'); // NOVO BOTÃO
 
-    // 🔥 FIREBASE SERVICE - VERSÃO COMPATÍVEL (8.10.1)
+    // 🔥 FIREBASE SERVICE - VERSÃO CORRIGIDA
     class FirebaseService {
       constructor() {
         // SEUS DADOS DO FIREBASE (não mude)
@@ -1296,7 +1302,7 @@
         }
       }
       
-      // 📥 CARREGAR TODOS OS VEÍCULOS
+      // 📥 CARREGAR TODOS OS VEÍCULOS (VERSÃO ROBUSTA)
       async loadVehicles() {
         try {
           console.log('📥 Carregando dados...');
@@ -1309,11 +1315,49 @@
           }
           
           const vehicles = [];
+          let corruptedCount = 0;
+          
           snapshot.forEach(childSnapshot => {
-            vehicles.push(childSnapshot.val());
+            try {
+              const vehicle = childSnapshot.val();
+              
+              // Validar dados básicos
+              if (vehicle && vehicle.placa) {
+                // Garantir que a placa seja string e trim
+                vehicle.placa = vehicle.placa.toString().trim().toUpperCase();
+                
+                // Garantir outros campos
+                vehicle.statusPlaca = vehicle.statusPlaca || '';
+                vehicle.vigenciaPlaca = vehicle.vigenciaPlaca || '';
+                vehicle.vigenciaChecklist = vehicle.vigenciaChecklist || '';
+                vehicle.statusChecklist = vehicle.statusChecklist || '';
+                
+                // Calcular status geral se não existir
+                if (!vehicle.statusGeral) {
+                  vehicle.statusGeral = calculateStatusGeral(
+                    vehicle.vigenciaChecklist, 
+                    vehicle.statusChecklist
+                  );
+                }
+                
+                vehicles.push(vehicle);
+              } else {
+                console.warn('⚠️ Dado corrompido encontrado:', childSnapshot.key);
+                corruptedCount++;
+              }
+            } catch (error) {
+              console.error('❌ Erro ao processar veículo:', error);
+              corruptedCount++;
+            }
           });
           
           console.log(`✅ ${vehicles.length} veículos carregados`);
+          
+          if (corruptedCount > 0) {
+            console.warn(`⚠️ ${corruptedCount} registros corrompidos encontrados`);
+            showNotification(`⚠️ ${corruptedCount} registros com problemas encontrados`, 'warning');
+          }
+          
           return vehicles;
           
         } catch (error) {
@@ -1366,9 +1410,29 @@
         }
       }
       
-      // 🛠️ UTILITÁRIOS
+      // 🛠️ UTILITÁRIOS - FUNÇÃO NORMALIZEID CORRIGIDA
       normalizeId(placa) {
-        return placa.replace(/[.#$/[\]]/g, '_').toLowerCase();
+        // Remover todos os caracteres especiais e espaços
+        if (!placa) return 'undefined';
+        
+        // Converter para maiúsculas e remover espaços
+        let normalized = placa.toString().toUpperCase().trim();
+        
+        // Substituir todos os caracteres não alfanuméricos por underscore
+        normalized = normalized.replace(/[^A-Z0-9]/g, '_');
+        
+        // Remover underscores consecutivos
+        normalized = normalized.replace(/_+/g, '_');
+        
+        // Garantir que não comece ou termine com underscore
+        normalized = normalized.replace(/^_+|_+$/g, '');
+        
+        // Se ficar vazio, usar um ID genérico
+        if (normalized === '') {
+          return 'vehicle_' + Math.random().toString(36).substr(2, 9);
+        }
+        
+        return normalized.toLowerCase();
       }
     }
 
@@ -1377,7 +1441,7 @@
 
     // 🎯 INICIALIZAÇÃO
     document.addEventListener('DOMContentLoaded', async function() {
-      console.log('🚀 RONDOLOG v13.0 - Firebase inicializando...');
+      console.log('🚀 RONDOLOG v13.1 - Firebase inicializando...');
       console.log('🔥 Firebase configurado com versão 8.10.1');
       
       loadConfig();
@@ -1440,6 +1504,95 @@
       }
     }
 
+    // 🔧 FUNÇÃO PARA CORRIGIR DADOS CORROMPIDOS
+    async function fixCorruptedData() {
+      if (!confirm('Corrigir dados corrompidos no Firebase?\n\nEsta operação irá normalizar todas as placas e corrigir possíveis problemas nos dados.\n\nOs dados serão normalizados e registros duplicados serão removidos.')) {
+        return;
+      }
+      
+      try {
+        showNotification('🔧 Corrigindo dados corrompidos...', 'info');
+        updateSyncInfo('Corrigindo dados...');
+        
+        // Carregar dados brutos
+        const snapshot = await firebaseService.database.ref('vehicles').once('value');
+        
+        if (!snapshot.exists()) {
+          showNotification('📭 Nenhum dado encontrado para corrigir', 'warning');
+          return;
+        }
+        
+        const updates = {};
+        const vehiclesMap = new Map(); // Usar Map para evitar duplicados
+        let fixedCount = 0;
+        let removedCount = 0;
+        
+        snapshot.forEach(childSnapshot => {
+          const key = childSnapshot.key;
+          const vehicle = childSnapshot.val();
+          
+          // Verificar se o veículo tem dados válidos
+          if (vehicle && vehicle.placa) {
+            // Corrigir a placa se necessário
+            const correctedPlaca = vehicle.placa.toString().trim().toUpperCase();
+            
+            // Criar novo objeto com dados corrigidos
+            const correctedVehicle = {
+              ...vehicle,
+              placa: correctedPlaca,
+              statusPlaca: vehicle.statusPlaca || '',
+              vigenciaPlaca: vehicle.vigenciaPlaca || '',
+              vigenciaChecklist: vehicle.vigenciaChecklist || '',
+              statusChecklist: vehicle.statusChecklist || '',
+              statusGeral: vehicle.statusGeral || calculateStatusGeral(vehicle.vigenciaChecklist, vehicle.statusChecklist),
+              correctedAt: Date.now()
+            };
+            
+            // Usar a função normalizeId corrigida
+            const safeKey = firebaseService.normalizeId(correctedPlaca);
+            
+            // Verificar se já existe um veículo com esta placa (evitar duplicados)
+            if (!vehiclesMap.has(safeKey)) {
+              // Adicionar ao mapa
+              vehiclesMap.set(safeKey, correctedVehicle);
+              
+              // Adicionar ao objeto de updates
+              updates[`vehicles/${safeKey}`] = correctedVehicle;
+              
+              // Remover a entrada antiga se a chave foi alterada
+              if (key !== safeKey) {
+                updates[`vehicles/${key}`] = null;
+                fixedCount++;
+              }
+            } else {
+              // Se já existe, remover o duplicado
+              updates[`vehicles/${key}`] = null;
+              removedCount++;
+            }
+          } else {
+            // Remover dados inválidos
+            updates[`vehicles/${key}`] = null;
+            removedCount++;
+          }
+        });
+        
+        // Aplicar todas as correções de uma vez
+        await firebaseService.database.ref().update(updates);
+        
+        const totalFixed = fixedCount + removedCount;
+        showNotification(`✅ ${totalFixed} correções aplicadas (${fixedCount} corrigidos, ${removedCount} removidos)`, 'success');
+        updateSyncInfo(`Correções: ${vehiclesMap.size} veículos válidos`);
+        
+        // Recarregar os dados
+        await loadInitialData();
+        
+      } catch (error) {
+        console.error('❌ Erro ao corrigir dados:', error);
+        showNotification('❌ Erro ao corrigir dados', 'error');
+        updateSyncInfo('Erro na correção');
+      }
+    }
+
     // 🚚 MIGRAÇÃO DO GOOGLE SHEETS PARA FIREBASE
     async function migrateFromSheets() {
       if (!confirm('Importar dados do Google Sheets para o Firebase?\n\nIsso substituirá todos os dados atuais.')) {
@@ -1471,7 +1624,7 @@
             const statusChecklist = v.statusChecklist || v['Checklist Status'] || '';
             
             return {
-              placa: placa.toString().trim(),
+              placa: placa.toString().trim().toUpperCase(),
               statusPlaca: statusPlaca.toString().trim(),
               vigenciaPlaca: formatDateForInput(vigenciaPlaca),
               vigenciaChecklist: formatDateForInput(vigenciaChecklist),
@@ -1726,7 +1879,7 @@
       }
       
       const newVehicle = {
-        placa: placa,
+        placa: placa.toUpperCase().trim(),
         statusPlaca: document.getElementById('editStatusPlaca').value,
         vigenciaPlaca: document.getElementById('editVigenciaPlaca').value,
         vigenciaChecklist: vigenciaChecklist,
@@ -2033,6 +2186,7 @@
       btnLoadOnline.addEventListener('click', loadInitialData);
       btnSaveOnline.addEventListener('click', saveToFirebase);
       btnMigrateSheets.addEventListener('click', migrateFromSheets);
+      btnFixData.addEventListener('click', fixCorruptedData); // NOVO
       
       window.addEventListener('click', function(e) {
         if (e.target === editModal) {
@@ -2191,6 +2345,7 @@
     window.loadInitialData = loadInitialData;
     window.saveToFirebase = saveToFirebase;
     window.migrateFromSheets = migrateFromSheets;
+    window.fixCorruptedData = fixCorruptedData;
   </script>
 </body>
 </html>
