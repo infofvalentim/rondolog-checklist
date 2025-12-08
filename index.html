@@ -7,10 +7,10 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
-  <!-- 🔥 SCRIPTS DO FIREBASE -->
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"></script>
+  <!-- 🔥 SCRIPTS DO FIREBASE - VERSÃO 8.10.1 -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -1166,7 +1166,7 @@
   <script>
     // ============================================
     // RONDOLOG - SISTEMA DE GESTÃO DE FROTAS
-    // Versão: 13.0 - FIREBASE INTEGRATION
+    // Versão: 13.0 - FIREBASE INTEGRATION (8.10.1)
     // ============================================
     
     // 🎯 VARIÁVEIS GLOBAIS
@@ -1179,18 +1179,6 @@
     let isOnlineMode = false;
     let syncInProgress = false;
     let firebaseRealtimeListener = null;
-
-    // 🔥 CONFIGURAÇÃO FIREBASE - SEUS DADOS
-    const FIREBASE_CONFIG = {
-      apiKey: "AIzaSyDLBgeNjBJ8o2I4yh4ggBbwVwJQxa3zp94",
-      authDomain: "rondolog-frotas.firebaseapp.com",
-      databaseURL: "https://rondolog-frotas-default-rtdb.firebaseio.com",
-      projectId: "rondolog-frotas",
-      storageBucket: "rondolog-frotas.firebasestorage.app",
-      messagingSenderId: "136477471508",
-      appId: "1:136477471508:web:1640848958acf2078f0801",
-      measurementId: "G-NY9VLX8BC9"
-    };
 
     // 📊 ESTATÍSTICAS
     let appStats = {
@@ -1228,11 +1216,28 @@
     const btnSaveOnline = document.getElementById('btnSaveOnline');
     const btnMigrateSheets = document.getElementById('btnMigrateSheets');
 
-    // 🔥 FIREBASE SERVICE
+    // 🔥 FIREBASE SERVICE - VERSÃO COMPATÍVEL (8.10.1)
     class FirebaseService {
       constructor() {
-        // Inicializar Firebase
-        this.app = firebase.initializeApp(FIREBASE_CONFIG);
+        // SEUS DADOS DO FIREBASE (não mude)
+        this.firebaseConfig = {
+          apiKey: "AIzaSyDLBgeNjBJ8o2I4yh4ggBbwVwJQxa3zp94",
+          authDomain: "rondolog-frotas.firebaseapp.com",
+          databaseURL: "https://rondolog-frotas-default-rtdb.firebaseio.com",
+          projectId: "rondolog-frotas",
+          storageBucket: "rondolog-frotas.firebasestorage.app",
+          messagingSenderId: "136477471508",
+          appId: "1:136477471508:web:1640848958acf2078f0801",
+          measurementId: "G-NY9VLX8BC9"
+        };
+        
+        // Inicializar Firebase (sintaxe da versão 8)
+        if (!firebase.apps.length) {
+          this.app = firebase.initializeApp(this.firebaseConfig);
+        } else {
+          this.app = firebase.app();
+        }
+        
         this.database = firebase.database();
         this.auth = firebase.auth();
         this.isConnected = false;
@@ -1244,7 +1249,7 @@
         try {
           console.log('🔌 Conectando ao Firebase...');
           
-          // Tentar autenticação anônima
+          // Autenticação anônima
           const userCredential = await this.auth.signInAnonymously();
           this.userId = userCredential.user.uid;
           
@@ -1265,31 +1270,28 @@
         }
       }
       
-      // 💾 SALVAR TODOS OS VEÍCULOS (RÁPIDO)
+      // 💾 SALVAR TODOS OS VEÍCULOS
       async saveAllVehicles(vehicles) {
         try {
-          console.log(`💾 Salvando ${vehicles.length} veículos no Firebase...`);
+          console.log(`💾 Salvando ${vehicles.length} veículos...`);
           
-          // Criar objeto com todas as atualizações
           const updates = {};
           
           vehicles.forEach(vehicle => {
             const safeKey = this.normalizeId(vehicle.placa);
             updates[`vehicles/${safeKey}`] = {
               ...vehicle,
-              updatedAt: Date.now(),
+              updatedAt: firebase.database.ServerValue.TIMESTAMP,
               updatedBy: this.userId || 'anonymous'
             };
           });
           
-          // Salvar tudo de uma vez
           await this.database.ref().update(updates);
-          
           console.log(`✅ ${vehicles.length} veículos salvos`);
           return true;
           
         } catch (error) {
-          console.error('❌ Erro ao salvar no Firebase:', error);
+          console.error('❌ Erro ao salvar:', error);
           throw error;
         }
       }
@@ -1297,26 +1299,25 @@
       // 📥 CARREGAR TODOS OS VEÍCULOS
       async loadVehicles() {
         try {
-          console.log('📥 Carregando dados do Firebase...');
+          console.log('📥 Carregando dados...');
           
           const snapshot = await this.database.ref('vehicles').once('value');
           
           if (!snapshot.exists()) {
-            console.log('📭 Nenhum dado encontrado no Firebase');
+            console.log('📭 Nenhum dado encontrado');
             return [];
           }
           
           const vehicles = [];
           snapshot.forEach(childSnapshot => {
-            const vehicle = childSnapshot.val();
-            vehicles.push(vehicle);
+            vehicles.push(childSnapshot.val());
           });
           
           console.log(`✅ ${vehicles.length} veículos carregados`);
           return vehicles;
           
         } catch (error) {
-          console.error('❌ Erro ao carregar do Firebase:', error);
+          console.error('❌ Erro ao carregar:', error);
           throw error;
         }
       }
@@ -1326,7 +1327,7 @@
         try {
           const safeKey = this.normalizeId(placa);
           await this.database.ref(`vehicles/${safeKey}`).remove();
-          console.log(`🗑️ Veículo ${placa} excluído`);
+          console.log(`🗑️ ${placa} excluído`);
           return true;
         } catch (error) {
           console.error('❌ Erro ao excluir:', error);
@@ -1337,7 +1338,7 @@
       // 🔄 LISTENER EM TEMPO REAL
       setupRealtimeListener(callback) {
         try {
-          console.log('👂 Configurando listener em tempo real...');
+          console.log('👂 Configurando listener...');
           
           return this.database.ref('vehicles').on('value', (snapshot) => {
             if (snapshot.exists()) {
@@ -1354,13 +1355,7 @@
         }
       }
       
-      // 🛠️ UTILITÁRIOS
-      normalizeId(placa) {
-        // Remover caracteres especiais para usar como ID
-        return placa.replace(/[.#$/[\]]/g, '_').toLowerCase();
-      }
-      
-      // 📡 TESTAR CONEXÃO
+      // 🧪 TESTAR CONEXÃO
       async testConnection() {
         try {
           const connectedRef = this.database.ref('.info/connected');
@@ -1370,15 +1365,20 @@
           return false;
         }
       }
+      
+      // 🛠️ UTILITÁRIOS
+      normalizeId(placa) {
+        return placa.replace(/[.#$/[\]]/g, '_').toLowerCase();
+      }
     }
 
-    // Criar instância global do Firebase Service
+    // Criar instância global
     const firebaseService = new FirebaseService();
 
     // 🎯 INICIALIZAÇÃO
     document.addEventListener('DOMContentLoaded', async function() {
       console.log('🚀 RONDOLOG v13.0 - Firebase inicializando...');
-      console.log('🔥 Firebase configurado:', FIREBASE_CONFIG.databaseURL);
+      console.log('🔥 Firebase configurado com versão 8.10.1');
       
       loadConfig();
       setupEventListeners();
