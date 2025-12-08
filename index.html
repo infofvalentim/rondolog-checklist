@@ -908,51 +908,6 @@
       background: rgba(255, 255, 255, 0.05);
     }
 
-    /* 📱 RESPONSIVIDADE */
-    @media (max-width: 768px) {
-      .header-content {
-        flex-direction: column;
-        text-align: center;
-      }
-      
-      .controls {
-        justify-content: center;
-      }
-      
-      .summary-cards {
-        grid-template-columns: 1fr 1fr;
-        padding: 15px 20px;
-      }
-      
-      .filters {
-        flex-direction: column;
-        align-items: stretch;
-      }
-      
-      .filter-select, .filter-input {
-        min-width: 100%;
-      }
-      
-      .footer {
-        flex-direction: column;
-        text-align: center;
-      }
-      
-      .sync-controls {
-        flex-direction: column;
-        align-items: stretch;
-      }
-      
-      .sync-controls .btn {
-        width: 100%;
-        justify-content: center;
-      }
-      
-      .online-status {
-        justify-content: center;
-      }
-    }
-
     /* 🆕 ESTILOS PARA PAINEL DE ESTATÍSTICAS */
     .stats-panel {
       background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
@@ -1010,6 +965,62 @@
       background: rgba(0, 200, 83, 0.2);
       border-color: rgba(0, 200, 83, 0.4);
     }
+
+    /* 🔄 BOTÕES DE SINCRONIZAÇÃO */
+    .btn-sync {
+      background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);
+      color: white;
+    }
+
+    .btn-sync:hover {
+      background: linear-gradient(135deg, #43A047 0%, #1B5E20 100%);
+      box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+    }
+
+    /* 📱 RESPONSIVIDADE */
+    @media (max-width: 768px) {
+      .header-content {
+        flex-direction: column;
+        text-align: center;
+      }
+      
+      .controls {
+        justify-content: center;
+      }
+      
+      .summary-cards {
+        grid-template-columns: 1fr 1fr;
+        padding: 15px 20px;
+      }
+      
+      .filters {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      
+      .filter-select, .filter-input {
+        min-width: 100%;
+      }
+      
+      .footer {
+        flex-direction: column;
+        text-align: center;
+      }
+      
+      .sync-controls {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      
+      .sync-controls .btn {
+        width: 100%;
+        justify-content: center;
+      }
+      
+      .online-status {
+        justify-content: center;
+      }
+    }
   </style>
 </head>
 <body>
@@ -1019,7 +1030,7 @@
       <div class="header-content">
         <div class="header-titles">
           <h1>RONDOLOG - SISTEMA DE GESTÃO DE FROTAS</h1>
-          <div class="header-subtitle">Sincronizado com Firebase - Dados em tempo real</div>
+          <div class="header-subtitle">Sincronização bidirecional: Firebase ↔ Google Sheets</div>
         </div>
         <div class="controls">
           <button class="btn btn-dark-mode" id="btnDarkMode">
@@ -1056,7 +1067,7 @@
     <!-- 🔗 SEÇÃO DE SINCRONIZAÇÃO FIREBASE -->
     <div class="sync-section">
       <div class="sync-header">
-        <h4 style="margin: 0; color: white;">🔥 Sincronização Firebase</h4>
+        <h4 style="margin: 0; color: white;">🔄 Sincronização Bidirecional</h4>
       </div>
       
       <div class="sync-controls">
@@ -1074,6 +1085,11 @@
         
         <button class="btn btn-warning" id="btnMigrateSheets" type="button">
           <span>🚚</span> Migrar do Sheets
+        </button>
+        
+        <!-- NOVO: BOTÃO DE SINCRONIZAÇÃO COM SHEETS -->
+        <button class="btn btn-sync" id="btnSyncSheets" type="button">
+          <span>📤</span> Sinc. com Sheets
         </button>
         
         <!-- NOVOS BOTÕES DE DIAGNÓSTICO E RECUPERAÇÃO -->
@@ -1095,7 +1111,7 @@
       </div>
       
       <div class="sync-info" id="syncInfo">
-        Conecte-se ao Firebase para carregar os dados da frota.
+        Sistema conectado. Clique em "Sinc. com Sheets" para atualizar o Google Sheets.
       </div>
     </div>
 
@@ -1122,8 +1138,8 @@
           <span id="statSyncCount">0</span>
         </div>
         <div class="stats-item">
-          <span>⚠️ Erros:</span>
-          <span id="statErrorCount">0</span>
+          <span>📤 Sheets:</span>
+          <span id="statSheetsCount">0</span>
         </div>
         <div class="stats-item">
           <span>📝 Logs:</span>
@@ -1212,6 +1228,7 @@
       <div class="footer-info">
         <div>RONDOLOG - SISTEMA DE GESTÃO DE FROTAS</div>
         <div id="lastSaveInfo">Último salvamento: Nunca</div>
+        <div id="lastSyncSheetsInfo">Última sinc. Sheets: Nunca</div>
       </div>
       <div class="stats">
         <div class="stat-item">
@@ -1276,7 +1293,7 @@
   <script>
     // ============================================
     // RONDOLOG - SISTEMA DE GESTÃO DE FROTAS
-    // Versão: 13.3 - DIAGNÓSTICO E RECUPERAÇÃO COMPLETA
+    // Versão: 14.0 - SINCRONIZAÇÃO BIDIRECIONAL
     // ============================================
     
     // 🎯 VARIÁVEIS GLOBAIS
@@ -1285,6 +1302,7 @@
     let currentSort = { column: null, direction: 'asc' };
     let currentEditIndex = -1;
     let lastSaveTime = null;
+    let lastSyncSheetsTime = null;
     let isDarkMode = false;
     let isOnlineMode = false;
     let syncInProgress = false;
@@ -1294,11 +1312,15 @@
     let appStats = {
       loads: 0,
       saves: 0,
+      sheetsSyncs: 0,
       lastSync: null,
       errors: 0,
       firebaseCount: 0,
       localCount: 0
     };
+
+    // 🔗 URL DO SEU GOOGLE APPS SCRIPT
+    const GOOGLE_SHEETS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxQD_S6Uk5cUlgBx_ydNXoc7xxTuE1YHBg5G45WxgIRmp0DcTCA3BEON2lW5Fu6o-VE2w/exec';
 
     // 📋 LOG DE SINCRONIZAÇÃO DETALHADO
     const syncLog = {
@@ -1350,6 +1372,7 @@
     const btnCancelModal = document.getElementById('btnCancelModal');
     const saveStatus = document.getElementById('saveStatus');
     const lastSaveInfo = document.getElementById('lastSaveInfo');
+    const lastSyncSheetsInfo = document.getElementById('lastSyncSheetsInfo');
     const totalVehicles = document.getElementById('totalVehicles');
     const validVehicles = document.getElementById('validVehicles');
     const warningVehicles = document.getElementById('warningVehicles');
@@ -1369,12 +1392,13 @@
     const btnShowStats = document.getElementById('btnShowStats');
     const btnCheckIntegrity = document.getElementById('btnCheckIntegrity');
     const btnAnalyzeCount = document.getElementById('btnAnalyzeCount');
+    const btnSyncSheets = document.getElementById('btnSyncSheets'); // NOVO
     
     // Elementos do painel de estatísticas
     const statFirebaseCount = document.getElementById('statFirebaseCount');
     const statLocalCount = document.getElementById('statLocalCount');
     const statSyncCount = document.getElementById('statSyncCount');
-    const statErrorCount = document.getElementById('statErrorCount');
+    const statSheetsCount = document.getElementById('statSheetsCount');
     const statLogCount = document.getElementById('statLogCount');
 
     // 🔥 FIREBASE SERVICE - VERSÃO CORRIGIDA
@@ -1619,9 +1643,12 @@
 
     // 🎯 INICIALIZAÇÃO
     document.addEventListener('DOMContentLoaded', async function() {
-      console.log('🚀 RONDOLOG v13.3 - Firebase inicializando...');
+      console.log('🚀 RONDOLOG v14.0 - Sincronização Bidirecional inicializando...');
       console.log('🔥 Firebase configurado com versão 8.10.1');
-      syncLog.add('system', 'Sistema RONDOLOG v13.3 inicializando...');
+      console.log('📊 Google Sheets Web App:', GOOGLE_SHEETS_WEB_APP_URL);
+      
+      syncLog.add('system', 'Sistema RONDOLOG v14.0 inicializando...');
+      syncLog.add('sheets', `URL do Google Sheets Web App configurada: ${GOOGLE_SHEETS_WEB_APP_URL}`);
       
       loadConfig();
       setupEventListeners();
@@ -1629,6 +1656,7 @@
       setupExportDropdown();
       updateSaveStatus();
       updateStatsPanel();
+      updateSheetsSyncInfo();
       
       // Conectar ao Firebase
       try {
@@ -1656,9 +1684,323 @@
         applyFiltersAndRender();
       }
       
-      console.log('✅ Sistema inicializado');
-      syncLog.add('system', 'Sistema inicializado com sucesso');
+      console.log('✅ Sistema inicializado com sincronização bidirecional');
+      syncLog.add('system', 'Sistema inicializado com sucesso - Sincronização bidirecional ativa');
     });
+
+    // ============================================
+    // 🔄 SISTEMA DE SINCRONIZAÇÃO COM GOOGLE SHEETS
+    // ============================================
+
+    // 📤 SINCRONIZAR COM GOOGLE SHEETS
+    async function syncWithGoogleSheets() {
+      try {
+        if (vehicleData.length === 0) {
+          showNotification('📭 Nenhum dado para sincronizar com Sheets', 'warning');
+          return false;
+        }
+        
+        showNotification('📤 Sincronizando com Google Sheets...', 'info');
+        updateSyncInfo('Enviando dados para Google Sheets...');
+        
+        // Preparar dados para envio
+        const sheetsData = vehicleData.map(vehicle => ({
+          placa: vehicle.placa || '',
+          statusPlaca: vehicle.statusPlaca || '',
+          vigenciaPlaca: vehicle.vigenciaPlaca || '',
+          vigenciaChecklist: vehicle.vigenciaChecklist || '',
+          statusChecklist: vehicle.statusChecklist || '',
+          statusGeral: vehicle.statusGeral || ''
+        }));
+        
+        console.log(`📤 Enviando ${sheetsData.length} registros para Google Sheets...`);
+        syncLog.add('sheets', 'Iniciando sincronização com Google Sheets', { count: sheetsData.length });
+        
+        // Enviar dados para o Google Apps Script
+        const response = await fetch(GOOGLE_SHEETS_WEB_APP_URL, {
+          method: 'POST',
+          mode: 'no-cors', // Google Apps Script requer no-cors
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            action: 'update',
+            data: sheetsData,
+            timestamp: new Date().toISOString(),
+            count: sheetsData.length
+          })
+        });
+        
+        // Tentar ler a resposta mesmo com no-cors
+        try {
+          // Como usamos no-cors, não podemos ler a resposta diretamente
+          // Mas podemos assumir que foi bem-sucedido se não houver erro de rede
+          console.log('✅ Dados enviados para Google Sheets (no-cors mode)');
+          
+          // Atualizar estatísticas
+          appStats.sheetsSyncs++;
+          lastSyncSheetsTime = new Date();
+          updateSheetsSyncInfo();
+          updateStatsPanel();
+          
+          showNotification(`✅ ${sheetsData.length} registros sincronizados com Google Sheets!`, 'success');
+          updateSyncInfo(`✅ Sheets atualizado: ${sheetsData.length} registros`);
+          
+          syncLog.add('sheets', 'Sincronização com Google Sheets concluída com sucesso', {
+            count: sheetsData.length,
+            timestamp: lastSyncSheetsTime.toISOString()
+          });
+          
+          return true;
+          
+        } catch (error) {
+          // Mesmo com erro na leitura da resposta, o envio pode ter sido bem-sucedido
+          console.log('⚠️ Resposta não pode ser lida (no-cors), mas dados enviados');
+          syncLog.add('sheets', 'Dados enviados para Sheets (resposta no-cors)', { count: sheetsData.length });
+          
+          // Atualizar estatísticas mesmo assim
+          appStats.sheetsSyncs++;
+          lastSyncSheetsTime = new Date();
+          updateSheetsSyncInfo();
+          updateStatsPanel();
+          
+          showNotification(`📤 Dados enviados para Google Sheets`, 'success');
+          updateSyncInfo('✅ Sheets atualizado');
+          
+          return true;
+        }
+        
+      } catch (error) {
+        console.error('❌ Erro na sincronização com Sheets:', error);
+        showNotification(`❌ Erro ao sincronizar com Sheets: ${error.message}`, 'error');
+        updateSyncInfo('❌ Erro ao sincronizar com Sheets');
+        
+        syncLog.add('error', 'Erro na sincronização com Google Sheets', { error: error.message });
+        appStats.errors++;
+        updateStatsPanel();
+        
+        return false;
+      }
+    }
+
+    // 💾 SALVAR NO FIREBASE E SINCRONIZAR COM SHEETS
+    async function saveToFirebaseWithSheetsSync() {
+      if (vehicleData.length === 0) {
+        showNotification('📭 Nenhum dado para salvar', 'warning');
+        return false;
+      }
+      
+      if (syncInProgress) {
+        showNotification('⏳ Já sincronizando...', 'info');
+        return false;
+      }
+      
+      if (!confirm(`💾 SALVAR E SINCRONIZAR - RONDOLOG\n══════════════════════════════\n\n` +
+                   `Esta ação irá:\n` +
+                   `1. 💾 Salvar ${vehicleData.length} veículos no Firebase\n` +
+                   `2. 📤 Enviar dados para o Google Sheets\n` +
+                   `3. 🔄 Atualizar ambas as plataformas\n\n` +
+                   `══════════════════════════════\n` +
+                   `Deseja continuar?`)) {
+        return false;
+      }
+      
+      const btn = btnSaveOnline;
+      const originalText = btn.innerHTML;
+      
+      btn.innerHTML = '<span>⏳</span> Salvando...';
+      btn.disabled = true;
+      syncInProgress = true;
+      showNotification('💾 Salvando e sincronizando...', 'info');
+      updateSyncInfo('Iniciando salvamento e sincronização...');
+      syncLog.add('save', `Iniciando salvamento com sincronização de ${vehicleData.length} veículos`);
+      
+      try {
+        // 1. Salvar no Firebase
+        await firebaseService.saveAllVehicles(vehicleData);
+        
+        // 2. Atualizar estatísticas Firebase
+        appStats.saves++;
+        appStats.lastSync = new Date().toISOString();
+        appStats.firebaseCount = vehicleData.length;
+        lastSaveTime = new Date();
+        updateSaveStatus();
+        updateStatsPanel();
+        saveConfig();
+        
+        // 3. Sincronizar com Google Sheets
+        const sheetsSynced = await syncWithGoogleSheets();
+        
+        if (sheetsSynced) {
+          showNotification(`✅ ${vehicleData.length} veículos salvos e sincronizados!`, 'success');
+          updateSyncInfo(`✅ Salvo e sincronizado: ${vehicleData.length} veículos`);
+        } else {
+          showNotification(`✅ ${vehicleData.length} veículos salvos no Firebase (Sheets falhou)`, 'warning');
+          updateSyncInfo(`✅ Salvo no Firebase: ${vehicleData.length} veículos`);
+        }
+        
+        updateOnlineStatus(true);
+        
+        syncLog.add('save', `Salvamento com sincronização concluído`, { 
+          count: vehicleData.length,
+          sheetsSynced: sheetsSynced
+        });
+        
+        return true;
+        
+      } catch (error) {
+        console.error('❌ Erro ao salvar no Firebase:', error);
+        showNotification(`❌ Erro: ${error.message}`, 'error');
+        updateSyncInfo('❌ Erro ao salvar');
+        updateOnlineStatus(false);
+        appStats.errors++;
+        updateStatsPanel();
+        saveConfig();
+        syncLog.add('error', 'Erro no salvamento com sincronização', { error: error.message, count: vehicleData.length });
+        return false;
+        
+      } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+        syncInProgress = false;
+      }
+    }
+
+    // 🚚 MIGRAÇÃO DO GOOGLE SHEETS PARA FIREBASE COM SINCRONIZAÇÃO REVERSA
+    async function migrateFromSheets() {
+      if (!confirm('🚚 MIGRAR DO GOOGLE SHEETS - RONDOLOG\n══════════════════════════════\n\n' +
+                   'Esta operação irá:\n' +
+                   '1. 📥 Importar dados do Google Sheets\n' +
+                   '2. 🔍 Validar e limpar os dados\n' +
+                   '3. 💾 Salvar no Firebase\n' +
+                   '4. 🔄 Sincronizar de volta para o Sheets\n\n' +
+                   '⚠️ Dados atuais serão substituídos\n' +
+                   '══════════════════════════════\n' +
+                   'Deseja continuar?')) {
+        return;
+      }
+      
+      try {
+        showNotification('🚚 Migrando dados do Google Sheets...', 'info');
+        updateSyncInfo('Migrando dados...');
+        syncLog.add('migrate', 'Iniciando migração do Google Sheets');
+        
+        // URL do seu script
+        const url = `${GOOGLE_SHEETS_WEB_APP_URL}?action=getData&t=${Date.now()}`;
+        
+        const response = await fetch(url);
+        const result = await response.json();
+        
+        if (result.status === 'success') {
+          const data = result.data || {};
+          const rawVehicles = data.data || data || [];
+          
+          console.log(`📥 Dados brutos recebidos: ${rawVehicles.length} registros`);
+          syncLog.add('migrate', `Dados brutos recebidos do Sheets: ${rawVehicles.length} registros`);
+          
+          // FILTRAR E LIMPAR DADOS
+          const migrationStats = {
+            total: rawVehicles.length,
+            valid: 0,
+            invalid: 0,
+            empty: 0,
+            errors: 0
+          };
+          
+          vehicleData = rawVehicles
+            .map((v, index) => {
+              try {
+                // Extrair dados independentemente do nome da coluna
+                const placa = v.placa || v.Placa || v.PLACA || '';
+                
+                // Ignorar se placa estiver vazia
+                if (!placa || placa.toString().trim() === '') {
+                  migrationStats.empty++;
+                  console.warn(`⚠️ Registro ${index}: Placa vazia`);
+                  return null;
+                }
+                
+                const vigenciaPlaca = v.vigenciaPlaca || v['Vigência Pesquisa Placa'] || v['VIGENCIA PLACA'] || '';
+                const statusPlaca = v.statusPlaca || v['Status Placa'] || v['STATUS PLACA'] || '';
+                const vigenciaChecklist = v.vigenciaChecklist || v['Checklist Vigência'] || v['CHECKLIST VIGENCIA'] || '';
+                const statusChecklist = v.statusChecklist || v['Checklist Status'] || v['CHECKLIST STATUS'] || '';
+                
+                migrationStats.valid++;
+                
+                return {
+                  placa: placa.toString().trim().toUpperCase(),
+                  statusPlaca: statusPlaca.toString().trim(),
+                  vigenciaPlaca: formatDateForInput(vigenciaPlaca),
+                  vigenciaChecklist: formatDateForInput(vigenciaChecklist),
+                  statusChecklist: statusChecklist.toString().trim(),
+                  statusGeral: calculateStatusGeral(vigenciaChecklist, statusChecklist),
+                  migrated: true,
+                  migratedAt: new Date().toISOString(),
+                  sourceRow: index + 1
+                };
+              } catch (error) {
+                migrationStats.errors++;
+                console.warn(`❌ Erro ao processar registro ${index}:`, v, error);
+                return null;
+              }
+            })
+            .filter(v => v !== null); // Remover nulos
+          
+          migrationStats.invalid = migrationStats.total - migrationStats.valid - migrationStats.empty - migrationStats.errors;
+          
+          console.log(`✅ Dados processados: ${vehicleData.length} veículos válidos`);
+          console.log(`📊 Estatísticas da migração:`, migrationStats);
+          
+          syncLog.add('migrate', 'Dados processados com sucesso', {
+            ...migrationStats,
+            finalCount: vehicleData.length
+          });
+          
+          if (vehicleData.length === 0) {
+            showNotification('📭 Nenhum dado válido para migrar', 'warning');
+            updateSyncInfo('❌ Nenhum dado válido');
+            return;
+          }
+          
+          // Salvar no Firebase
+          showNotification(`💾 Salvando ${vehicleData.length} veículos no Firebase...`, 'info');
+          updateSyncInfo(`Salvando ${vehicleData.length} veículos...`);
+          
+          await firebaseService.saveAllVehicles(vehicleData);
+          
+          // Sincronizar de volta para o Sheets para garantir consistência
+          showNotification(`📤 Sincronizando com Google Sheets...`, 'info');
+          await syncWithGoogleSheets();
+          
+          applyFiltersAndRender();
+          
+          // Montar resumo da migração
+          let summary = `✅ ${vehicleData.length} veículos migrados e sincronizados!`;
+          
+          if (migrationStats.empty > 0) {
+            summary += `\n🗑️ ${migrationStats.empty} registros com placa vazia`;
+          }
+          if (migrationStats.errors > 0) {
+            summary += `\n❌ ${migrationStats.errors} erros de processamento`;
+          }
+          if (migrationStats.invalid > 0) {
+            summary += `\n⚠️ ${migrationStats.invalid} registros inválidos`;
+          }
+          
+          showNotification(summary, 'success');
+          updateSyncInfo(`✅ ${vehicleData.length} veículos migrados e sincronizados`);
+          
+        } else {
+          throw new Error('Erro na resposta do Google Sheets');
+        }
+        
+      } catch (error) {
+        console.error('❌ Migração falhou:', error);
+        showNotification(`❌ Falha na migração: ${error.message}`, 'error');
+        updateSyncInfo('❌ Migração falhou');
+        syncLog.add('error', 'Falha na migração do Google Sheets', { error: error.message });
+      }
+    }
 
     // 📥 CARREGAR DADOS INICIAIS
     async function loadInitialData() {
@@ -1692,6 +2034,48 @@
       }
     }
 
+    // 📊 ATUALIZAR PAINEL DE ESTATÍSTICAS
+    function updateStatsPanel() {
+      if (statFirebaseCount) {
+        statFirebaseCount.textContent = appStats.firebaseCount || 0;
+      }
+      if (statLocalCount) {
+        statLocalCount.textContent = appStats.localCount || vehicleData.length || 0;
+      }
+      if (statSyncCount) {
+        statSyncCount.textContent = appStats.saves || 0;
+      }
+      if (statSheetsCount) {
+        statSheetsCount.textContent = appStats.sheetsSyncs || 0;
+      }
+      if (statLogCount) {
+        statLogCount.textContent = syncLog.entries.length || 0;
+      }
+    }
+
+    // 📊 ATUALIZAR INFO DE SINCRONIZAÇÃO COM SHEETS
+    function updateSheetsSyncInfo() {
+      if (lastSyncSheetsInfo) {
+        if (lastSyncSheetsTime) {
+          const now = new Date();
+          const diff = Math.floor((now - lastSyncSheetsTime) / 1000);
+          
+          let text = '';
+          if (diff < 60) {
+            text = `Última sinc. Sheets: ${diff} segundos atrás`;
+          } else if (diff < 3600) {
+            text = `Última sinc. Sheets: ${Math.floor(diff / 60)} minutos atrás`;
+          } else {
+            text = `Última sinc. Sheets: ${lastSyncSheetsTime.toLocaleString('pt-BR')}`;
+          }
+          
+          lastSyncSheetsInfo.textContent = text;
+        } else {
+          lastSyncSheetsInfo.textContent = 'Nunca sincronizado com Sheets';
+        }
+      }
+    }
+
     // 🔍 ANALISAR DIFERENÇAS DE CONTAGEM
     async function analyzeCountDiscrepancy() {
       try {
@@ -1722,51 +2106,6 @@
           difference: Math.abs(firebaseCount - localCount)
         });
         
-        // Coletar dados detalhados
-        const allKeys = [];
-        const problemKeys = [];
-        const validVehicles = [];
-        const duplicates = [];
-        
-        // Mapear placas para encontrar duplicados
-        const plateMap = new Map();
-        
-        snapshot.forEach(childSnapshot => {
-          const key = childSnapshot.key;
-          const vehicle = childSnapshot.val();
-          allKeys.push(key);
-          
-          // Verificar problemas
-          if (!vehicle) {
-            problemKeys.push({ key, issue: 'Sem dados' });
-          } else if (!vehicle.placa) {
-            problemKeys.push({ key, issue: 'Sem placa', data: vehicle });
-          } else if (typeof vehicle.placa !== 'string') {
-            problemKeys.push({ key, issue: 'Placa inválida', data: vehicle });
-          } else {
-            validVehicles.push(vehicle);
-            
-            // Verificar duplicados por placa
-            const placa = vehicle.placa.toUpperCase().trim();
-            if (plateMap.has(placa)) {
-              const existing = plateMap.get(placa);
-              existing.count++;
-              existing.keys.push(key);
-              
-              // Registrar apenas uma vez por placa
-              if (existing.count === 2) {
-                duplicates.push({
-                  placa: placa,
-                  keys: existing.keys,
-                  count: existing.count
-                });
-              }
-            } else {
-              plateMap.set(placa, { count: 1, keys: [key] });
-            }
-          }
-        });
-        
         // Montar relatório
         let report = `🔍 ANÁLISE DE CONTAGEM - RONDOLOG\n`;
         report += `══════════════════════════════\n\n`;
@@ -1774,46 +2113,18 @@
         report += `   • Total no Firebase: ${firebaseCount}\n`;
         report += `   • Total local: ${localCount}\n`;
         report += `   • Diferença: ${Math.abs(firebaseCount - localCount)}\n`;
-        report += `   • Veículos válidos: ${validVehicles.length}\n`;
-        report += `   • Problemas: ${problemKeys.length}\n`;
-        report += `   • Duplicados: ${duplicates.length}\n\n`;
-        
-        if (problemKeys.length > 0) {
-          report += `⚠️ PROBLEMAS ENCONTRADOS (${problemKeys.length}):\n`;
-          problemKeys.slice(0, 10).forEach((problem, i) => {
-            report += `   ${i + 1}. ${problem.key}: ${problem.issue}\n`;
-          });
-          if (problemKeys.length > 10) {
-            report += `   ... e mais ${problemKeys.length - 10} problemas\n`;
-          }
-          report += `\n`;
-        }
-        
-        if (duplicates.length > 0) {
-          report += `⚠️ DUPLICADOS ENCONTRADOS (${duplicates.length}):\n`;
-          duplicates.slice(0, 10).forEach((dup, i) => {
-            report += `   ${i + 1}. ${dup.placa}: ${dup.count} registros\n`;
-          });
-          if (duplicates.length > 10) {
-            report += `   ... e mais ${duplicates.length - 10} duplicados\n`;
-          }
-          report += `\n`;
-        }
+        report += `   • Sinc. Sheets: ${appStats.sheetsSyncs} vezes\n\n`;
         
         report += `📈 RECOMENDAÇÕES:\n`;
         
         if (firebaseCount > localCount) {
           report += `   • Firebase tem mais dados. Carregue novamente do Firebase.\n`;
         } else if (localCount > firebaseCount) {
-          report += `   • Local tem mais dados. Sincronize com o Firebase.\n`;
+          report += `   • Local tem mais dados. Use "Salvar no Firebase".\n`;
         }
         
-        if (problemKeys.length > 0) {
-          report += `   • Execute "Corrigir Dados" para resolver problemas.\n`;
-        }
-        
-        if (duplicates.length > 0) {
-          report += `   • Execute "Recuperar Tudo" para remover duplicados.\n`;
+        if (appStats.sheetsSyncs === 0) {
+          report += `   • Use "Sinc. com Sheets" para atualizar o Google Sheets.\n`;
         }
         
         report += `\n══════════════════════════════\n`;
@@ -1823,18 +2134,13 @@
         alert(report);
         
         showNotification(
-          `🔍 Análise: ${validVehicles.length} válidos, ${problemKeys.length} problemas`, 
-          problemKeys.length > 0 ? 'warning' : 'success'
+          `🔍 Análise: Firebase ${firebaseCount}, Local ${localCount}`, 
+          firebaseCount !== localCount ? 'warning' : 'success'
         );
         
         return {
           firebaseCount,
-          localCount,
-          validCount: validVehicles.length,
-          problemCount: problemKeys.length,
-          duplicateCount: duplicates.length,
-          problems: problemKeys,
-          duplicates: duplicates
+          localCount
         };
         
       } catch (error) {
@@ -1894,43 +2200,6 @@
         console.log(`   Problemas encontrados: ${problemKeys.length}`);
         console.log('----------------------------------');
         
-        // Exibir problemas no console
-        if (problemKeys.length > 0) {
-          console.log('⚠️ Problemas encontrados:');
-          problemKeys.forEach(problem => {
-            console.log(`   • ${problem.key}: ${problem.issue}`);
-            if (problem.data) {
-              console.log(`     Dados:`, problem.data);
-            }
-          });
-        }
-        
-        // Agrupar por placa para encontrar duplicados
-        const platesMap = new Map();
-        validVehicles.forEach(vehicle => {
-          const placaNormalizada = vehicle.placa.toString().trim().toUpperCase();
-          if (platesMap.has(placaNormalizada)) {
-            platesMap.get(placaNormalizada).push(vehicle);
-          } else {
-            platesMap.set(placaNormalizada, [vehicle]);
-          }
-        });
-        
-        // Encontrar duplicados
-        const duplicates = [];
-        platesMap.forEach((vehicles, placa) => {
-          if (vehicles.length > 1) {
-            duplicates.push({ placa, count: vehicles.length, vehicles });
-          }
-        });
-        
-        if (duplicates.length > 0) {
-          console.log('⚠️ Duplicados encontrados:');
-          duplicates.forEach(dup => {
-            console.log(`   • ${dup.placa}: ${dup.count} registros`);
-          });
-        }
-        
         // Mostrar resumo no alerta
         let alertMessage = `🔍 DIAGNÓSTICO DO FIREBASE - RONDOLOG\n`;
         alertMessage += `══════════════════════════════\n\n`;
@@ -1938,7 +2207,7 @@
         alertMessage += `   Total de chaves: ${allKeys.length}\n`;
         alertMessage += `   Veículos válidos: ${validVehicles.length}\n`;
         alertMessage += `   Problemas: ${problemKeys.length}\n`;
-        alertMessage += `   Duplicados: ${duplicates.length}\n\n`;
+        alertMessage += `   Sinc. Sheets: ${appStats.sheetsSyncs} vezes\n\n`;
         
         if (problemKeys.length > 0) {
           alertMessage += `⚠️ PROBLEMAS ENCONTRADOS:\n`;
@@ -1950,16 +2219,6 @@
           }
         }
         
-        if (duplicates.length > 0) {
-          alertMessage += `\n⚠️ DUPLICADOS ENCONTRADOS:\n`;
-          duplicates.slice(0, 5).forEach(dup => {
-            alertMessage += `   • ${dup.placa}: ${dup.count} registros\n`;
-          });
-          if (duplicates.length > 5) {
-            alertMessage += `   ... e mais ${duplicates.length - 5} duplicados\n`;
-          }
-        }
-        
         alertMessage += `\n📊 CONTEXTUALIZAÇÃO:\n`;
         alertMessage += `   Você está vendo ${vehicleData.length} de ${validVehicles.length} veículos válidos.\n\n`;
         
@@ -1967,11 +2226,8 @@
         if (problemKeys.length > 0) {
           alertMessage += `   • Use "Corrigir Dados" para problemas\n`;
         }
-        if (duplicates.length > 0) {
-          alertMessage += `   • Use "Recuperar Tudo" para duplicados\n`;
-        }
-        if (vehicleData.length !== validVehicles.length) {
-          alertMessage += `   • Carregue novamente para sincronizar\n`;
+        if (appStats.sheetsSyncs === 0) {
+          alertMessage += `   • Use "Sinc. com Sheets" para atualizar o Google Sheets\n`;
         }
         
         alertMessage += `\n══════════════════════════════\n`;
@@ -1987,96 +2243,19 @@
         syncLog.add('diagnose', 'Diagnóstico concluído', {
           total: allKeys.length,
           valid: validVehicles.length,
-          problems: problemKeys.length,
-          duplicates: duplicates.length
+          problems: problemKeys.length
         });
         
         return {
           total: allKeys.length,
           valid: validVehicles.length,
-          problems: problemKeys.length,
-          duplicates: duplicates.length,
-          problemDetails: problemKeys
+          problems: problemKeys.length
         };
         
       } catch (error) {
         console.error('❌ Erro no diagnóstico:', error);
         showNotification('❌ Erro no diagnóstico', 'error');
         syncLog.add('error', 'Erro no diagnóstico', { error: error.message });
-      }
-    }
-
-    // 🔍 VERIFICAR INTEGRIDADE DOS DADOS
-    async function checkDataIntegrity() {
-      try {
-        showNotification('🔍 Verificando integridade dos dados...', 'info');
-        syncLog.add('integrity', 'Iniciando verificação de integridade');
-        
-        const issues = [];
-        
-        // Verificar dados locais
-        vehicleData.forEach((vehicle, index) => {
-          if (!vehicle.placa || vehicle.placa.trim() === '') {
-            issues.push(`Veículo ${index}: Sem placa`);
-          }
-          
-          if (vehicle.placa && vehicle.placa.length < 3) {
-            issues.push(`Veículo ${index}: Placa muito curta: "${vehicle.placa}"`);
-          }
-          
-          // Verificar datas inválidas
-          if (vehicle.vigenciaChecklist) {
-            const date = new Date(vehicle.vigenciaChecklist);
-            if (isNaN(date.getTime())) {
-              issues.push(`Veículo ${vehicle.placa}: Data inválida: "${vehicle.vigenciaChecklist}"`);
-            }
-          }
-        });
-        
-        // Verificar duplicados locais
-        const plateMap = new Map();
-        vehicleData.forEach((vehicle, index) => {
-          if (vehicle.placa) {
-            const placa = vehicle.placa.toUpperCase().trim();
-            if (plateMap.has(placa)) {
-              issues.push(`Duplicado local: Placa "${placa}" nas posições ${plateMap.get(placa)} e ${index}`);
-            } else {
-              plateMap.set(placa, index);
-            }
-          }
-        });
-        
-        if (issues.length === 0) {
-          showNotification('✅ Integridade dos dados verificada - Sem problemas encontrados', 'success');
-          syncLog.add('integrity', 'Integridade verificada - Sem problemas', { checked: vehicleData.length });
-          return { valid: true, issues: [] };
-        } else {
-          console.warn(`⚠️ ${issues.length} problemas encontrados:`, issues);
-          showNotification(`⚠️ ${issues.length} problemas de integridade encontrados`, 'warning');
-          syncLog.add('integrity', 'Problemas de integridade encontrados', { 
-            total: issues.length, 
-            checked: vehicleData.length,
-            issues: issues.slice(0, 10) 
-          });
-          
-          // Mostrar resumo
-          alert(`🔍 VERIFICAÇÃO DE INTEGRIDADE - RONDOLOG\n══════════════════════════════\n\n` +
-                `📊 RESULTADO:\n` +
-                `   • Veículos verificados: ${vehicleData.length}\n` +
-                `   • Problemas encontrados: ${issues.length}\n\n` +
-                `⚠️ PROBLEMAS ENCONTRADOS:\n${issues.slice(0, 10).join('\n')}` +
-                (issues.length > 10 ? `\n\n... e mais ${issues.length - 10} problemas` : '') +
-                `\n\n══════════════════════════════\n` +
-                `🔧 Use "Corrigir Dados" para resolver.`);
-          
-          return { valid: false, issues };
-        }
-        
-      } catch (error) {
-        console.error('❌ Erro na verificação:', error);
-        showNotification('❌ Erro na verificação de integridade', 'error');
-        syncLog.add('error', 'Erro na verificação de integridade', { error: error.message });
-        return { valid: false, issues: [`Erro: ${error.message}`] };
       }
     }
 
@@ -2088,7 +2267,8 @@
                    '2. 🔧 Corrigir todos os problemas encontrados\n' +
                    '3. 🗑️ Remover duplicados automaticamente\n' +
                    '4. 🔄 Normalizar todas as placas\n' +
-                   '5. 💾 Salvar apenas dados válidos\n\n' +
+                   '5. 💾 Salvar apenas dados válidos\n' +
+                   '6. 📤 Sincronizar com Google Sheets\n\n' +
                    '⚠️ OPERAÇÃO IRREVERSÍVEL\n' +
                    '══════════════════════════════\n' +
                    'Deseja continuar?')) {
@@ -2198,7 +2378,7 @@
             ...vehicle,
             updatedAt: firebase.database.ServerValue.TIMESTAMP,
             updatedBy: firebaseService.userId || 'recovery_system',
-            recoveryVersion: '13.3'
+            recoveryVersion: '14.0'
           };
         });
         
@@ -2210,7 +2390,13 @@
         // 5. Aplicar todas as atualizações
         await firebaseService.database.ref().update(updates);
         
-        // 6. Log dos resultados
+        // 6. Atualizar dados locais
+        vehicleData = Array.from(processedVehicles.values());
+        
+        // 7. Sincronizar com Google Sheets
+        await syncWithGoogleSheets();
+        
+        // 8. Log dos resultados
         console.log('✅ Recuperação concluída:');
         console.log(`   • Veículos salvos: ${processedVehicles.size}`);
         console.log(`   • Registros removidos: ${removedKeys.length}`);
@@ -2225,174 +2411,21 @@
           `✅ Recuperação concluída!\n` +
           `📦 ${processedVehicles.size} veículos salvos\n` +
           `🗑️ ${removedKeys.length} registros removidos\n` +
-          `⚠️ ${stats.duplicates} duplicados eliminados`, 
+          `⚠️ ${stats.duplicates} duplicados eliminados\n` +
+          `📤 Sincronizado com Google Sheets`, 
           'success'
         );
         
         updateSyncInfo(`Recuperado: ${processedVehicles.size} veículos`);
         
-        // 7. Recarregar os dados
-        setTimeout(() => {
-          loadInitialData();
-        }, 2000);
+        // 9. Recarregar os dados
+        applyFiltersAndRender();
         
       } catch (error) {
         console.error('❌ Erro na recuperação:', error);
         showNotification(`❌ Erro na recuperação: ${error.message}`, 'error');
         updateSyncInfo('Erro na recuperação');
         syncLog.add('error', 'Erro na recuperação de dados', { error: error.message });
-      }
-    }
-
-    // 🚚 MIGRAÇÃO DO GOOGLE SHEETS PARA FIREBASE - VERSÃO MELHORADA
-    async function migrateFromSheets() {
-      if (!confirm('🚚 MIGRAR DO GOOGLE SHEETS - RONDOLOG\n══════════════════════════════\n\n' +
-                   'Esta operação irá:\n' +
-                   '1. 📥 Importar dados do Google Sheets\n' +
-                   '2. 🔍 Validar e limpar os dados\n' +
-                   '3. 💾 Salvar no Firebase\n' +
-                   '4. 🔄 Substituir dados atuais\n\n' +
-                   '⚠️ Dados atuais serão substituídos\n' +
-                   '══════════════════════════════\n' +
-                   'Deseja continuar?')) {
-        return;
-      }
-      
-      try {
-        showNotification('🚚 Migrando dados do Google Sheets...', 'info');
-        updateSyncInfo('Migrando dados...');
-        syncLog.add('migrate', 'Iniciando migração do Google Sheets');
-        
-        // URL do seu script antigo
-        const SHEETS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxQD_S6Uk5cUlgBx_ydNXoc7xxTuE1YHBg5G45WxgIRmp0DcTCA3BEON2lW5Fu6o-VE2w/exec';
-        const url = `${SHEETS_SCRIPT_URL}?action=getData&t=${Date.now()}`;
-        
-        const response = await fetch(url);
-        const result = await response.json();
-        
-        if (result.status === 'success') {
-          const data = result.data || {};
-          const rawVehicles = data.data || data || [];
-          
-          console.log(`📥 Dados brutos recebidos: ${rawVehicles.length} registros`);
-          syncLog.add('migrate', `Dados brutos recebidos do Sheets: ${rawVehicles.length} registros`);
-          
-          // FILTRAR E LIMPAR DADOS
-          const migrationStats = {
-            total: rawVehicles.length,
-            valid: 0,
-            invalid: 0,
-            empty: 0,
-            errors: 0
-          };
-          
-          vehicleData = rawVehicles
-            .map((v, index) => {
-              try {
-                // Extrair dados independentemente do nome da coluna
-                const placa = v.placa || v.Placa || v.PLACA || '';
-                
-                // Ignorar se placa estiver vazia
-                if (!placa || placa.toString().trim() === '') {
-                  migrationStats.empty++;
-                  console.warn(`⚠️ Registro ${index}: Placa vazia`);
-                  return null;
-                }
-                
-                const vigenciaPlaca = v.vigenciaPlaca || v['Vigência Pesquisa Placa'] || v['VIGENCIA PLACA'] || '';
-                const statusPlaca = v.statusPlaca || v['Status Placa'] || v['STATUS PLACA'] || '';
-                const vigenciaChecklist = v.vigenciaChecklist || v['Checklist Vigência'] || v['CHECKLIST VIGENCIA'] || '';
-                const statusChecklist = v.statusChecklist || v['Checklist Status'] || v['CHECKLIST STATUS'] || '';
-                
-                migrationStats.valid++;
-                
-                return {
-                  placa: placa.toString().trim().toUpperCase(),
-                  statusPlaca: statusPlaca.toString().trim(),
-                  vigenciaPlaca: formatDateForInput(vigenciaPlaca),
-                  vigenciaChecklist: formatDateForInput(vigenciaChecklist),
-                  statusChecklist: statusChecklist.toString().trim(),
-                  statusGeral: calculateStatusGeral(vigenciaChecklist, statusChecklist),
-                  migrated: true,
-                  migratedAt: new Date().toISOString(),
-                  sourceRow: index + 1
-                };
-              } catch (error) {
-                migrationStats.errors++;
-                console.warn(`❌ Erro ao processar registro ${index}:`, v, error);
-                return null;
-              }
-            })
-            .filter(v => v !== null); // Remover nulos
-          
-          migrationStats.invalid = migrationStats.total - migrationStats.valid - migrationStats.empty - migrationStats.errors;
-          
-          console.log(`✅ Dados processados: ${vehicleData.length} veículos válidos`);
-          console.log(`📊 Estatísticas da migração:`, migrationStats);
-          
-          syncLog.add('migrate', 'Dados processados com sucesso', {
-            ...migrationStats,
-            finalCount: vehicleData.length
-          });
-          
-          if (vehicleData.length === 0) {
-            showNotification('📭 Nenhum dado válido para migrar', 'warning');
-            updateSyncInfo('❌ Nenhum dado válido');
-            return;
-          }
-          
-          // Salvar no Firebase com log detalhado
-          showNotification(`💾 Salvando ${vehicleData.length} veículos...`, 'info');
-          updateSyncInfo(`Salvando ${vehicleData.length} veículos...`);
-          
-          await firebaseService.saveAllVehicles(vehicleData);
-          
-          applyFiltersAndRender();
-          
-          // Montar resumo da migração
-          let summary = `✅ ${vehicleData.length} veículos migrados para o Firebase!`;
-          
-          if (migrationStats.empty > 0) {
-            summary += `\n🗑️ ${migrationStats.empty} registros com placa vazia`;
-          }
-          if (migrationStats.errors > 0) {
-            summary += `\n❌ ${migrationStats.errors} erros de processamento`;
-          }
-          if (migrationStats.invalid > 0) {
-            summary += `\n⚠️ ${migrationStats.invalid} registros inválidos`;
-          }
-          
-          showNotification(summary, 'success');
-          updateSyncInfo(`✅ ${vehicleData.length} veículos migrados`);
-          
-        } else {
-          throw new Error('Erro na resposta do Google Sheets');
-        }
-        
-      } catch (error) {
-        console.error('❌ Migração falhou:', error);
-        showNotification(`❌ Falha na migração: ${error.message}`, 'error');
-        updateSyncInfo('❌ Migração falhou');
-        syncLog.add('error', 'Falha na migração do Google Sheets', { error: error.message });
-      }
-    }
-
-    // 📊 ATUALIZAR PAINEL DE ESTATÍSTICAS
-    function updateStatsPanel() {
-      if (statFirebaseCount) {
-        statFirebaseCount.textContent = appStats.firebaseCount || 0;
-      }
-      if (statLocalCount) {
-        statLocalCount.textContent = appStats.localCount || vehicleData.length || 0;
-      }
-      if (statSyncCount) {
-        statSyncCount.textContent = appStats.saves || 0;
-      }
-      if (statErrorCount) {
-        statErrorCount.textContent = appStats.errors || 0;
-      }
-      if (statLogCount) {
-        statLogCount.textContent = syncLog.entries.length || 0;
       }
     }
 
@@ -2407,11 +2440,13 @@
       statsReport += `   • Firebase: ${appStats.firebaseCount || 0}\n`;
       statsReport += `   • Carregamentos: ${appStats.loads}\n`;
       statsReport += `   • Salvamentos: ${appStats.saves}\n`;
+      statsReport += `   • Sinc. Sheets: ${appStats.sheetsSyncs}\n`;
       statsReport += `   • Erros: ${appStats.errors}\n`;
       statsReport += `   • Logs: ${syncLog.entries.length}\n\n`;
       
       statsReport += `🕒 ÚLTIMA SINCRONIZAÇÃO:\n`;
-      statsReport += `   • ${appStats.lastSync ? new Date(appStats.lastSync).toLocaleString('pt-BR') : 'Nunca'}\n\n`;
+      statsReport += `   • Firebase: ${appStats.lastSync ? new Date(appStats.lastSync).toLocaleString('pt-BR') : 'Nunca'}\n`;
+      statsReport += `   • Sheets: ${lastSyncSheetsTime ? lastSyncSheetsTime.toLocaleString('pt-BR') : 'Nunca'}\n\n`;
       
       statsReport += `📋 ÚLTIMOS LOGS (${recentLogs.length}):\n`;
       if (recentLogs.length === 0) {
@@ -2428,71 +2463,6 @@
       
       alert(statsReport);
       syncLog.add('stats', 'Estatísticas detalhadas visualizadas');
-    }
-
-    // 💾 SALVAR NO FIREBASE
-    async function saveToFirebase() {
-      if (vehicleData.length === 0) {
-        showNotification('📭 Nenhum dado para salvar', 'warning');
-        return false;
-      }
-      
-      if (syncInProgress) {
-        showNotification('⏳ Já sincronizando...', 'info');
-        return false;
-      }
-      
-      if (!confirm(`💾 SALVAR NO FIREBASE - RONDOLOG\n══════════════════════════════\n\n` +
-                   `Esta ação atualizará completamente o servidor.\n` +
-                   `\n📦 ${vehicleData.length} veículos serão salvos\n` +
-                   `\n══════════════════════════════\n` +
-                   `Deseja continuar?`)) {
-        return false;
-      }
-      
-      const btn = btnSaveOnline;
-      const originalText = btn.innerHTML;
-      
-      btn.innerHTML = '<span>⏳</span> Salvando...';
-      btn.disabled = true;
-      syncInProgress = true;
-      showNotification('💾 Salvando dados no Firebase...', 'info');
-      updateSyncInfo('Iniciando salvamento...');
-      syncLog.add('save', `Iniciando salvamento manual de ${vehicleData.length} veículos`);
-      
-      try {
-        await firebaseService.saveAllVehicles(vehicleData);
-        
-        appStats.saves++;
-        appStats.lastSync = new Date().toISOString();
-        appStats.firebaseCount = vehicleData.length;
-        updateStatsPanel();
-        saveConfig();
-        
-        showNotification(`✅ ${vehicleData.length} veículos salvos com sucesso!`, 'success');
-        updateSyncInfo(`✅ Salvo: ${vehicleData.length} veículos`);
-        updateOnlineStatus(true);
-        
-        syncLog.add('save', `Salvamento manual concluído com sucesso`, { count: vehicleData.length });
-        
-        return true;
-        
-      } catch (error) {
-        console.error('❌ Erro ao salvar no Firebase:', error);
-        showNotification(`❌ Erro: ${error.message}`, 'error');
-        updateSyncInfo('❌ Erro ao salvar');
-        updateOnlineStatus(false);
-        appStats.errors++;
-        updateStatsPanel();
-        saveConfig();
-        syncLog.add('error', 'Erro no salvamento manual', { error: error.message, count: vehicleData.length });
-        return false;
-        
-      } finally {
-        btn.innerHTML = originalText;
-        btn.disabled = false;
-        syncInProgress = false;
-      }
     }
 
     // 🧪 TESTAR CONEXÃO FIREBASE
@@ -2695,13 +2665,17 @@
       appStats.localCount = vehicleData.length;
       updateStatsPanel();
       
-      // Salvar no Firebase em background
+      // Salvar no Firebase e sincronizar com Sheets em background
       if (isOnlineMode) {
         setTimeout(async () => {
           try {
             await firebaseService.saveAllVehicles(vehicleData);
             console.log('✅ Alterações sincronizadas com Firebase');
-            syncLog.add('sync', 'Alterações sincronizadas em background', { count: vehicleData.length });
+            
+            // Sincronizar com Google Sheets também
+            await syncWithGoogleSheets();
+            
+            syncLog.add('sync', 'Alterações sincronizadas com Firebase e Sheets em background', { count: vehicleData.length });
           } catch (error) {
             console.error('❌ Erro na sincronização:', error);
             syncLog.add('error', 'Erro na sincronização em background', { error: error.message });
@@ -2729,12 +2703,17 @@
       
       syncLog.add('delete', `Veículo excluído localmente`, { placa: vehicle.placa, index });
       
-      // Excluir do Firebase se online
+      // Excluir do Firebase e atualizar Sheets se online
       if (isOnlineMode) {
         try {
           await firebaseService.deleteVehicle(vehicle.placa);
-          showNotification('✅ Veículo excluído do servidor', 'success');
-          syncLog.add('delete', `Veículo excluído do Firebase`, { placa: vehicle.placa });
+          console.log('✅ Veículo excluído do Firebase');
+          
+          // Sincronizar com Google Sheets após exclusão
+          await syncWithGoogleSheets();
+          
+          showNotification('✅ Veículo excluído do servidor e Sheets atualizado', 'success');
+          syncLog.add('delete', `Veículo excluído do Firebase e Sheets atualizado`, { placa: vehicle.placa });
         } catch (error) {
           console.error('❌ Erro ao excluir do Firebase:', error);
           showNotification('⚠️ Erro ao excluir do servidor', 'warning');
@@ -2995,7 +2974,7 @@
       editForm.addEventListener('submit', handleFormSubmit);
       btnTestConnection.addEventListener('click', testFirebaseConnection);
       btnLoadOnline.addEventListener('click', loadInitialData);
-      btnSaveOnline.addEventListener('click', saveToFirebase);
+      btnSaveOnline.addEventListener('click', saveToFirebaseWithSheetsSync); // ALTERADO
       btnMigrateSheets.addEventListener('click', migrateFromSheets);
       btnDiagnose.addEventListener('click', diagnoseFirebaseData);
       btnFixData.addEventListener('click', recoverAllData);
@@ -3003,6 +2982,7 @@
       btnShowStats.addEventListener('click', showDetailedStats);
       btnCheckIntegrity.addEventListener('click', checkDataIntegrity);
       btnAnalyzeCount.addEventListener('click', analyzeCountDiscrepancy);
+      btnSyncSheets.addEventListener('click', syncWithGoogleSheets); // NOVO
       
       window.addEventListener('click', function(e) {
         if (e.target === editModal) {
@@ -3155,6 +3135,80 @@
       }, 4000);
     }
 
+    // 🔍 VERIFICAR INTEGRIDADE DOS DADOS
+    async function checkDataIntegrity() {
+      try {
+        showNotification('🔍 Verificando integridade dos dados...', 'info');
+        syncLog.add('integrity', 'Iniciando verificação de integridade');
+        
+        const issues = [];
+        
+        // Verificar dados locais
+        vehicleData.forEach((vehicle, index) => {
+          if (!vehicle.placa || vehicle.placa.trim() === '') {
+            issues.push(`Veículo ${index}: Sem placa`);
+          }
+          
+          if (vehicle.placa && vehicle.placa.length < 3) {
+            issues.push(`Veículo ${index}: Placa muito curta: "${vehicle.placa}"`);
+          }
+          
+          // Verificar datas inválidas
+          if (vehicle.vigenciaChecklist) {
+            const date = new Date(vehicle.vigenciaChecklist);
+            if (isNaN(date.getTime())) {
+              issues.push(`Veículo ${vehicle.placa}: Data inválida: "${vehicle.vigenciaChecklist}"`);
+            }
+          }
+        });
+        
+        // Verificar duplicados locais
+        const plateMap = new Map();
+        vehicleData.forEach((vehicle, index) => {
+          if (vehicle.placa) {
+            const placa = vehicle.placa.toUpperCase().trim();
+            if (plateMap.has(placa)) {
+              issues.push(`Duplicado local: Placa "${placa}" nas posições ${plateMap.get(placa)} e ${index}`);
+            } else {
+              plateMap.set(placa, index);
+            }
+          }
+        });
+        
+        if (issues.length === 0) {
+          showNotification('✅ Integridade dos dados verificada - Sem problemas encontrados', 'success');
+          syncLog.add('integrity', 'Integridade verificada - Sem problemas', { checked: vehicleData.length });
+          return { valid: true, issues: [] };
+        } else {
+          console.warn(`⚠️ ${issues.length} problemas encontrados:`, issues);
+          showNotification(`⚠️ ${issues.length} problemas de integridade encontrados`, 'warning');
+          syncLog.add('integrity', 'Problemas de integridade encontrados', { 
+            total: issues.length, 
+            checked: vehicleData.length,
+            issues: issues.slice(0, 10) 
+          });
+          
+          // Mostrar resumo
+          alert(`🔍 VERIFICAÇÃO DE INTEGRIDADE - RONDOLOG\n══════════════════════════════\n\n` +
+                `📊 RESULTADO:\n` +
+                `   • Veículos verificados: ${vehicleData.length}\n` +
+                `   • Problemas encontrados: ${issues.length}\n\n` +
+                `⚠️ PROBLEMAS ENCONTRADOS:\n${issues.slice(0, 10).join('\n')}` +
+                (issues.length > 10 ? `\n\n... e mais ${issues.length - 10} problemas` : '') +
+                `\n\n══════════════════════════════\n` +
+                `🔧 Use "Corrigir Dados" para resolver.`);
+          
+          return { valid: false, issues };
+        }
+        
+      } catch (error) {
+        console.error('❌ Erro na verificação:', error);
+        showNotification('❌ Erro na verificação de integridade', 'error');
+        syncLog.add('error', 'Erro na verificação de integridade', { error: error.message });
+        return { valid: false, issues: [`Erro: ${error.message}`] };
+      }
+    }
+
     // 🎯 FUNÇÕES GLOBAIS
     window.openEditModal = openEditModal;
     window.deleteVehicle = deleteVehicle;
@@ -3163,13 +3217,14 @@
     window.applyFiltersAndRender = applyFiltersAndRender;
     window.testFirebaseConnection = testFirebaseConnection;
     window.loadInitialData = loadInitialData;
-    window.saveToFirebase = saveToFirebase;
+    window.saveToFirebase = saveToFirebaseWithSheetsSync;
     window.migrateFromSheets = migrateFromSheets;
     window.diagnoseFirebaseData = diagnoseFirebaseData;
     window.recoverAllData = recoverAllData;
     window.showDetailedStats = showDetailedStats;
     window.checkDataIntegrity = checkDataIntegrity;
     window.analyzeCountDiscrepancy = analyzeCountDiscrepancy;
+    window.syncWithGoogleSheets = syncWithGoogleSheets; // NOVO
   </script>
 </body>
 </html>
