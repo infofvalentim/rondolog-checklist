@@ -1305,6 +1305,60 @@
       color: white;
     }
 
+    /* 👑 ESTILOS PARA ADMIN SECTION */
+    .admin-badge {
+      padding: 4px 8px;
+      background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+      color: #000;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* 👥 ESTILOS PARA MODAL DE GERENCIAMENTO DE USUÁRIOS */
+    .user-manager-table {
+      width: 100%;
+      font-size: 12px;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+    }
+
+    .user-manager-table th {
+      background: var(--bg-secondary);
+      padding: 8px;
+      text-align: left;
+      border-bottom: 2px solid var(--border-color);
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .user-manager-table td {
+      padding: 8px;
+      border-bottom: 1px solid var(--border-color);
+      vertical-align: middle;
+    }
+
+    .user-manager-table tr:hover {
+      background: var(--bg-secondary);
+    }
+
+    .role-select {
+      padding: 4px 8px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-size: 11px;
+      cursor: pointer;
+    }
+
+    .role-select:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
     /* 📱 RESPONSIVIDADE */
     @media (max-width: 768px) {
       .header-content {
@@ -1371,6 +1425,15 @@
       .stats-grid-detailed {
         grid-template-columns: 1fr;
       }
+      
+      .controls {
+        gap: 10px;
+      }
+      
+      .btn {
+        padding: 10px 15px;
+        font-size: 13px;
+      }
     }
   </style>
 </head>
@@ -1385,12 +1448,14 @@
       <form id="loginForm" class="login-form">
         <div class="form-group">
           <label>Usuário</label>
-          <input type="text" class="form-control" id="loginUser" placeholder="Digite seu usuário" value="Felipe" required>
+          <!-- REMOVIDO O VALOR PRÉ-DEFINIDO -->
+          <input type="text" class="form-control" id="loginUser" placeholder="Digite seu usuário" required>
         </div>
         
         <div class="form-group">
           <label>Senha</label>
-          <input type="password" class="form-control" id="loginPassword" placeholder="Digite sua senha" value="123456" required>
+          <!-- REMOVIDO O VALOR PRÉ-DEFINIDO -->
+          <input type="password" class="form-control" id="loginPassword" placeholder="Digite sua senha" required>
         </div>
         
         <div class="login-error" id="loginError">
@@ -1419,6 +1484,32 @@
     <div class="settings-header">
       <h4>⚙️ RONDOLOG - Configurações Avançadas</h4>
       <button class="btn-close" id="btnCloseSettings">×</button>
+    </div>
+    
+    <!-- 👑 SEÇÃO ADMINISTRATIVA (SÓ VISÍVEL PARA ADMIN) -->
+    <div class="settings-section" id="adminSection" style="display: none;">
+      <h5>👑 Administração Avançada</h5>
+      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+        <span class="admin-badge">ADMIN</span>
+        <span style="font-size: 11px; color: var(--text-secondary);">
+          Controle total do sistema
+        </span>
+      </div>
+      
+      <div class="settings-grid">
+        <button class="btn-settings" onclick="openUserManager()">
+          👥 Gerenciar Usuários
+        </button>
+        <button class="btn-settings" onclick="openRoleManager()">
+          🎭 Gerenciar Perfis
+        </button>
+        <button class="btn-settings" onclick="viewAuditLogs()">
+          📋 Logs de Auditoria
+        </button>
+        <button class="btn-settings" onclick="systemDiagnostics()">
+          🔧 Diagnóstico do Sistema
+        </button>
+      </div>
     </div>
     
     <!-- 📤 IMPORTAR DADOS -->
@@ -1567,9 +1658,6 @@
         <button class="btn-settings" onclick="toggleDarkMode()">
           🌙 Alternar Modo Escuro
         </button>
-        <button class="btn-settings" onclick="openAddModal()">
-          ➕ Novo Veículo
-        </button>
         <button class="btn-settings" onclick="resetFilters()">
           🔄 Resetar Filtros
         </button>
@@ -1592,6 +1680,63 @@
     </div>
   </div>
 
+  <!-- 👥 MODAL DE GERENCIAMENTO DE USUÁRIOS -->
+  <div class="modal" id="userManagerModal">
+    <div class="modal-content" style="max-width: 700px;">
+      <h3>👥 Gerenciamento de Usuários</h3>
+      
+      <!-- Lista de Usuários -->
+      <div class="user-list" style="max-height: 300px; overflow-y: auto; margin-bottom: 20px;">
+        <table class="user-manager-table">
+          <thead>
+            <tr>
+              <th>Usuário</th>
+              <th>Perfil</th>
+              <th>Status</th>
+              <th>Último Acesso</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="userListBody">
+            <!-- Usuários serão carregados aqui -->
+          </tbody>
+        </table>
+      </div>
+      
+      <!-- Adicionar Novo Usuário -->
+      <div style="border-top: 1px solid var(--border-color); padding-top: 20px;">
+        <h4>➕ Novo Usuário</h4>
+        <div class="form-group">
+          <label>Nome de Usuário</label>
+          <input type="text" class="form-control" id="newUsername" placeholder="ex: maria.silva">
+        </div>
+        <div class="form-group">
+          <label>Senha Temporária</label>
+          <input type="password" class="form-control" id="newPassword" placeholder="Senha inicial">
+          <button type="button" class="btn btn-sm" onclick="generatePassword()" 
+                  style="margin-top: 5px; font-size: 11px;">
+            🔐 Gerar Senha Aleatória
+          </button>
+        </div>
+        <div class="form-group">
+          <label>Perfil de Acesso</label>
+          <select class="form-control" id="newUserRole">
+            <option value="VIEWER">Visualizador (Somente leitura)</option>
+            <option value="OPERATOR">Operador (Edição básica)</option>
+            <option value="MANAGER">Gerente (Edição completa)</option>
+            <option value="ADMIN">Administrador (Acesso total)</option>
+          </select>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" onclick="closeUserManager()">Cancelar</button>
+          <button class="btn btn-success" onclick="createNewUser()">
+            ✅ Criar Usuário
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- 🎭 CONTAINER PRINCIPAL (INICIALMENTE ESCONDIDO) -->
   <div class="container" id="mainContainer" style="display: none;">
     <!-- 🎭 HEADER -->
@@ -1601,7 +1746,14 @@
           <h1>RONDOLOG - SISTEMA DE GESTÃO DE FROTAS</h1>
           <div class="header-subtitle">Sincronização em tempo real com Firebase</div>
         </div>
+        
         <div class="controls">
+          <!-- ✅ BOTÃO "NOVO VEÍCULO" NO HEADER -->
+          <button class="btn btn-success" onclick="openAddModal()" 
+                  style="background: var(--green); border: 2px solid white;">
+            <span>➕</span> Novo Veículo
+          </button>
+          
           <button class="btn btn-dark-mode" id="btnDarkMode">
             <span>🌙</span> Modo Escuro
           </button>
@@ -1678,7 +1830,7 @@
       </div>
     </div>
 
-    <!-- 📋 TABELA (REMOVIDAS AS COLUNAS STATUS PLACA E VIGÊNCIA PESQ. PLACA) -->
+    <!-- 📋 TABELA -->
     <div class="table-container">
       <table id="dataTable">
         <thead>
@@ -1718,7 +1870,7 @@
     </div>
   </div>
 
-  <!-- 🎭 MODAL DE EDIÇÃO/ADIÇÃO (COM OS 3 NOVOS STATUS) -->
+  <!-- 🎭 MODAL DE EDIÇÃO/ADIÇÃO DE VEÍCULO -->
   <div class="modal" id="editModal">
     <div class="modal-content">
       <h3 id="modalTitle">Adicionar Novo Veículo</h3>
@@ -1735,7 +1887,6 @@
         </div>
         <div class="form-group">
           <label>Checklist Status *</label>
-          <!-- 🎯 MODIFICAÇÃO 1: APENAS OS 3 STATUS PADRONIZADOS -->
           <select class="form-control" id="editStatusChecklist" required>
             <option value="">Selecione...</option>
             <option value="PENDENTE">PENDENTE</option>
@@ -1758,29 +1909,84 @@
     // Versão: 15.0 - 100% FIREBASE
     // ============================================
     
-    // 🔐 SISTEMA DE AUTENTICAÇÃO SIMPLES
+    // 🔐 SISTEMA DE AUTENTICAÇÃO AVANÇADO
     const authService = {
       user: null,
+      userRoles: {
+        ADMIN: {
+          level: 100,
+          permissions: ['create_users', 'edit_all', 'delete_all', 'system_config']
+        },
+        MANAGER: {
+          level: 50,
+          permissions: ['edit_all', 'view_reports', 'export_data']
+        },
+        OPERATOR: {
+          level: 10,
+          permissions: ['view_only', 'add_vehicles', 'edit_own']
+        },
+        VIEWER: {
+          level: 1,
+          permissions: ['view_only']
+        }
+      },
+      
+      // Banco de dados de usuários
+      users: JSON.parse(localStorage.getItem('rondolog_users')) || [
+        {
+          id: 1,
+          username: 'Felipe',
+          password: '123456', // Em produção, usar hash
+          role: 'ADMIN',
+          createdAt: new Date().toISOString(),
+          lastLogin: null,
+          active: true
+        },
+        {
+          id: 2,
+          username: 'operador',
+          password: 'operador123',
+          role: 'OPERATOR',
+          createdAt: new Date().toISOString(),
+          lastLogin: null,
+          active: true
+        },
+        {
+          id: 3,
+          username: 'visualizador',
+          password: 'visual123',
+          role: 'VIEWER',
+          createdAt: new Date().toISOString(),
+          lastLogin: null,
+          active: true
+        }
+      ],
       
       login(username, password) {
-        // Credenciais fixas (em produção, usar hash e banco de dados)
-        const validCredentials = {
-          username: 'Felipe',
-          password: '123456'
-        };
+        const user = this.users.find(u => 
+          u.username === username && 
+          u.password === password && 
+          u.active === true
+        );
         
-        if (username === validCredentials.username && password === validCredentials.password) {
+        if (user) {
           this.user = {
-            username: username,
-            loginTime: new Date().toISOString()
+            ...user,
+            loginTime: new Date().toISOString(),
+            sessionId: 'session_' + Math.random().toString(36).substr(2, 9)
           };
           
+          // Atualizar último login
+          user.lastLogin = new Date().toISOString();
+          this.saveUsers();
+          
           // Salvar no localStorage
-          localStorage.setItem('rondolog_user', JSON.stringify(this.user));
+          localStorage.setItem('rondolog_current_user', JSON.stringify(this.user));
           localStorage.setItem('rondolog_authenticated', 'true');
           
           // Registrar login
           syncLog.add('auth', `Usuário ${username} autenticado com sucesso`, {
+            role: user.role,
             loginTime: this.user.loginTime
           });
           
@@ -1790,14 +1996,16 @@
       },
       
       logout() {
-        syncLog.add('auth', `Usuário ${this.user?.username} fez logout`);
+        if (this.user) {
+          syncLog.add('auth', `Usuário ${this.user.username} fez logout`);
+        }
         this.user = null;
-        localStorage.removeItem('rondolog_user');
+        localStorage.removeItem('rondolog_current_user');
         localStorage.removeItem('rondolog_authenticated');
       },
       
       checkAuth() {
-        const storedUser = localStorage.getItem('rondolog_user');
+        const storedUser = localStorage.getItem('rondolog_current_user');
         const isAuthenticated = localStorage.getItem('rondolog_authenticated') === 'true';
         
         if (isAuthenticated && storedUser) {
@@ -1809,6 +2017,116 @@
       
       getCurrentUser() {
         return this.user;
+      },
+      
+      isAdmin() {
+        return this.user && this.user.role === 'ADMIN';
+      },
+      
+      hasPermission(permission) {
+        if (!this.user) return false;
+        const role = this.userRoles[this.user.role];
+        return role && role.permissions.includes(permission);
+      },
+      
+      // Gerenciamento de usuários (apenas para admin)
+      getUser(username) {
+        return this.users.find(u => u.username === username);
+      },
+      
+      createUser(username, password, role = 'VIEWER') {
+        if (!this.isAdmin()) {
+          throw new Error('Apenas administradores podem criar usuários');
+        }
+        
+        if (this.getUser(username)) {
+          throw new Error('Usuário já existe');
+        }
+        
+        const newUser = {
+          id: Date.now(),
+          username,
+          password,
+          role,
+          createdAt: new Date().toISOString(),
+          lastLogin: null,
+          active: true,
+          createdBy: this.user.username
+        };
+        
+        this.users.push(newUser);
+        this.saveUsers();
+        
+        syncLog.add('admin', `Novo usuário criado: ${username} (${role})`, {
+          createdBy: this.user.username
+        });
+        
+        return newUser;
+      },
+      
+      updateUser(username, updates) {
+        if (!this.isAdmin()) {
+          throw new Error('Apenas administradores podem atualizar usuários');
+        }
+        
+        const userIndex = this.users.findIndex(u => u.username === username);
+        if (userIndex === -1) {
+          throw new Error('Usuário não encontrado');
+        }
+        
+        this.users[userIndex] = {
+          ...this.users[userIndex],
+          ...updates,
+          updatedAt: new Date().toISOString(),
+          updatedBy: this.user.username
+        };
+        
+        this.saveUsers();
+        
+        syncLog.add('admin', `Usuário atualizado: ${username}`, {
+          updates,
+          updatedBy: this.user.username
+        });
+        
+        return true;
+      },
+      
+      deleteUser(username) {
+        if (!this.isAdmin()) {
+          throw new Error('Apenas administradores podem excluir usuários');
+        }
+        
+        if (username === this.user.username) {
+          throw new Error('Não é possível excluir seu próprio usuário');
+        }
+        
+        const userIndex = this.users.findIndex(u => u.username === username);
+        if (userIndex === -1) {
+          throw new Error('Usuário não encontrado');
+        }
+        
+        this.users.splice(userIndex, 1);
+        this.saveUsers();
+        
+        syncLog.add('admin', `Usuário excluído: ${username}`, {
+          deletedBy: this.user.username
+        });
+        
+        return true;
+      },
+      
+      saveUsers() {
+        localStorage.setItem('rondolog_users', JSON.stringify(this.users));
+      },
+      
+      // Geração de senha aleatória
+      generateRandomPassword(length = 10) {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%&';
+        let password = '';
+        for (let i = 0; i < length; i++) {
+          password += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return password;
       }
     };
     
@@ -1886,6 +2204,7 @@
     const btnLogout = document.getElementById('btnLogout');
     const loggedUser = document.getElementById('loggedUser');
     const currentUserInfo = document.getElementById('currentUserInfo');
+    const adminSection = document.getElementById('adminSection');
     
     const btnDarkMode = document.getElementById('btnDarkMode');
     const statusFilter = document.getElementById('statusFilter');
@@ -2059,7 +2378,7 @@
                 vehicle.vigenciaChecklist = vehicle.vigenciaChecklist || '';
                 vehicle.statusChecklist = vehicle.statusChecklist || '';
                 
-                // 🎯 MODIFICAÇÃO 2: USAR OS 3 STATUS PADRONIZADOS
+                // 🎯 USAR OS 3 STATUS PADRONIZADOS
                 if (!vehicle.statusGeral) {
                   vehicle.statusGeral = calculateStatusGeral(
                     vehicle.vigenciaChecklist, 
@@ -2194,7 +2513,7 @@
     // Criar instância global
     const firebaseService = new FirebaseService();
 
-    // 🎯 MODIFICAÇÃO 3: FUNÇÃO DE STATUS GERAL SIMPLIFICADA
+    // 🎯 FUNÇÃO DE STATUS GERAL SIMPLIFICADA
     function calculateStatusGeral(vigenciaChecklist, statusChecklist) {
       const statusUpper = (statusChecklist || '').toUpperCase().trim();
       
@@ -2256,21 +2575,6 @@
       }
     }
 
-    // 🎯 FUNÇÃO AUXILIAR PARA EXTRAIR CAMPOS
-    function extractField(row, possibleKeys) {
-      for (const key of possibleKeys) {
-        if (row[key] !== undefined && row[key] !== null && row[key] !== '') {
-          return row[key];
-        }
-        
-        const keyWithSpace = key.replace(/([A-Z])/g, ' $1').trim();
-        if (row[keyWithSpace] !== undefined) {
-          return row[keyWithSpace];
-        }
-      }
-      return '';
-    }
-
     // ============================================
     // 🔐 SISTEMA DE AUTENTICAÇÃO
     // ============================================
@@ -2314,6 +2618,9 @@
       loggedUser.textContent = user.username;
       currentUserInfo.textContent = user.username;
       
+      // Mostrar/ocultar seção admin
+      toggleAdminSection();
+      
       // Inicializar o sistema
       initializeApp();
     }
@@ -2323,6 +2630,183 @@
         authService.logout();
         location.reload(); // Recarregar a página para voltar ao login
       }
+    }
+
+    function toggleAdminSection() {
+      if (adminSection) {
+        adminSection.style.display = authService.isAdmin() ? 'block' : 'none';
+      }
+    }
+
+    // ============================================
+    // 👥 GERENCIAMENTO DE USUÁRIOS (ADMIN)
+    // ============================================
+
+    function openUserManager() {
+      if (!authService.isAdmin()) {
+        showNotification('⚠️ Acesso restrito a administradores', 'warning');
+        return;
+      }
+      
+      const modal = document.getElementById('userManagerModal');
+      if (modal) {
+        modal.style.display = 'flex';
+        loadUserList();
+      }
+    }
+
+    function closeUserManager() {
+      const modal = document.getElementById('userManagerModal');
+      if (modal) {
+        modal.style.display = 'none';
+      }
+    }
+
+    function loadUserList() {
+      const tbody = document.getElementById('userListBody');
+      if (!tbody) return;
+      
+      tbody.innerHTML = authService.users.map(user => `
+        <tr>
+          <td><strong>${user.username}</strong></td>
+          <td>
+            <select class="role-select" data-user="${user.username}" 
+                    onchange="changeUserRole('${user.username}', this.value)"
+                    ${user.username === 'Felipe' ? 'disabled' : ''}>
+              <option value="VIEWER" ${user.role === 'VIEWER' ? 'selected' : ''}>Visualizador</option>
+              <option value="OPERATOR" ${user.role === 'OPERATOR' ? 'selected' : ''}>Operador</option>
+              <option value="MANAGER" ${user.role === 'MANAGER' ? 'selected' : ''}>Gerente</option>
+              <option value="ADMIN" ${user.role === 'ADMIN' ? 'selected' : ''}>Administrador</option>
+            </select>
+          </td>
+          <td>
+            <span class="status-badge ${user.active ? 'status-valid' : 'status-expired'}" 
+                  style="font-size: 10px; padding: 3px 8px;">
+              ${user.active ? 'ATIVO' : 'INATIVO'}
+            </span>
+          </td>
+          <td>${user.lastLogin ? new Date(user.lastLogin).toLocaleDateString('pt-BR') : 'Nunca'}</td>
+          <td>
+            <button class="btn-edit" onclick="resetUserPassword('${user.username}')" 
+                    style="font-size: 11px; padding: 3px 8px;">
+              🔐 Resetar
+            </button>
+            <button class="btn-delete" onclick="toggleUserStatus('${user.username}')" 
+                    style="font-size: 11px; padding: 3px 8px;">
+              ${user.active ? '❌ Desativar' : '✅ Ativar'}
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function changeUserRole(username, newRole) {
+      if (!authService.isAdmin()) {
+        showNotification('⚠️ Apenas administradores podem alterar perfis', 'warning');
+        return;
+      }
+      
+      try {
+        authService.updateUser(username, { role: newRole });
+        showNotification(`✅ Perfil de ${username} alterado para ${newRole}`, 'success');
+        loadUserList();
+      } catch (error) {
+        showNotification(`❌ Erro: ${error.message}`, 'error');
+      }
+    }
+
+    function toggleUserStatus(username) {
+      if (!authService.isAdmin()) {
+        showNotification('⚠️ Apenas administradores podem alterar status', 'warning');
+        return;
+      }
+      
+      const user = authService.getUser(username);
+      if (!user) return;
+      
+      const newStatus = !user.active;
+      
+      try {
+        authService.updateUser(username, { active: newStatus });
+        showNotification(`✅ Usuário ${username} ${newStatus ? 'ativado' : 'desativado'}`, 'success');
+        loadUserList();
+      } catch (error) {
+        showNotification(`❌ Erro: ${error.message}`, 'error');
+      }
+    }
+
+    function resetUserPassword(username) {
+      if (!authService.isAdmin()) {
+        showNotification('⚠️ Apenas administradores podem resetar senhas', 'warning');
+        return;
+      }
+      
+      const newPassword = authService.generateRandomPassword(10);
+      
+      try {
+        authService.updateUser(username, { password: newPassword });
+        
+        // Mostrar a nova senha
+        alert(`🔐 SENHA RESETADA PARA ${username}\n\nNova senha: ${newPassword}\n\n⚠️ Esta senha será mostrada apenas uma vez. Anote-a em local seguro.`);
+        
+        showNotification(`✅ Senha de ${username} resetada com sucesso`, 'success');
+        loadUserList();
+      } catch (error) {
+        showNotification(`❌ Erro: ${error.message}`, 'error');
+      }
+    }
+
+    function generatePassword() {
+      const newPassword = authService.generateRandomPassword(10);
+      document.getElementById('newPassword').value = newPassword;
+      showNotification('🔐 Senha gerada automaticamente', 'info');
+    }
+
+    function createNewUser() {
+      if (!authService.isAdmin()) {
+        showNotification('⚠️ Apenas administradores podem criar usuários', 'warning');
+        return;
+      }
+      
+      const username = document.getElementById('newUsername').value.trim();
+      const password = document.getElementById('newPassword').value;
+      const role = document.getElementById('newUserRole').value;
+      
+      if (!username) {
+        showNotification('⚠️ Digite um nome de usuário', 'warning');
+        return;
+      }
+      
+      if (!password) {
+        showNotification('⚠️ Digite uma senha', 'warning');
+        return;
+      }
+      
+      try {
+        authService.createUser(username, password, role);
+        
+        // Limpar formulário
+        document.getElementById('newUsername').value = '';
+        document.getElementById('newPassword').value = '';
+        
+        showNotification(`✅ Usuário ${username} criado com sucesso!`, 'success');
+        loadUserList();
+      } catch (error) {
+        showNotification(`❌ Erro: ${error.message}`, 'error');
+      }
+    }
+
+    // Funções de admin não implementadas (placeholders)
+    function openRoleManager() {
+      showNotification('🎭 Esta funcionalidade será implementada em breve', 'info');
+    }
+
+    function viewAuditLogs() {
+      showNotification('📋 Esta funcionalidade será implementada em breve', 'info');
+    }
+
+    function systemDiagnostics() {
+      showNotification('🔧 Esta funcionalidade será implementada em breve', 'info');
     }
 
     // ============================================
@@ -2483,7 +2967,7 @@
         progressText.textContent = `Processando ${i + 1} de ${data.length}...`;
         
         try {
-          // Extrair dados NOVO FORMATO (sua planilha)
+          // Extrair dados
           const placa = extractField(row, [
             'Veículo', 'Veiculo', 'VEÍCULO', 'VEICULO', 
             'Placa', 'placa', 'PLACA', 'Veiculo', 'Veículo'
@@ -2559,18 +3043,12 @@
           processed.push({
             placa: placaNormalizada,
             vigenciaChecklist: vigenciaChecklist,
-            statusChecklist: statusChecklist, // 🎯 AGORA APENAS OS 3 STATUS
+            statusChecklist: statusChecklist,
             statusGeral: statusGeral,
             importedAt: Date.now(),
             sourceFile: fileName,
             sourceRow: i + 1,
-            importedBy: authService.getCurrentUser()?.username || 'Sistema',
-            // Campos originais da planilha para referência
-            originalData: {
-              dataRealizacao: dataRealizacao,
-              validade: validade,
-              statusOriginal: statusChecklistRaw
-            }
+            importedBy: authService.getCurrentUser()?.username || 'Sistema'
           });
           
         } catch (error) {
@@ -2590,6 +3068,21 @@
       }
       
       return processed;
+    }
+
+    // 🎯 FUNÇÃO AUXILIAR PARA EXTRAIR CAMPOS
+    function extractField(row, possibleKeys) {
+      for (const key of possibleKeys) {
+        if (row[key] !== undefined && row[key] !== null && row[key] !== '') {
+          return row[key];
+        }
+        
+        const keyWithSpace = key.replace(/([A-Z])/g, ' $1').trim();
+        if (row[keyWithSpace] !== undefined) {
+          return row[keyWithSpace];
+        }
+      }
+      return '';
     }
 
     // 📤 IMPORTAR PARA FIREBASE
@@ -2660,7 +3153,7 @@
         vehicleCount: vehicleData.length,
         vehicles: vehicleData,
         stats: appStats,
-        logs: syncLog.entries.slice(-50) // Últimos 50 logs
+        logs: syncLog.entries.slice(-50)
       };
       
       const jsonStr = JSON.stringify(backupData, null, 2);
@@ -2881,543 +3374,18 @@
       }
     }
 
-    // 🔍 FUNÇÃO DE DIAGNÓSTICO DETALHADO
-    async function diagnoseFirebaseData() {
-      try {
-        console.log('🔍 Iniciando diagnóstico do Firebase...');
-        showNotification('🔍 Diagnosticando dados do Firebase...', 'info');
-        syncLog.add('diagnose', 'Iniciando diagnóstico completo do Firebase', {
-          user: authService.getCurrentUser()?.username
-        });
-        
-        const snapshot = await firebaseService.database.ref('vehicles').once('value');
-        
-        if (!snapshot.exists()) {
-          console.log('📭 Nenhum dado encontrado no Firebase');
-          showNotification('📭 Nenhum dado encontrado no Firebase', 'warning');
-          syncLog.add('diagnose', 'Nenhum dado encontrado no Firebase');
-          return;
-        }
-        
-        const total = snapshot.numChildren();
-        const local = vehicleData.length;
-        const difference = Math.abs(total - local);
-        
-        let alertMessage = `🔍 DIAGNÓSTICO DO FIREBASE - RONDOLOG\n`;
-        alertMessage += `══════════════════════════════\n\n`;
-        alertMessage += `📊 ESTATÍSTICAS GERAIS:\n`;
-        alertMessage += `   • Total no Firebase: ${total}\n`;
-        alertMessage += `   • Total local: ${local}\n`;
-        alertMessage += `   • Diferença: ${difference}\n`;
-        alertMessage += `   • Sincronizações: ${appStats.saves} vezes\n\n`;
-        
-        if (difference > 0) {
-          alertMessage += `⚠️ ATENÇÃO:\n`;
-          alertMessage += `   • Dados inconsistentes entre Firebase e local\n`;
-          alertMessage += `   • Use "Salvar no Firebase" para sincronizar\n`;
-        }
-        
-        alertMessage += `\n🔧 RECOMENDAÇÕES:\n`;
-        if (difference > 0) {
-          alertMessage += `   • Sincronize os dados\n`;
-        }
-        if (appStats.errors > 0) {
-          alertMessage += `   • Verifique os logs de erro\n`;
-        }
-        
-        alertMessage += `\n══════════════════════════════\n`;
-        alertMessage += `🕒 ${new Date().toLocaleString('pt-BR')}`;
-        alertMessage += `\n👤 Usuário: ${authService.getCurrentUser()?.username || 'Não autenticado'}`;
-        
-        alert(alertMessage);
-        
-        showNotification(
-          `🔍 Diagnóstico: Firebase ${total}, Local ${local}`, 
-          difference > 0 ? 'warning' : 'success'
-        );
-        
-        syncLog.add('diagnose', 'Diagnóstico concluído', {
-          firebase: total,
-          local: local,
-          difference: difference,
-          user: authService.getCurrentUser()?.username
-        });
-        
-        return {
-          firebase: total,
-          local: local
-        };
-        
-      } catch (error) {
-        console.error('❌ Erro no diagnóstico:', error);
-        showNotification('❌ Erro no diagnóstico', 'error');
-        syncLog.add('error', 'Erro no diagnóstico', { 
-          error: error.message,
-          user: authService.getCurrentUser()?.username
-        });
-      }
-    }
-
-    // 🔄 FUNÇÃO DE RECUPERAÇÃO COMPLETA
-    async function recoverAllData() {
-      if (!confirm('🔄 RECUPERAR TODOS OS DADOS - RONDOLOG\n══════════════════════════════\n\n' +
-                   'Esta operação irá:\n' +
-                   '1. 📦 Fazer backup completo dos dados atuais\n' +
-                   '2. 🔧 Corrigir todos os problemas encontrados\n' +
-                   '3. 🗑️ Remover duplicados automaticamente\n' +
-                   '4. 🔄 Normalizar todas as placas\n' +
-                   '5. 💾 Salvar apenas dados válidos\n\n' +
-                   '⚠️ OPERAÇÃO IRREVERSÍVEL\n' +
-                   '══════════════════════════════\n' +
-                   'Deseja continuar?')) {
-        return;
-      }
-      
-      try {
-        showNotification('🔄 Iniciando recuperação completa...', 'info');
-        updateSyncInfo('Recuperação iniciada...');
-        syncLog.add('recovery', 'Iniciando recuperação completa de dados', {
-          user: authService.getCurrentUser()?.username
-        });
-        
-        // Fazer backup primeiro
-        exportBackupJSON();
-        
-        // Processar dados atuais
-        const processedVehicles = new Map();
-        const stats = {
-          total: vehicleData.length,
-          valid: 0,
-          duplicates: 0
-        };
-        
-        vehicleData.forEach(vehicle => {
-          try {
-            if (vehicle && vehicle.placa) {
-              const normalizedPlaca = vehicle.placa.toString().trim().toUpperCase();
-              
-              if (normalizedPlaca === '' || normalizedPlaca === 'UNDEFINED') {
-                return;
-              }
-              
-              const safeKey = firebaseService.normalizeId(normalizedPlaca);
-              
-              // 🎯 APLICAR OS 3 STATUS PADRONIZADOS
-              let statusChecklist = vehicle.statusChecklist || 'PENDENTE';
-              const statusUpper = statusChecklist.toUpperCase().trim();
-              
-              // Converter para os 3 status
-              if (statusUpper === 'APROVADO' || statusUpper === 'VÁLIDO' || statusUpper === 'VALIDO') {
-                statusChecklist = 'OK';
-              } else if (statusUpper === 'VENCIDO' || statusUpper.includes('EXPIROU')) {
-                statusChecklist = 'VENCIDO';
-              } else if (statusUpper === 'REPROVADO' || statusUpper.includes('INVÁLIDO')) {
-                statusChecklist = 'PENDENTE';
-              }
-              // Se já for PENDENTE, OK ou VENCIDO, mantém
-              
-              const correctedVehicle = {
-                ...vehicle,
-                placa: normalizedPlaca,
-                statusChecklist: statusChecklist,
-                statusGeral: calculateStatusGeral(vehicle.vigenciaChecklist, statusChecklist),
-                recoveredAt: Date.now(),
-                recoveredBy: authService.getCurrentUser()?.username || 'Sistema'
-              };
-              
-              // Verificar duplicado
-              if (processedVehicles.has(safeKey)) {
-                stats.duplicates++;
-              }
-              
-              processedVehicles.set(safeKey, correctedVehicle);
-              stats.valid++;
-            }
-          } catch (error) {
-            console.warn('Erro ao processar veículo:', error);
-          }
-        });
-        
-        // Atualizar dados locais
-        vehicleData = Array.from(processedVehicles.values());
-        
-        // Salvar no Firebase
-        await firebaseService.saveAllVehicles(vehicleData);
-        
-        // Log dos resultados
-        console.log('✅ Recuperação concluída:');
-        console.log(`   • Veículos salvos: ${processedVehicles.size}`);
-        console.log(`   • Duplicados eliminados: ${stats.duplicates}`);
-        
-        syncLog.add('recovery', 'Recuperação concluída com sucesso', {
-          saved: processedVehicles.size,
-          duplicates: stats.duplicates,
-          finalCount: processedVehicles.size,
-          user: authService.getCurrentUser()?.username
-        });
-        
-        showNotification(
-          `✅ Recuperação concluída!\n` +
-          `📦 ${processedVehicles.size} veículos salvos\n` +
-          `🗑️ ${stats.duplicates} duplicados eliminados`, 
-          'success'
-        );
-        
-        updateSyncInfo(`Recuperado: ${processedVehicles.size} veículos`);
-        
-        // Recarregar os dados
-        applyFiltersAndRender();
-        updateSettingsStats();
-        updateDetailedStats();
-        
-      } catch (error) {
-        console.error('❌ Erro na recuperação:', error);
-        showNotification(`❌ Erro na recuperação: ${error.message}`, 'error');
-        updateSyncInfo('Erro na recuperação');
-        syncLog.add('error', 'Erro na recuperação de dados', { 
-          error: error.message,
-          user: authService.getCurrentUser()?.username
-        });
-      }
-    }
-
     // ============================================
-    // 🗑️ FUNÇÕES PARA REMOVER DUPLICADOS
+    // 🎯 FUNÇÕES DO SISTEMA
     // ============================================
-
-    // 🔍 ENCONTRAR DUPLICADOS
-    function findDuplicates() {
-      const duplicates = new Map();
-      const duplicateGroups = [];
-      
-      vehicleData.forEach((vehicle, index) => {
-        const placa = vehicle.placa?.toUpperCase().trim();
-        if (!placa) return;
-        
-        if (!duplicates.has(placa)) {
-          duplicates.set(placa, []);
-        }
-        duplicates.get(placa).push({
-          index,
-          vehicle,
-          timestamp: vehicle.updatedAt || vehicle.importedAt || 0
-        });
-      });
-      
-      duplicates.forEach((group, placa) => {
-        if (group.length > 1) {
-          duplicateGroups.push({
-            placa,
-            count: group.length,
-            entries: group.sort((a, b) => b.timestamp - a.timestamp) // Mais recente primeiro
-          });
-        }
-      });
-      
-      return duplicateGroups.sort((a, b) => b.count - a.count);
-    }
-
-    // 📊 MOSTRAR INFORMAÇÕES SOBRE DUPLICADOS
-    function showDuplicatesInfo() {
-      const duplicates = findDuplicates();
-      const duplicatesInfo = document.getElementById('duplicatesInfo');
-      
-      if (!duplicatesInfo) return duplicates;
-      
-      if (duplicates.length === 0) {
-        duplicatesInfo.innerHTML = '<span style="color:var(--green);">✅ Nenhum duplicado encontrado</span>';
-        return duplicates;
-      }
-      
-      let infoHTML = `<span style="color:var(--yellow);">⚠️ ${duplicates.length} placas duplicadas encontradas:</span><br>`;
-      
-      duplicates.slice(0, 10).forEach(group => {
-        const latestDate = group.entries[0].timestamp 
-          ? new Date(group.entries[0].timestamp).toLocaleDateString('pt-BR')
-          : 'Data desconhecida';
-        
-        infoHTML += `• <strong>${group.placa}</strong>: ${group.count} registros (mais recente: ${latestDate})<br>`;
-      });
-      
-      if (duplicates.length > 10) {
-        infoHTML += `... e mais ${duplicates.length - 10} placas duplicadas`;
-      }
-      
-      infoHTML += `<br><small>Total de registros duplicados: ${duplicates.reduce((sum, g) => sum + (g.count - 1), 0)}</small>`;
-      
-      duplicatesInfo.innerHTML = infoHTML;
-      return duplicates;
-    }
-
-    // 🗑️ REMOVER DUPLICADOS (MANTER MAIS RECENTE)
-    async function removeDuplicatesKeepLatest() {
-      const duplicates = findDuplicates();
-      
-      if (duplicates.length === 0) {
-        showNotification('✅ Nenhum duplicado para remover', 'success');
-        return;
-      }
-      
-      const totalDuplicates = duplicates.reduce((sum, g) => sum + (g.count - 1), 0);
-      
-      if (!confirm(`🗑️ REMOVER DUPLICADOS - RONDOLOG\n══════════════════════════════\n\n` +
-                   `Esta operação irá:\n` +
-                   `• Encontrar ${duplicates.length} placas duplicadas\n` +
-                   `• Remover ${totalDuplicates} registros duplicados\n` +
-                   `• Manter apenas o registro mais recente de cada placa\n\n` +
-                   `⚠️ OPERAÇÃO IRREVERSÍVEL - FAÇA BACKUP ANTES!\n` +
-                   `══════════════════════════════\n` +
-                   `Deseja continuar?`)) {
-        return;
-      }
-      
-      try {
-        showNotification('🔄 Removendo duplicados...', 'info');
-        syncLog.add('duplicates', 'Iniciando remoção de duplicados', { 
-          duplicatePlacas: duplicates.length,
-          totalDuplicates: totalDuplicates,
-          user: authService.getCurrentUser()?.username
-        });
-        
-        const uniqueVehicles = new Map();
-        const removedCounts = new Map();
-        
-        // Processar veículos, mantendo apenas o mais recente
-        vehicleData.forEach(vehicle => {
-          const placa = vehicle.placa?.toUpperCase().trim();
-          if (!placa) return;
-          
-          const existing = uniqueVehicles.get(placa);
-          const currentTimestamp = vehicle.updatedAt || vehicle.importedAt || 0;
-          
-          if (!existing || currentTimestamp > existing.timestamp) {
-            uniqueVehicles.set(placa, {
-              vehicle,
-              timestamp: currentTimestamp
-            });
-          }
-          
-          // Contar removidos
-          if (existing) {
-            removedCounts.set(placa, (removedCounts.get(placa) || 0) + 1);
-          }
-        });
-        
-        // Atualizar dados locais
-        const newVehicleData = Array.from(uniqueVehicles.values()).map(item => item.vehicle);
-        const removedTotal = vehicleData.length - newVehicleData.length;
-        
-        vehicleData = newVehicleData;
-        
-        // Atualizar Firebase
-        if (isOnlineMode) {
-          await firebaseService.saveAllVehicles(vehicleData);
-        }
-        
-        // Atualizar interface
-        applyFiltersAndRender();
-        updateSettingsStats();
-        updateDetailedStats();
-        appStats.localCount = vehicleData.length;
-        updateStatsPanel();
-        updateSystemInfo();
-        
-        // Log dos resultados
-        console.log(`✅ Duplicados removidos: ${removedTotal} registros`);
-        console.log(`✅ Veículos únicos: ${vehicleData.length}`);
-        
-        syncLog.add('duplicates', 'Duplicados removidos com sucesso', {
-          removed: removedTotal,
-          remaining: vehicleData.length,
-          duplicateGroups: duplicates.length,
-          user: authService.getCurrentUser()?.username
-        });
-        
-        showNotification(
-          `✅ Duplicados removidos!\n` +
-          `🗑️ ${removedTotal} registros removidos\n` +
-          `📊 ${vehicleData.length} veículos únicos mantidos`, 
-          'success'
-        );
-        
-        // Atualizar informações sobre duplicados
-        showDuplicatesInfo();
-        
-      } catch (error) {
-        console.error('❌ Erro ao remover duplicados:', error);
-        showNotification(`❌ Erro: ${error.message}`, 'error');
-        syncLog.add('error', 'Erro ao remover duplicados', { 
-          error: error.message,
-          user: authService.getCurrentUser()?.username
-        });
-      }
-    }
-
-    // 🔍 FUNÇÃO PARA ENCONTRAR DUPLICADOS (botão)
-    function removeDuplicates() {
-      const duplicates = showDuplicatesInfo();
-      
-      if (duplicates.length === 0) {
-        showNotification('✅ Nenhum duplicado encontrado', 'success');
-      } else {
-        const totalDuplicates = duplicates.reduce((sum, g) => sum + (g.count - 1), 0);
-        
-        alert(`🔍 DUPLICADOS ENCONTRADOS - RONDOLOG\n══════════════════════════════\n\n` +
-              `📊 RESUMO:\n` +
-              `• Placas duplicadas: ${duplicates.length}\n` +
-              `• Registros duplicados: ${totalDuplicates}\n` +
-              `• Veículos únicos: ${vehicleData.length - totalDuplicates}\n\n` +
-              `📋 TOP 10 PLACAS DUPLICADAS:\n` +
-              duplicates.slice(0, 10).map(g => 
-                `• ${g.placa}: ${g.count} registros`
-              ).join('\n') +
-              (duplicates.length > 10 ? `\n\n... e mais ${duplicates.length - 10} placas` : '') +
-              `\n\n══════════════════════════════\n` +
-              `Use "Remover (Manter Mais Recente)" para limpar os duplicados.`);
-      }
-    }
-
-    // 📊 MOSTRAR ESTATÍSTICAS DETALHADAS
-    function showDetailedStats() {
-      const recentLogs = syncLog.getRecent(15);
-      
-      let statsReport = `📊 ESTATÍSTICAS DETALHADAS - RONDOLOG\n`;
-      statsReport += `══════════════════════════════\n\n`;
-      statsReport += `👤 USUÁRIO: ${authService.getCurrentUser()?.username || 'Não autenticado'}\n\n`;
-      
-      statsReport += `📈 DADOS DO SISTEMA:\n`;
-      statsReport += `   • Veículos locais: ${vehicleData.length}\n`;
-      statsReport += `   • Firebase: ${appStats.firebaseCount || 0}\n`;
-      statsReport += `   • Carregamentos: ${appStats.loads}\n`;
-      statsReport += `   • Salvamentos: ${appStats.saves}\n`;
-      statsReport += `   • Erros: ${appStats.errors}\n`;
-      statsReport += `   • Logs: ${syncLog.entries.length}\n`;
-      statsReport += `   • Total processado: ${appStats.totalProcessed}\n\n`;
-      
-      statsReport += `🕒 ÚLTIMA SINCRONIZAÇÃO:\n`;
-      statsReport += `   • Firebase: ${appStats.lastSync ? new Date(appStats.lastSync).toLocaleString('pt-BR') : 'Nunca'}\n`;
-      statsReport += `   • Atualização: ${appStats.lastUpdate ? new Date(appStats.lastUpdate).toLocaleString('pt-BR') : 'Nunca'}\n\n`;
-      
-      statsReport += `📋 ÚLTIMOS LOGS (${recentLogs.length}):\n`;
-      if (recentLogs.length === 0) {
-        statsReport += `   • Nenhum log recente\n`;
-      } else {
-        recentLogs.forEach(log => {
-          const time = new Date(log.timestamp).toLocaleTimeString('pt-BR');
-          statsReport += `   • [${time}] ${log.type.toUpperCase()}: ${log.message}\n`;
-        });
-      }
-      
-      statsReport += `\n══════════════════════════════\n`;
-      statsReport += `🕒 ${new Date().toLocaleString('pt-BR')}`;
-      
-      alert(statsReport);
-      syncLog.add('stats', 'Estatísticas detalhadas visualizadas', {
-        user: authService.getCurrentUser()?.username
-      });
-    }
-
-    // 🧪 TESTAR CONEXÃO FIREBASE
-    async function testFirebaseConnection() {
-      showNotification('🔌 Testando conexão...', 'info');
-      updateSyncInfo('Testando conexão...');
-      syncLog.add('connection', 'Testando conexão com Firebase', {
-        user: authService.getCurrentUser()?.username
-      });
-      
-      try {
-        const isConnected = await firebaseService.testConnection();
-        
-        if (isConnected) {
-          showNotification('✅ Conexão Firebase estabelecida!', 'success');
-          updateSyncInfo('✅ Conexão OK');
-          updateOnlineStatus(true);
-          syncLog.add('connection', 'Conexão testada com sucesso - ONLINE', {
-            user: authService.getCurrentUser()?.username
-          });
-        } else {
-          showNotification('❌ Sem conexão com o Firebase', 'error');
-          updateSyncInfo('❌ Sem conexão');
-          updateOnlineStatus(false);
-          syncLog.add('connection', 'Conexão testada - OFFLINE', {
-            user: authService.getCurrentUser()?.username
-          });
-        }
-        
-      } catch (error) {
-        console.error('❌ Erro no teste de conexão:', error);
-        showNotification('❌ Erro no teste de conexão', 'error');
-        updateSyncInfo('❌ Erro no teste');
-        syncLog.add('error', 'Erro no teste de conexão', { 
-          error: error.message,
-          user: authService.getCurrentUser()?.username
-        });
-      }
-    }
-
-    // 📊 ATUALIZAR STATUS ONLINE/OFFLINE
-    function updateOnlineStatus(connected) {
-      isOnlineMode = connected;
-      
-      if (onlineStatus) {
-        if (connected) {
-          onlineStatus.className = 'online-status online';
-          onlineStatus.innerHTML = '<span class="online-dot"></span> Online';
-        } else {
-          onlineStatus.className = 'online-status offline';
-          onlineStatus.innerHTML = '<span class="offline-dot"></span> Offline';
-        }
-      }
-      
-      if (syncStatusMini) {
-        if (connected) {
-          syncStatusMini.className = 'sync-info-mini';
-          syncStatusMini.innerHTML = '<span class="online-dot" style="width: 8px; height: 8px;"></span> Online - Conectado';
-        } else {
-          syncStatusMini.className = 'sync-info-mini offline';
-          syncStatusMini.innerHTML = '<span class="offline-dot" style="width: 8px; height: 8px;"></span> Offline - Sem conexão';
-        }
-      }
-    }
-
-    function updateSyncInfo(message) {
-      if (syncInfo) {
-        const now = new Date();
-        const timeStr = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-        syncInfo.innerHTML = `${message} <small style="opacity:0.7;">(${timeStr})</small>`;
-      }
-    }
-
-    // 📊 ATUALIZAR PAINEL DE ESTATÍSTICAS
-    function updateStatsPanel() {
-      // Esta função agora está vazia pois removemos o painel de estatísticas
-      // Mas mantemos para compatibilidade
-    }
-
-    // ⚙️ CONFIGURAÇÃO
-    function loadConfig() {
-      isDarkMode = localStorage.getItem('rondolog_dark_mode') === 'true';
-      if (isDarkMode) {
-        document.body.classList.add('dark-mode');
-        btnDarkMode.innerHTML = '<span>☀️</span> Modo Claro';
-      }
-      
-      const savedStats = localStorage.getItem('rondolog_stats');
-      if (savedStats) {
-        appStats = JSON.parse(savedStats);
-        updateDetailedStats();
-        updateSettingsStats();
-        updateSystemInfo();
-      }
-    }
-
-    function saveConfig() {
-      localStorage.setItem('rondolog_dark_mode', isDarkMode.toString());
-      localStorage.setItem('rondolog_stats', JSON.stringify(appStats));
-    }
 
     // 🎯 FUNÇÕES DE MODAL
     function openAddModal() {
+      // Verificar permissão
+      if (!authService.hasPermission('add_vehicles')) {
+        showNotification('⚠️ Você não tem permissão para adicionar veículos', 'warning');
+        return;
+      }
+      
       currentEditIndex = -1;
       modalTitle.textContent = 'Adicionar Novo Veículo';
       clearEditForm();
@@ -3426,6 +3394,12 @@
     }
 
     function openEditModal(index) {
+      // Verificar permissão
+      if (!authService.hasPermission('edit_own') && !authService.hasPermission('edit_all')) {
+        showNotification('⚠️ Você não tem permissão para editar veículos', 'warning');
+        return;
+      }
+      
       currentEditIndex = index;
       const vehicle = vehicleData[index];
 
@@ -3457,6 +3431,17 @@
     // 🎯 MANIPULAR ENVIO DO FORMULÁRIO
     async function handleFormSubmit(e) {
       e.preventDefault();
+      
+      // Verificar permissão
+      if (!authService.hasPermission('add_vehicles') && currentEditIndex === -1) {
+        showNotification('⚠️ Você não tem permissão para adicionar veículos', 'warning');
+        return;
+      }
+      
+      if (!authService.hasPermission('edit_own') && !authService.hasPermission('edit_all') && currentEditIndex !== -1) {
+        showNotification('⚠️ Você não tem permissão para editar veículos', 'warning');
+        return;
+      }
       
       const placa = document.getElementById('editPlaca').value;
       const vigenciaChecklist = document.getElementById('editVigenciaChecklist').value;
@@ -3492,7 +3477,8 @@
         vigenciaChecklist: vigenciaChecklist,
         statusChecklist: statusChecklist,
         statusGeral: calculateStatusGeral(vigenciaChecklist, statusChecklist),
-        updatedBy: authService.getCurrentUser()?.username || 'Sistema'
+        updatedBy: authService.getCurrentUser()?.username || 'Sistema',
+        createdAt: currentEditIndex === -1 ? new Date().toISOString() : vehicleData[currentEditIndex].createdAt
       };
 
       if (currentEditIndex === -1) {
@@ -3545,6 +3531,12 @@
 
     // 🗑️ EXCLUIR VEÍCULO
     async function deleteVehicle(index) {
+      // Verificar permissão
+      if (!authService.hasPermission('delete_all')) {
+        showNotification('⚠️ Você não tem permissão para excluir veículos', 'warning');
+        return;
+      }
+      
       const vehicle = vehicleData[index];
       if (!confirm(`🗑️ EXCLUIR VEÍCULO\n══════════════════════════════\n\n` +
                    `Placa: ${vehicle.placa}\n` +
@@ -3709,6 +3701,10 @@
             rowClass = 'pending';
         }
         
+        // Verificar permissões para mostrar botões
+        const canEdit = authService.hasPermission('edit_own') || authService.hasPermission('edit_all');
+        const canDelete = authService.hasPermission('delete_all');
+        
         return `
           <tr class="${rowClass}">
             <td><span class="vehicle-plate">${vehicle.placa || '-'}</span></td>
@@ -3717,8 +3713,8 @@
             <td><span class="status-badge ${statusClass}">${statusText}</span></td>
             <td>
               <div class="action-buttons">
-                <button class="btn-edit" onclick="openEditModal(${originalIndex})">Editar</button>
-                <button class="btn-delete" onclick="deleteVehicle(${originalIndex})">Excluir</button>
+                ${canEdit ? `<button class="btn-edit" onclick="openEditModal(${originalIndex})">Editar</button>` : ''}
+                ${canDelete ? `<button class="btn-delete" onclick="deleteVehicle(${originalIndex})">Excluir</button>` : ''}
               </div>
             </td>
           </tr>
@@ -3775,6 +3771,9 @@
         if (e.target === editModal) {
           closeEditModal();
         }
+        if (e.target === document.getElementById('userManagerModal')) {
+          closeUserManager();
+        }
       });
     }
 
@@ -3795,6 +3794,67 @@
           user: authService.getCurrentUser()?.username
         });
       }
+    }
+
+    // 📊 ATUALIZAR STATUS ONLINE/OFFLINE
+    function updateOnlineStatus(connected) {
+      isOnlineMode = connected;
+      
+      if (onlineStatus) {
+        if (connected) {
+          onlineStatus.className = 'online-status online';
+          onlineStatus.innerHTML = '<span class="online-dot"></span> Online';
+        } else {
+          onlineStatus.className = 'online-status offline';
+          onlineStatus.innerHTML = '<span class="offline-dot"></span> Offline';
+        }
+      }
+      
+      if (syncStatusMini) {
+        if (connected) {
+          syncStatusMini.className = 'sync-info-mini';
+          syncStatusMini.innerHTML = '<span class="online-dot" style="width: 8px; height: 8px;"></span> Online - Conectado';
+        } else {
+          syncStatusMini.className = 'sync-info-mini offline';
+          syncStatusMini.innerHTML = '<span class="offline-dot" style="width: 8px; height: 8px;"></span> Offline - Sem conexão';
+        }
+      }
+    }
+
+    function updateSyncInfo(message) {
+      if (syncInfo) {
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        syncInfo.innerHTML = `${message} <small style="opacity:0.7;">(${timeStr})</small>`;
+      }
+    }
+
+    // 📊 ATUALIZAR PAINEL DE ESTATÍSTICAS
+    function updateStatsPanel() {
+      // Esta função agora está vazia pois removemos o painel de estatísticas
+      // Mas mantemos para compatibilidade
+    }
+
+    // ⚙️ CONFIGURAÇÃO
+    function loadConfig() {
+      isDarkMode = localStorage.getItem('rondolog_dark_mode') === 'true';
+      if (isDarkMode) {
+        document.body.classList.add('dark-mode');
+        btnDarkMode.innerHTML = '<span>☀️</span> Modo Claro';
+      }
+      
+      const savedStats = localStorage.getItem('rondolog_stats');
+      if (savedStats) {
+        appStats = JSON.parse(savedStats);
+        updateDetailedStats();
+        updateSettingsStats();
+        updateSystemInfo();
+      }
+    }
+
+    function saveConfig() {
+      localStorage.setItem('rondolog_dark_mode', isDarkMode.toString());
+      localStorage.setItem('rondolog_stats', JSON.stringify(appStats));
     }
 
     // 🎯 FUNÇÕES DE EXPORTAÇÃO
@@ -3927,251 +3987,6 @@
       }, 4000);
     }
 
-    // 🔍 VERIFICAR INTEGRIDADE DOS DADOS
-    async function checkDataIntegrity() {
-      try {
-        showNotification('🔍 Verificando integridade dos dados...', 'info');
-        syncLog.add('integrity', 'Iniciando verificação de integridade', {
-          user: authService.getCurrentUser()?.username
-        });
-        
-        const issues = [];
-        
-        // Verificar dados locais
-        vehicleData.forEach((vehicle, index) => {
-          if (!vehicle.placa || vehicle.placa.trim() === '') {
-            issues.push(`Veículo ${index}: Sem placa`);
-          }
-          
-          if (vehicle.placa && vehicle.placa.length < 3) {
-            issues.push(`Veículo ${index}: Placa muito curta: "${vehicle.placa}"`);
-          }
-          
-          // 🎯 VERIFICAR SE O STATUS É UM DOS 3 PERMITIDOS
-          const status = vehicle.statusChecklist?.toUpperCase().trim();
-          if (status && !['PENDENTE', 'OK', 'VENCIDO'].includes(status)) {
-            issues.push(`Veículo ${vehicle.placa}: Status inválido: "${vehicle.statusChecklist}" (deve ser PENDENTE, OK ou VENCIDO)`);
-          }
-          
-          // Verificar datas inválidas
-          if (vehicle.vigenciaChecklist) {
-            const date = parseBrazilianDate(vehicle.vigenciaChecklist);
-            if (!date || isNaN(date.getTime())) {
-              issues.push(`Veículo ${vehicle.placa}: Data inválida: "${vehicle.vigenciaChecklist}"`);
-            }
-          }
-        });
-        
-        // Verificar duplicados locais
-        const plateMap = new Map();
-        vehicleData.forEach((vehicle, index) => {
-          if (vehicle.placa) {
-            const placa = vehicle.placa.toUpperCase().trim();
-            if (plateMap.has(placa)) {
-              issues.push(`Duplicado local: Placa "${placa}" nas posições ${plateMap.get(placa)} e ${index}`);
-            } else {
-              plateMap.set(placa, index);
-            }
-          }
-        });
-        
-        if (issues.length === 0) {
-          showNotification('✅ Integridade dos dados verificada - Sem problemas encontrados', 'success');
-          syncLog.add('integrity', 'Integridade verificada - Sem problemas', { 
-            checked: vehicleData.length,
-            user: authService.getCurrentUser()?.username
-          });
-          return { valid: true, issues: [] };
-        } else {
-          console.warn(`⚠️ ${issues.length} problemas encontrados:`, issues);
-          showNotification(`⚠️ ${issues.length} problemas de integridade encontrados`, 'warning');
-          syncLog.add('integrity', 'Problemas de integridade encontrados', { 
-            total: issues.length, 
-            checked: vehicleData.length,
-            issues: issues.slice(0, 10),
-            user: authService.getCurrentUser()?.username
-          });
-          
-          // Mostrar resumo
-          alert(`🔍 VERIFICAÇÃO DE INTEGRIDADE - RONDOLOG\n══════════════════════════════\n\n` +
-                `📊 RESULTADO:\n` +
-                `   • Veículos verificados: ${vehicleData.length}\n` +
-                `   • Problemas encontrados: ${issues.length}\n\n` +
-                `⚠️ PROBLEMAS ENCONTRADOS:\n${issues.slice(0, 10).join('\n')}` +
-                (issues.length > 10 ? `\n\n... e mais ${issues.length - 10} problemas` : '') +
-                `\n\n══════════════════════════════\n` +
-                `🔧 Use "Recuperar Tudo" para resolver.`);
-          
-          return { valid: false, issues };
-        }
-        
-      } catch (error) {
-        console.error('❌ Erro na verificação:', error);
-        showNotification('❌ Erro na verificação de integridade', 'error');
-        syncLog.add('error', 'Erro na verificação de integridade', { 
-          error: error.message,
-          user: authService.getCurrentUser()?.username
-        });
-        return { valid: false, issues: [`Erro: ${error.message}`] };
-      }
-    }
-
-    // 🔍 ANALISAR DIFERENÇAS DE CONTAGEM
-    async function analyzeCountDiscrepancy() {
-      try {
-        console.log('🔍 Iniciando análise de contagem...');
-        showNotification('🔍 Analisando diferenças de contagem...', 'info');
-        syncLog.add('diagnose', 'Iniciando análise de contagem', {
-          user: authService.getCurrentUser()?.username
-        });
-        
-        const snapshot = await firebaseService.database.ref('vehicles').once('value');
-        
-        if (!snapshot.exists()) {
-          console.log('📭 Nenhum dado encontrado no Firebase');
-          showNotification('📭 Nenhum dado encontrado no Firebase', 'warning');
-          syncLog.add('diagnose', 'Nenhum dado encontrado para análise');
-          return null;
-        }
-        
-        const firebaseCount = snapshot.numChildren();
-        const localCount = vehicleData.length;
-        
-        console.log('📊 Análise de contagem:');
-        console.log(`   Firebase: ${firebaseCount} registros`);
-        console.log(`   Local: ${localCount} registros`);
-        console.log(`   Diferença: ${Math.abs(firebaseCount - localCount)}`);
-        
-        syncLog.add('diagnose', 'Análise de contagem concluída', {
-          firebase: firebaseCount,
-          local: localCount,
-          difference: Math.abs(firebaseCount - localCount),
-          user: authService.getCurrentUser()?.username
-        });
-        
-        // Montar relatório
-        let report = `🔍 ANÁLISE DE CONTAGEM - RONDOLOG\n`;
-        report += `══════════════════════════════\n\n`;
-        report += `👤 USUÁRIO: ${authService.getCurrentUser()?.username || 'Não autenticado'}\n\n`;
-        
-        report += `📊 ESTATÍSTICAS GERAIS:\n`;
-        report += `   • Total no Firebase: ${firebaseCount}\n`;
-        report += `   • Total local: ${localCount}\n`;
-        report += `   • Diferença: ${Math.abs(firebaseCount - localCount)}\n`;
-        report += `   • Sincronizações: ${appStats.saves} vezes\n\n`;
-        
-        report += `📈 RECOMENDAÇÕES:\n`;
-        
-        if (firebaseCount > localCount) {
-          report += `   • Firebase tem mais dados. Carregue novamente do Firebase.\n`;
-        } else if (localCount > firebaseCount) {
-          report += `   • Local tem mais dados. Use "Salvar no Firebase".\n`;
-        }
-        
-        report += `\n══════════════════════════════\n`;
-        report += `🕒 ${new Date().toLocaleString('pt-BR')}`;
-        
-        // Mostrar relatório
-        alert(report);
-        
-        showNotification(
-          `🔍 Análise: Firebase ${firebaseCount}, Local ${localCount}`, 
-          firebaseCount !== localCount ? 'warning' : 'success'
-        );
-        
-        return {
-          firebaseCount,
-          localCount
-        };
-        
-      } catch (error) {
-        console.error('❌ Erro na análise de contagem:', error);
-        showNotification('❌ Erro na análise de contagem', 'error');
-        syncLog.add('error', 'Erro na análise de contagem', { 
-          error: error.message,
-          user: authService.getCurrentUser()?.username
-        });
-        return null;
-      }
-    }
-
-    // 🔄 LIMPAR DADOS
-    async function clearAllData() {
-      if (!confirm('🗑️ LIMPAR TODOS OS DADOS - RONDOLOG\n══════════════════════════════\n\n' +
-                   '⚠️ ATENÇÃO: Esta ação é IRREVERSÍVEL!\n\n' +
-                   'Todos os dados locais e do Firebase serão excluídos.\n' +
-                   'Recomendamos fazer backup antes de continuar.\n\n' +
-                   '══════════════════════════════\n' +
-                   'Deseja realmente continuar?')) {
-        return;
-      }
-      
-      try {
-        showNotification('🗑️ Limpando todos os dados...', 'warning');
-        
-        // Fazer backup primeiro
-        exportBackupJSON();
-        
-        // Limpar dados locais
-        vehicleData = [];
-        filteredData = [];
-        
-        // Limpar Firebase
-        await firebaseService.database.ref('vehicles').remove();
-        
-        // Resetar estatísticas
-        appStats = {
-          loads: 0,
-          saves: 0,
-          sheetsSyncs: 0,
-          lastSync: null,
-          errors: 0,
-          firebaseCount: 0,
-          localCount: 0,
-          totalProcessed: 0,
-          lastUpdate: null
-        };
-        
-        syncLog.clear();
-        
-        // Atualizar interface
-        applyFiltersAndRender();
-        updateSettingsStats();
-        updateDetailedStats();
-        updateSystemInfo();
-        saveConfig();
-        
-        showNotification('✅ Todos os dados foram limpos com sucesso', 'success');
-        syncLog.add('system', 'Todos os dados foram limpos', {
-          user: authService.getCurrentUser()?.username
-        });
-        
-      } catch (error) {
-        console.error('❌ Erro ao limpar dados:', error);
-        showNotification('❌ Erro ao limpar dados', 'error');
-        syncLog.add('error', 'Erro ao limpar dados', { 
-          error: error.message,
-          user: authService.getCurrentUser()?.username
-        });
-      }
-    }
-
-    // 🔄 RESETAR FILTROS
-    function resetFilters() {
-      statusFilter.value = 'all';
-      dateFilter.value = '';
-      searchInput.value = '';
-      applyFiltersAndRender();
-      showNotification('🔄 Filtros resetados com sucesso', 'success');
-      closeSettingsMenu();
-    }
-
-    // 📝 LIMPAR LOGS
-    function clearLogs() {
-      syncLog.clear();
-      closeSettingsMenu();
-    }
-
     // ============================================
     // 🎯 INICIALIZAÇÃO DO SISTEMA
     // ============================================
@@ -4207,6 +4022,18 @@
     window.removeDuplicates = removeDuplicates;
     window.removeDuplicatesKeepLatest = removeDuplicatesKeepLatest;
     window.findDuplicates = findDuplicates;
+    
+    // 👥 Funções de gerenciamento de usuários
+    window.openUserManager = openUserManager;
+    window.closeUserManager = closeUserManager;
+    window.changeUserRole = changeUserRole;
+    window.toggleUserStatus = toggleUserStatus;
+    window.resetUserPassword = resetUserPassword;
+    window.generatePassword = generatePassword;
+    window.createNewUser = createNewUser;
+    window.openRoleManager = openRoleManager;
+    window.viewAuditLogs = viewAuditLogs;
+    window.systemDiagnostics = systemDiagnostics;
   </script>
 </body>
 </html>
