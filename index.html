@@ -132,6 +132,60 @@
       font-weight: 400;
     }
 
+    /* ============================================ */
+    /* 🎪 MENU DE ABAS - NOVO (APÓS O HEADER) */
+    /* ============================================ */
+    .tab-menu {
+      display: flex;
+      background: var(--bg-secondary);
+      border-bottom: 2px solid var(--primary-red);
+      padding: 0;
+      overflow-x: auto;
+      /* INICIALMENTE ESCONDIDO - ATIVAR DEPOIS DOS TESTES */
+      /* display: none; */
+    }
+
+    .tab-btn {
+      padding: 15px 25px;
+      background: transparent;
+      border: none;
+      border-right: 1px solid var(--border-color);
+      color: var(--text-primary);
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .tab-btn:hover {
+      background: rgba(255, 0, 0, 0.1);
+    }
+
+    .tab-btn.active {
+      background: var(--primary-red);
+      color: white;
+      border-bottom: 3px solid white;
+    }
+
+    /* 📦 CONTEÚDO DAS ABAS */
+    .tab-content {
+      display: none;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    /* ============================================ */
+
     /* 🎭 CONTROLES */
     .controls {
       display: flex;
@@ -1434,6 +1488,20 @@
         padding: 10px 15px;
         font-size: 13px;
       }
+      
+      /* Responsividade para abas */
+      .tab-menu {
+        flex-wrap: wrap;
+      }
+      
+      .tab-btn {
+        padding: 12px 15px;
+        font-size: 13px;
+        flex: 1;
+        min-width: 120px;
+        text-align: center;
+        justify-content: center;
+      }
     }
   </style>
 </head>
@@ -1637,6 +1705,31 @@
         <!-- Informações sobre duplicados serão exibidas aqui -->
       </div>
     </div>
+
+    <!-- ============================================ -->
+    <!-- 🚨 NOVA SEÇÃO: NÃO CONFORMIDADES -->
+    <!-- ============================================ -->
+    <div class="settings-section">
+      <h5>🚨 Não Conformidades</h5>
+      <div class="settings-grid">
+        <button class="btn-settings" onclick="ncImportarPlanilha()">
+          📁 Importar Planilha NC
+        </button>
+        <button class="btn-settings" onclick="ncConfigurarAlertas()">
+          🔔 Configurar Alertas
+        </button>
+        <button class="btn-settings" onclick="ncLimparHistorico()" style="background:#6c757d; color:white; border-color:#6c757d;">
+          🗑️ Limpar Histórico
+        </button>
+        <button class="btn-settings" onclick="ncVerEstatisticas()">
+          📊 Ver Estatísticas
+        </button>
+      </div>
+      <div id="ncStatus" style="margin-top:10px; font-size:11px; color:var(--text-secondary);">
+        <!-- Status das NCs será exibido aqui -->
+      </div>
+    </div>
+    <!-- ============================================ -->
     
     <!-- 📊 ESTATÍSTICAS DO SISTEMA -->
     <div class="settings-section">
@@ -1771,6 +1864,19 @@
       </div>
     </div>
     
+    <!-- ============================================ -->
+    <!-- 🎪 MENU DE ABAS - NOVO -->
+    <!-- ============================================ -->
+    <div class="tab-menu" id="tabMenu" style="display: none;">
+      <button class="tab-btn active" onclick="showTab('frota')">
+        <span>✅</span> Checklist Frota
+      </button>
+      <button class="tab-btn" onclick="showTab('naoConformidades')">
+        <span>🚨</span> Não Conformidades
+      </button>
+    </div>
+    <!-- ============================================ -->
+    
     <!-- 🔗 SEÇÃO DE SINCRONIZAÇÃO FIREBASE - LAYOUT MELHORADO -->
     <div class="sync-section">
       <div class="sync-header">
@@ -1785,89 +1891,189 @@
       </div>
     </div>
     
-    <!-- 📊 CARDS DE RESUMO -->
-    <div class="summary-cards" id="summaryCards">
-      <div class="summary-card total">
-        <div class="card-number" id="totalVehicles">0</div>
-        <div class="card-label">Total de Veículos</div>
-        <div class="card-subtitle">Carregados no sistema</div>
-      </div>
-      <div class="summary-card valid">
-        <div class="card-number" id="validVehicles">0</div>
-        <div class="card-label">Checklists OK</div>
-        <div class="card-subtitle">Em conformidade</div>
-      </div>
-      <div class="summary-card warning">
-        <div class="card-number" id="warningVehicles">0</div>
-        <div class="card-label">Checklists Pendentes</div>
-        <div class="card-subtitle">Sem informação completa</div>
-      </div>
-      <div class="summary-card expired">
-        <div class="card-number" id="expiredVehicles">0</div>
-        <div class="card-label">Checklists Vencidos</div>
-        <div class="card-subtitle">Fora da validade</div>
-      </div>
-    </div>
-
-    <!-- 🔍 FILTROS -->
-    <div class="filters">
-      <div class="filter-group">
-        <div class="filter-label">Filtrar por Status</div>
-        <select class="filter-select" id="statusFilter">
-          <option value="all">Todos os Status</option>
-          <option value="valid">OK</option>
-          <option value="pending">Pendentes</option>
-          <option value="expired">Vencidos</option>
-        </select>
-      </div>
-      <div class="filter-group">
-        <div class="filter-label">Data de Validade</div>
-        <input type="date" class="filter-input" id="dateFilter">
-      </div>
-      <div class="filter-group">
-        <div class="filter-label">Busca Inteligente</div>
-        <input type="text" class="filter-input" id="searchInput" placeholder="Placa, status, data...">
-      </div>
-    </div>
-
-    <!-- 📋 TABELA -->
-    <div class="table-container">
-      <table id="dataTable">
-        <thead>
-          <tr>
-            <th data-sort="placa">PLACA</th>
-            <th data-sort="vigenciaChecklist">CHECKLIST VIGÊNCIA</th>
-            <th data-sort="statusChecklist">CHECKLIST STATUS</th>
-            <th data-sort="statusGeral">STATUS GERAL</th>
-            <th>AÇÕES</th>
-          </tr>
-        </thead>
-        <tbody id="tableBody">
-          <tr>
-            <td colspan="5" style="text-align: center; padding: 40px; color: var(--text-secondary);">
-              Faça login para carregar dados...
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <!-- 🎭 FOOTER -->
-    <div class="footer">
-      <div class="footer-info">
-        <div>RONDOLOG - SISTEMA DE GESTÃO DE FROTAS</div>
-        <div id="lastSaveInfo">Usuário: <span id="loggedUser">Não autenticado</span></div>
-        <div id="lastSyncSheetsInfo">Sistema 100% Firebase</div>
-      </div>
-      <div class="stats">
-        <div class="stat-item">
-          <span id="totalCount">0</span> registros carregados
+    <!-- ============================================ -->
+    <!-- 📦 ABA 1: CHECKLIST FROTA (ATUAL) -->
+    <!-- ============================================ -->
+    <div id="tabFrota" class="tab-content active">
+      <!-- 📊 CARDS DE RESUMO -->
+      <div class="summary-cards" id="summaryCards">
+        <div class="summary-card total">
+          <div class="card-number" id="totalVehicles">0</div>
+          <div class="card-label">Total de Veículos</div>
+          <div class="card-subtitle">Carregados no sistema</div>
         </div>
-        <div class="stat-item">
-          <span id="filteredCount">0</span> filtrados
+        <div class="summary-card valid">
+          <div class="card-number" id="validVehicles">0</div>
+          <div class="card-label">Checklists OK</div>
+          <div class="card-subtitle">Em conformidade</div>
+        </div>
+        <div class="summary-card warning">
+          <div class="card-number" id="warningVehicles">0</div>
+          <div class="card-label">Checklists Pendentes</div>
+          <div class="card-subtitle">Sem informação completa</div>
+        </div>
+        <div class="summary-card expired">
+          <div class="card-number" id="expiredVehicles">0</div>
+          <div class="card-label">Checklists Vencidos</div>
+          <div class="card-subtitle">Fora da validade</div>
         </div>
       </div>
+
+      <!-- 🔍 FILTROS -->
+      <div class="filters">
+        <div class="filter-group">
+          <div class="filter-label">Filtrar por Status</div>
+          <select class="filter-select" id="statusFilter">
+            <option value="all">Todos os Status</option>
+            <option value="valid">OK</option>
+            <option value="pending">Pendentes</option>
+            <option value="expired">Vencidos</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <div class="filter-label">Data de Validade</div>
+          <input type="date" class="filter-input" id="dateFilter">
+        </div>
+        <div class="filter-group">
+          <div class="filter-label">Busca Inteligente</div>
+          <input type="text" class="filter-input" id="searchInput" placeholder="Placa, status, data...">
+        </div>
+      </div>
+
+      <!-- 📋 TABELA -->
+      <div class="table-container">
+        <table id="dataTable">
+          <thead>
+            <tr>
+              <th data-sort="placa">PLACA</th>
+              <th data-sort="vigenciaChecklist">CHECKLIST VIGÊNCIA</th>
+              <th data-sort="statusChecklist">CHECKLIST STATUS</th>
+              <th data-sort="statusGeral">STATUS GERAL</th>
+              <th>AÇÕES</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody">
+            <tr>
+              <td colspan="5" style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                Faça login para carregar dados...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 🎭 FOOTER -->
+      <div class="footer">
+        <div class="footer-info">
+          <div>RONDOLOG - SISTEMA DE GESTÃO DE FROTAS</div>
+          <div id="lastSaveInfo">Usuário: <span id="loggedUser">Não autenticado</span></div>
+          <div id="lastSyncSheetsInfo">Sistema 100% Firebase</div>
+        </div>
+        <div class="stats">
+          <div class="stat-item">
+            <span id="totalCount">0</span> registros carregados
+          </div>
+          <div class="stat-item">
+            <span id="filteredCount">0</span> filtrados
+          </div>
+        </div>
+      </div>
     </div>
+    <!-- ============================================ -->
+    <!-- 📦 ABA 2: NÃO CONFORMIDADES (NOVA) -->
+    <!-- ============================================ -->
+    <div id="tabNaoConformidades" class="tab-content">
+      <!-- 📊 CARDS DE RESUMO NC -->
+      <div class="summary-cards" id="ncSummaryCards">
+        <div class="summary-card total">
+          <div class="card-number" id="ncTotal">0</div>
+          <div class="card-label">Total NCs</div>
+          <div class="card-subtitle">Não conformidades</div>
+        </div>
+        <div class="summary-card expired">
+          <div class="card-number" id="ncHoje">0</div>
+          <div class="card-label">NCs Hoje</div>
+          <div class="card-subtitle">Registros no dia</div>
+        </div>
+        <div class="summary-card warning">
+          <div class="card-number" id="ncVeiculos">0</div>
+          <div class="card-label">Veículos com NC</div>
+          <div class="card-subtitle">Placas diferentes</div>
+        </div>
+        <div class="summary-card valid">
+          <div class="card-number" id="ncMotoristas">0</div>
+          <div class="card-label">Motoristas</div>
+          <div class="card-subtitle">Envolvidos em NCs</div>
+        </div>
+      </div>
+
+      <!-- 🔍 FILTROS NC -->
+      <div class="filters">
+        <div class="filter-group">
+          <div class="filter-label">Tipo de NC</div>
+          <select class="filter-select" id="ncTipoFilter">
+            <option value="all">Todos os Tipos</option>
+            <option value="inicio_sem_ok">Início sem OK GS</option>
+            <option value="nao_informado">Início Não Informado</option>
+            <option value="dados_incorretos">SM Dados Incorretos</option>
+            <option value="movimento_indevido">Movimento Indevido</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <div class="filter-label">Veículo</div>
+          <input type="text" class="filter-input" id="ncVeiculoFilter" placeholder="Placa do veículo...">
+        </div>
+        <div class="filter-group">
+          <div class="filter-label">Motorista</div>
+          <input type="text" class="filter-input" id="ncMotoristaFilter" placeholder="Nome do motorista...">
+        </div>
+        <div class="filter-group">
+          <div class="filter-label">Data</div>
+          <input type="date" class="filter-input" id="ncDataFilter">
+        </div>
+      </div>
+
+      <!-- 📋 TABELA NC -->
+      <div class="table-container">
+        <table id="ncDataTable">
+          <thead>
+            <tr>
+              <th data-sort="viagem">VIAGEM</th>
+              <th data-sort="veiculo">VEÍCULO</th>
+              <th data-sort="motorista">MOTORISTA</th>
+              <th data-sort="naoConformidade">NÃO CONFORMIDADE</th>
+              <th data-sort="dataOcorrencia">DATA</th>
+              <th>AÇÕES</th>
+            </tr>
+          </thead>
+          <tbody id="ncTableBody">
+            <tr>
+              <td colspan="6" style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                Nenhuma não conformidade carregada. Use o menu ⚙️ para importar dados.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 🎭 FOOTER NC -->
+      <div class="footer">
+        <div class="footer-info">
+          <div>RONDOLOG - CONTROLE DE NÃO CONFORMIDADES</div>
+          <div id="ncLastUpdate">Última atualização: <span id="ncLastUpdateTime">Nunca</span></div>
+          <div>Período: <span id="ncPeriodo">01/12/2025 à 17/12/2025</span></div>
+        </div>
+        <div class="stats">
+          <div class="stat-item">
+            <span id="ncTotalCount">0</span> NCs carregadas
+          </div>
+          <div class="stat-item">
+            <span id="ncFilteredCount">0</span> filtradas
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- ============================================ -->
   </div>
 
   <!-- 🎭 MODAL DE EDIÇÃO/ADIÇÃO DE VEÍCULO -->
@@ -1903,10 +2109,27 @@
     </div>
   </div>
 
+  <!-- ============================================ -->
+  <!-- 🚨 MODAL DE VISUALIZAÇÃO DE NC (NOVO) -->
+  <!-- ============================================ -->
+  <div class="modal" id="ncViewModal">
+    <div class="modal-content" style="max-width: 700px;">
+      <h3>🚨 Detalhes da Não Conformidade</h3>
+      <div id="ncViewContent" style="max-height: 60vh; overflow-y: auto;">
+        <!-- Conteúdo será preenchido dinamicamente -->
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-cancel" onclick="closeNcViewModal()">Fechar</button>
+        <button class="btn btn-warning" onclick="ncExportarPDF()">📋 Exportar PDF</button>
+      </div>
+    </div>
+  </div>
+  <!-- ============================================ -->
+
   <script>
     // ============================================
     // RONDOLOG - SISTEMA DE GESTÃO DE FROTAS
-    // Versão: 15.0 - 100% FIREBASE
+    // Versão: 15.1 - COM NÃO CONFORMIDADES
     // ============================================
     
     // 🔐 SISTEMA DE AUTENTICAÇÃO AVANÇADO
@@ -1915,19 +2138,19 @@
       userRoles: {
         ADMIN: {
           level: 100,
-          permissions: ['create_users', 'edit_all', 'delete_all', 'system_config']
+          permissions: ['create_users', 'edit_all', 'delete_all', 'system_config', 'nc_admin']
         },
         MANAGER: {
           level: 50,
-          permissions: ['edit_all', 'view_reports', 'export_data']
+          permissions: ['edit_all', 'view_reports', 'export_data', 'nc_import']
         },
         OPERATOR: {
           level: 10,
-          permissions: ['view_only', 'add_vehicles', 'edit_own']
+          permissions: ['view_only', 'add_vehicles', 'edit_own', 'nc_view']
         },
         VIEWER: {
           level: 1,
-          permissions: ['view_only']
+          permissions: ['view_only', 'nc_view']
         }
       },
       
@@ -1936,7 +2159,7 @@
         {
           id: 1,
           username: 'Felipe',
-          password: '123456', // Em produção, usar hash
+          password: '123456',
           role: 'ADMIN',
           createdAt: new Date().toISOString(),
           lastLogin: null,
@@ -1976,18 +2199,14 @@
             sessionId: 'session_' + Math.random().toString(36).substr(2, 9)
           };
           
-          // Atualizar último login
           user.lastLogin = new Date().toISOString();
           this.saveUsers();
           
-          // Salvar no localStorage
           localStorage.setItem('rondolog_current_user', JSON.stringify(this.user));
           localStorage.setItem('rondolog_authenticated', 'true');
           
-          // Registrar login
           syncLog.add('auth', `Usuário ${username} autenticado com sucesso`, {
-            role: user.role,
-            loginTime: this.user.loginTime
+            role: user.role
           });
           
           return true;
@@ -2029,7 +2248,7 @@
         return role && role.permissions.includes(permission);
       },
       
-      // Gerenciamento de usuários (apenas para admin)
+      // Gerenciamento de usuários
       getUser(username) {
         return this.users.find(u => u.username === username);
       },
@@ -2057,9 +2276,7 @@
         this.users.push(newUser);
         this.saveUsers();
         
-        syncLog.add('admin', `Novo usuário criado: ${username} (${role})`, {
-          createdBy: this.user.username
-        });
+        syncLog.add('admin', `Novo usuário criado: ${username} (${role})`);
         
         return newUser;
       },
@@ -2083,10 +2300,7 @@
         
         this.saveUsers();
         
-        syncLog.add('admin', `Usuário atualizado: ${username}`, {
-          updates,
-          updatedBy: this.user.username
-        });
+        syncLog.add('admin', `Usuário atualizado: ${username}`);
         
         return true;
       },
@@ -2108,9 +2322,7 @@
         this.users.splice(userIndex, 1);
         this.saveUsers();
         
-        syncLog.add('admin', `Usuário excluído: ${username}`, {
-          deletedBy: this.user.username
-        });
+        syncLog.add('admin', `Usuário excluído: ${username}`);
         
         return true;
       },
@@ -2119,7 +2331,6 @@
         localStorage.setItem('rondolog_users', JSON.stringify(this.users));
       },
       
-      // Geração de senha aleatória
       generateRandomPassword(length = 10) {
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%&';
         let password = '';
@@ -2142,6 +2353,489 @@
     let syncInProgress = false;
     let firebaseRealtimeListener = null;
 
+    // ============================================
+    // 🚨 MÓDULO NÃO CONFORMIDADES (NOVO)
+    // ============================================
+    const ncModule = {
+      dados: [],
+      filteredData: [],
+      currentSort: { column: null, direction: 'asc' },
+      stats: {
+        total: 0,
+        hoje: 0,
+        veiculos: new Set(),
+        motoristas: new Set(),
+        tipos: {}
+      },
+      
+      // 📤 IMPORTAR DO FIREBASE
+      async carregarDoFirebase() {
+        try {
+          showNotification('📥 Carregando não conformidades...', 'info');
+          
+          const response = await fetch(
+            'https://rondolog-frotas-default-rtdb.firebaseio.com/nc_dados/registros.json'
+          );
+          
+          const data = await response.json();
+          
+          if (data) {
+            // Converter objeto para array
+            this.dados = Object.values(data).filter(item => item !== null);
+            this.atualizarEstatisticas();
+            this.aplicarFiltros();
+            this.renderizarTabela();
+            
+            showNotification(`✅ ${this.dados.length} NCs carregadas`, 'success');
+            updateNcStatus(`✅ ${this.dados.length} NCs carregadas`);
+          } else {
+            this.dados = [];
+            updateNcStatus('📭 Nenhuma NC encontrada');
+          }
+          
+          return this.dados;
+          
+        } catch (error) {
+          console.error('❌ Erro ao carregar NCs:', error);
+          showNotification('❌ Erro ao carregar NCs', 'error');
+          updateNcStatus('❌ Erro ao carregar');
+          return [];
+        }
+      },
+      
+      // 📤 IMPORTAR DE PLANILHA
+      async importarPlanilha(arquivo) {
+        if (!authService.hasPermission('nc_import')) {
+          showNotification('⚠️ Sem permissão para importar NCs', 'warning');
+          return;
+        }
+        
+        try {
+          showNotification(`📁 Processando ${arquivo.name}...`, 'info');
+          
+          // Ler arquivo Excel
+          const data = await this.lerExcel(arquivo);
+          
+          // Processar dados
+          const processados = await this.processarPlanilha(data, arquivo.name);
+          
+          // Salvar no Firebase
+          await this.salvarNoFirebase(processados, arquivo.name);
+          
+          // Recarregar dados
+          await this.carregarDoFirebase();
+          
+          showNotification(`✅ ${processados.length} NCs importadas com sucesso!`, 'success');
+          
+        } catch (error) {
+          console.error('❌ Erro na importação:', error);
+          showNotification(`❌ Erro: ${error.message}`, 'error');
+        }
+      },
+      
+      // 📖 LER ARQUIVO EXCEL
+      lerExcel(file) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            try {
+              const data = new Uint8Array(e.target.result);
+              const workbook = XLSX.read(data, { type: 'array' });
+              const sheet = workbook.Sheets[workbook.SheetNames[0]];
+              const jsonData = XLSX.utils.sheet_to_json(sheet);
+              resolve(jsonData);
+            } catch (error) {
+              reject(error);
+            }
+          };
+          reader.onerror = reject;
+          reader.readAsArrayBuffer(file);
+        });
+      },
+      
+      // 🔄 PROCESSAR PLANILHA DE NC
+      async processarPlanilha(data, fileName) {
+        const processados = [];
+        const hoje = new Date().toISOString().split('T')[0];
+        
+        for (let i = 0; i < data.length; i++) {
+          const row = data[i];
+          
+          try {
+            // Extrair dados da linha
+            const nc = {
+              id: `nc_${Date.now()}_${i}`,
+              viagem: row['Viagem'] || row['viagem'] || '',
+              cliente: row['Cliente'] || row['cliente'] || '',
+              embarcador: row['Embarcador'] || row['embarcador'] || '',
+              veiculo: (row['Veículo'] || row['veiculo'] || '').toString().toUpperCase(),
+              cpfCondutor: row['CPF Condutor'] || row['cpf_condutor'] || '',
+              nomeCondutor: row['Nome Condutor'] || row['nome_condutor'] || '',
+              origem: row['Origem'] || row['origem'] || '',
+              destino: row['Destino'] || row['destino'] || '',
+              naoConformidade: row['Não Conformidade'] || row['nao_conformidade'] || '',
+              dataOcorrencia: row['Data Ocorrencia'] || row['data_ocorrencia'] || '',
+              penalidade: row['Penalidade'] || row['penalidade'] || '',
+              infracao: row['Infração'] || row['infracao'] || '',
+              pontos: row['Pontos'] || row['pontos'] || '',
+              importadoEm: hoje,
+              arquivoOrigem: fileName,
+              linhaOrigem: i + 1,
+              importadoPor: authService.getCurrentUser()?.username || 'Sistema'
+            };
+            
+            // Validar dados mínimos
+            if (nc.viagem && nc.veiculo && nc.naoConformidade) {
+              processados.push(nc);
+            }
+            
+          } catch (error) {
+            console.warn(`Erro na linha ${i + 1}:`, error);
+          }
+        }
+        
+        return processados;
+      },
+      
+      // 💾 SALVAR NO FIREBASE
+      async salvarNoFirebase(dados, fileName) {
+        try {
+          const updates = {};
+          
+          dados.forEach((nc, index) => {
+            const key = `nc_${Date.now()}_${index}`;
+            updates[`nc_dados/registros/${key}`] = {
+              ...nc,
+              id: key,
+              salvoEm: new Date().toISOString(),
+              salvoPor: authService.getCurrentUser()?.username || 'Sistema'
+            };
+          });
+          
+          // Atualizar estatísticas
+          updates['nc_stats/total'] = (this.stats.total || 0) + dados.length;
+          updates['nc_stats/ultima_importacao'] = new Date().toISOString();
+          updates['nc_stats/importacoes_hoje'] = (this.stats.importacoes_hoje || 0) + 1;
+          
+          // Enviar para Firebase
+          await fetch(
+            'https://rondolog-frotas-default-rtdb.firebaseio.com/.json',
+            {
+              method: 'PATCH',
+              body: JSON.stringify(updates),
+              headers: { 'Content-Type': 'application/json' }
+            }
+          );
+          
+          syncLog.add('nc_import', `${dados.length} NCs importadas`, {
+            arquivo: fileName,
+            usuario: authService.getCurrentUser()?.username
+          });
+          
+        } catch (error) {
+          throw new Error(`Erro ao salvar no Firebase: ${error.message}`);
+        }
+      },
+      
+      // 📊 ATUALIZAR ESTATÍSTICAS
+      atualizarEstatisticas() {
+        this.stats = {
+          total: this.dados.length,
+          hoje: 0,
+          veiculos: new Set(),
+          motoristas: new Set(),
+          tipos: {}
+        };
+        
+        const hoje = new Date().toISOString().split('T')[0];
+        
+        this.dados.forEach(nc => {
+          // Contar NCs de hoje
+          if (nc.dataOcorrencia && nc.dataOcorrencia.includes(hoje)) {
+            this.stats.hoje++;
+          }
+          
+          // Adicionar veículos únicos
+          if (nc.veiculo) this.stats.veiculos.add(nc.veiculo);
+          
+          // Adicionar motoristas únicos
+          if (nc.nomeCondutor) this.stats.motoristas.add(nc.nomeCondutor);
+          
+          // Contar por tipo
+          const tipo = this.classificarTipo(nc.naoConformidade);
+          this.stats.tipos[tipo] = (this.stats.tipos[tipo] || 0) + 1;
+        });
+        
+        // Atualizar cards
+        document.getElementById('ncTotal').textContent = this.stats.total;
+        document.getElementById('ncHoje').textContent = this.stats.hoje;
+        document.getElementById('ncVeiculos').textContent = this.stats.veiculos.size;
+        document.getElementById('ncMotoristas').textContent = this.stats.motoristas.size;
+      },
+      
+      // 🏷️ CLASSIFICAR TIPO DE NC
+      classificarTipo(descricao) {
+        const desc = descricao.toLowerCase();
+        
+        if (desc.includes('inicio de viagem sem aguardar')) return 'inicio_sem_ok';
+        if (desc.includes('inicio de viagem não informado')) return 'nao_informado';
+        if (desc.includes('sm com dados incorretos')) return 'dados_incorretos';
+        if (desc.includes('movimento indevido')) return 'movimento_indevido';
+        if (desc.includes('isca com problema')) return 'isca_problema';
+        if (desc.includes('detectado interação')) return 'interacao_cliente';
+        if (desc.includes('fim de viagem')) return 'fim_nao_informado';
+        if (desc.includes('sm enviada após')) return 'sm_atrasada';
+        if (desc.includes('liberado fora')) return 'fora_romaneio';
+        if (desc.includes('perda de sinal')) return 'perda_sinal';
+        if (desc.includes('chegada não informada')) return 'chegada_nao_info';
+        
+        return 'outros';
+      },
+      
+      // 🔍 APLICAR FILTROS
+      aplicarFiltros() {
+        const tipo = document.getElementById('ncTipoFilter').value;
+        const veiculo = document.getElementById('ncVeiculoFilter').value.toLowerCase();
+        const motorista = document.getElementById('ncMotoristaFilter').value.toLowerCase();
+        const data = document.getElementById('ncDataFilter').value;
+        
+        this.filteredData = this.dados.filter(nc => {
+          let match = true;
+          
+          if (tipo !== 'all') {
+            const ncTipo = this.classificarTipo(nc.naoConformidade);
+            match = match && ncTipo === tipo;
+          }
+          
+          if (veiculo) {
+            match = match && nc.veiculo.toLowerCase().includes(veiculo);
+          }
+          
+          if (motorista) {
+            match = match && nc.nomeCondutor.toLowerCase().includes(motorista);
+          }
+          
+          if (data) {
+            const ncData = nc.dataOcorrencia.split(' ')[0];
+            match = match && ncData === data;
+          }
+          
+          return match;
+        });
+        
+        // Ordenar se necessário
+        if (this.currentSort.column) {
+          this.ordenarDados(this.currentSort.column, this.currentSort.direction);
+        }
+        
+        // Atualizar contadores
+        document.getElementById('ncTotalCount').textContent = this.dados.length;
+        document.getElementById('ncFilteredCount').textContent = this.filteredData.length;
+      },
+      
+      // 📊 ORDENAR DADOS
+      ordenarDados(coluna, direcao) {
+        this.filteredData.sort((a, b) => {
+          let aVal = a[coluna] || '';
+          let bVal = b[coluna] || '';
+          
+          if (coluna === 'dataOcorrencia') {
+            aVal = new Date(aVal);
+            bVal = new Date(bVal);
+          }
+          
+          if (typeof aVal === 'string') {
+            aVal = aVal.toLowerCase();
+            bVal = bVal.toLowerCase();
+          }
+          
+          if (aVal < bVal) return direcao === 'asc' ? -1 : 1;
+          if (aVal > bVal) return direcao === 'asc' ? 1 : -1;
+          return 0;
+        });
+      },
+      
+      // 🎨 RENDERIZAR TABELA
+      renderizarTabela() {
+        const tbody = document.getElementById('ncTableBody');
+        
+        if (this.filteredData.length === 0) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="6" style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                Nenhuma não conformidade encontrada com os filtros aplicados.
+              </td>
+            </tr>
+          `;
+          return;
+        }
+        
+        tbody.innerHTML = this.filteredData.map(nc => `
+          <tr>
+            <td><strong>${nc.viagem || '-'}</strong></td>
+            <td><span class="vehicle-plate">${nc.veiculo || '-'}</span></td>
+            <td>${nc.nomeCondutor || '-'}</td>
+            <td>
+              <span style="font-size: 11px; color: var(--text-secondary);">
+                ${nc.naoConformidade.substring(0, 60)}${nc.naoConformidade.length > 60 ? '...' : ''}
+              </span>
+            </td>
+            <td>${formatNcDate(nc.dataOcorrencia)}</td>
+            <td>
+              <div class="action-buttons">
+                <button class="btn-edit" onclick="ncVerDetalhes('${nc.id}')" title="Ver detalhes">
+                  👁️ Ver
+                </button>
+                ${authService.hasPermission('nc_admin') ? `
+                <button class="btn-delete" onclick="ncExcluir('${nc.id}')" title="Excluir">
+                  🗑️ Excluir
+                </button>
+                ` : ''}
+              </div>
+            </td>
+          </tr>
+        `).join('');
+      },
+      
+      // 👁️ VER DETALHES DA NC
+      verDetalhes(id) {
+        const nc = this.dados.find(item => item.id === id);
+        if (!nc) return;
+        
+        const modal = document.getElementById('ncViewModal');
+        const content = document.getElementById('ncViewContent');
+        
+        content.innerHTML = `
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+            <div class="stat-item-detailed">
+              <span class="stat-label">Viagem</span>
+              <span class="stat-value">${nc.viagem || '-'}</span>
+            </div>
+            <div class="stat-item-detailed">
+              <span class="stat-label">Veículo</span>
+              <span class="stat-value">${nc.veiculo || '-'}</span>
+            </div>
+            <div class="stat-item-detailed">
+              <span class="stat-label">Motorista</span>
+              <span class="stat-value">${nc.nomeCondutor || '-'}</span>
+            </div>
+            <div class="stat-item-detailed">
+              <span class="stat-label">CPF</span>
+              <span class="stat-value">${nc.cpfCondutor || '-'}</span>
+            </div>
+          </div>
+          
+          <div style="background: var(--bg-secondary); padding: 15px; border-radius: var(--radius-sm); margin-bottom: 15px;">
+            <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 5px;">Não Conformidade</div>
+            <div style="font-weight: 600; color: var(--primary-red);">${nc.naoConformidade || '-'}</div>
+          </div>
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+            <div>
+              <div style="font-size: 12px; color: var(--text-secondary);">Origem</div>
+              <div>${nc.origem || '-'}</div>
+            </div>
+            <div>
+              <div style="font-size: 12px; color: var(--text-secondary);">Destino</div>
+              <div>${nc.destino || '-'}</div>
+            </div>
+          </div>
+          
+          <div style="margin-bottom: 15px;">
+            <div style="font-size: 12px; color: var(--text-secondary);">Data da Ocorrência</div>
+            <div>${formatNcDate(nc.dataOcorrencia)}</div>
+          </div>
+          
+          <div style="background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 15px;">
+            <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 10px;">Informações Adicionais</div>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; font-size: 12px;">
+              <div>
+                <div style="color: var(--text-secondary);">Embarcador</div>
+                <div>${nc.embarcador || '-'}</div>
+              </div>
+              <div>
+                <div style="color: var(--text-secondary);">Cliente</div>
+                <div>${nc.cliente || '-'}</div>
+              </div>
+              <div>
+                <div style="color: var(--text-secondary);">Importado em</div>
+                <div>${nc.importadoEm || '-'}</div>
+              </div>
+            </div>
+          </div>
+        `;
+        
+        modal.style.display = 'flex';
+      },
+      
+      // 🗑️ EXCLUIR NC
+      async excluir(id) {
+        if (!authService.hasPermission('nc_admin')) {
+          showNotification('⚠️ Sem permissão para excluir NCs', 'warning');
+          return;
+        }
+        
+        if (!confirm('🗑️ Tem certeza que deseja excluir esta não conformidade?\n\nEsta ação não pode ser desfeita.')) {
+          return;
+        }
+        
+        try {
+          // Remover do Firebase
+          await fetch(
+            `https://rondolog-frotas-default-rtdb.firebaseio.com/nc_dados/registros/${id}.json`,
+            { method: 'DELETE' }
+          );
+          
+          // Remover localmente
+          this.dados = this.dados.filter(item => item.id !== id);
+          this.atualizarEstatisticas();
+          this.aplicarFiltros();
+          this.renderizarTabela();
+          
+          showNotification('✅ NC excluída com sucesso', 'success');
+          
+          syncLog.add('nc_delete', `NC ${id} excluída`, {
+            usuario: authService.getCurrentUser()?.username
+          });
+          
+        } catch (error) {
+          console.error('❌ Erro ao excluir NC:', error);
+          showNotification('❌ Erro ao excluir NC', 'error');
+        }
+      }
+    };
+    
+    // ============================================
+    // FUNÇÕES AUXILIARES PARA NC
+    // ============================================
+    
+    function formatNcDate(dateString) {
+      if (!dateString) return '-';
+      try {
+        // Formato: "17/12/2025 12:41" ou "2025-12-17 12:41:00"
+        if (dateString.includes('/')) {
+          const [datePart, timePart] = dateString.split(' ');
+          const [day, month, year] = datePart.split('/');
+          const time = timePart || '';
+          return `${day}/${month}/${year} ${time}`;
+        }
+        return dateString;
+      } catch {
+        return dateString;
+      }
+    }
+    
+    function updateNcStatus(message) {
+      const statusEl = document.getElementById('ncStatus');
+      if (statusEl) {
+        statusEl.innerHTML = `📝 ${message}`;
+      }
+    }
+    
+    // ============================================
+    // FUNÇÕES GLOBAIS DO SISTEMA (EXISTENTES + NOVAS)
+    // ============================================
+    
     // 📊 ESTATÍSTICAS
     let appStats = {
       loads: 0,
@@ -2155,7 +2849,7 @@
       lastUpdate: null
     };
 
-    // 📋 LOG DE SINCRONIZAÇÃO DETALHADO
+    // 📋 LOG DE SINCRONIZAÇÃO
     const syncLog = {
       entries: [],
       
@@ -2171,11 +2865,6 @@
         this.entries.push(entry);
         console.log(`[${type.toUpperCase()}] ${message}`, details);
         
-        // Atualizar contador de logs
-        updateStatsPanel();
-        updateDetailedStats();
-        
-        // Manter apenas últimos 100 logs
         if (this.entries.length > 100) {
           this.entries.shift();
         }
@@ -2189,8 +2878,6 @@
       
       clear: function() {
         this.entries = [];
-        updateStatsPanel();
-        updateDetailedStats();
         showNotification('📝 Logs limpos com sucesso', 'success');
       }
     };
@@ -2205,47 +2892,13 @@
     const loggedUser = document.getElementById('loggedUser');
     const currentUserInfo = document.getElementById('currentUserInfo');
     const adminSection = document.getElementById('adminSection');
-    
     const btnDarkMode = document.getElementById('btnDarkMode');
-    const statusFilter = document.getElementById('statusFilter');
-    const dateFilter = document.getElementById('dateFilter');
-    const searchInput = document.getElementById('searchInput');
-    const tableBody = document.getElementById('tableBody');
-    const editModal = document.getElementById('editModal');
-    const editForm = document.getElementById('editForm');
-    const modalTitle = document.getElementById('modalTitle');
-    const btnCancelModal = document.getElementById('btnCancelModal');
-    const saveStatus = document.getElementById('saveStatus');
-    const lastSaveInfo = document.getElementById('lastSaveInfo');
-    const lastSyncSheetsInfo = document.getElementById('lastSyncSheetsInfo');
-    const totalVehicles = document.getElementById('totalVehicles');
-    const validVehicles = document.getElementById('validVehicles');
-    const warningVehicles = document.getElementById('warningVehicles');
-    const expiredVehicles = document.getElementById('expiredVehicles');
-    const totalCount = document.getElementById('totalCount');
-    const filteredCount = document.getElementById('filteredCount');
-    const syncInfo = document.getElementById('syncInfo');
-    const onlineStatus = document.getElementById('onlineStatus');
     
-    // Elementos do painel de estatísticas detalhadas
-    const detailedFirebase = document.getElementById('detailedFirebase');
-    const detailedLocal = document.getElementById('detailedLocal');
-    const detailedSyncs = document.getElementById('detailedSyncs');
-    const detailedLastSync = document.getElementById('detailedLastSync');
-    const detailedLoads = document.getElementById('detailedLoads');
-    const detailedLogs = document.getElementById('detailedLogs');
-
-    // ⚙️ ELEMENTOS DO SETTINGS
-    const settingsMenu = document.getElementById('settingsMenu');
-    const btnCloseSettings = document.getElementById('btnCloseSettings');
-    const dropAreaSettings = document.getElementById('dropAreaSettings');
-    const fileInputSettings = document.getElementById('fileInputSettings');
-    const syncStatusMini = document.getElementById('syncStatusMini');
-
-    // 🔥 FIREBASE SERVICE
+    // ============================================
+    // 🔥 FIREBASE SERVICE (EXISTENTE)
+    // ============================================
     class FirebaseService {
       constructor() {
-        // DADOS DO FIREBASE
         this.firebaseConfig = {
           apiKey: "AIzaSyDLBgeNjBJ8o2I4yh4ggBbwVwJQxa3zp94",
           authDomain: "rondolog-frotas.firebaseapp.com",
@@ -2257,7 +2910,6 @@
           measurementId: "G-NY9VLX8BC9"
         };
         
-        // Inicializar Firebase
         if (!firebase.apps.length) {
           this.app = firebase.initializeApp(this.firebaseConfig);
         } else {
@@ -2270,17 +2922,14 @@
         this.userId = null;
       }
       
-      // 🔐 CONECTAR AO FIREBASE
       async connect() {
         try {
           console.log('🔌 Conectando ao Firebase...');
           syncLog.add('connection', 'Conectando ao Firebase...');
           
-          // Autenticação anônima
           const userCredential = await this.auth.signInAnonymously();
           this.userId = userCredential.user.uid;
           
-          // Monitorar conexão
           const connectedRef = this.database.ref('.info/connected');
           connectedRef.on('value', (snap) => {
             this.isConnected = snap.val() === true;
@@ -2300,7 +2949,6 @@
         }
       }
       
-      // 💾 SALVAR TODOS OS VEÍCULOS
       async saveAllVehicles(vehicles) {
         try {
           console.log(`💾 Salvando ${vehicles.length} veículos...`);
@@ -2330,7 +2978,6 @@
         }
       }
       
-      // 📥 CARREGAR TODOS OS VEÍCULOS
       async loadVehicles() {
         try {
           console.log('📥 Carregando dados...');
@@ -2378,7 +3025,6 @@
                 vehicle.vigenciaChecklist = vehicle.vigenciaChecklist || '';
                 vehicle.statusChecklist = vehicle.statusChecklist || '';
                 
-                // 🎯 USAR OS 3 STATUS PADRONIZADOS
                 if (!vehicle.statusGeral) {
                   vehicle.statusGeral = calculateStatusGeral(
                     vehicle.vigenciaChecklist, 
@@ -2408,10 +3054,6 @@
           });
           
           console.log(`✅ ${vehicles.length} veículos carregados`);
-          console.log('📊 RELATÓRIO DE CARREGAMENTO:');
-          console.log(`   Total no Firebase: ${loadReport.total}`);
-          console.log(`   Carregados com sucesso: ${loadReport.loaded}`);
-          console.log(`   Ignorados: ${loadReport.ignored}`);
           
           syncLog.add('load', `Carregamento concluído: ${vehicles.length} veículos`, loadReport);
           
@@ -2419,7 +3061,6 @@
           appStats.localCount = vehicles.length;
           appStats.totalProcessed += vehicles.length;
           appStats.lastUpdate = new Date().toISOString();
-          updateStatsPanel();
           updateDetailedStats();
           updateSettingsStats();
           
@@ -2440,7 +3081,6 @@
         }
       }
       
-      // 🗑️ EXCLUIR VEÍCULO
       async deleteVehicle(placa) {
         try {
           const safeKey = this.normalizeId(placa);
@@ -2455,7 +3095,6 @@
         }
       }
       
-      // 🔄 LISTENER EM TEMPO REAL
       setupRealtimeListener(callback) {
         try {
           console.log('👂 Configurando listener...');
@@ -2469,7 +3108,6 @@
               });
               callback(vehicles);
               appStats.firebaseCount = snapshot.numChildren();
-              updateStatsPanel();
               updateDetailedStats();
               updateSettingsStats();
               syncLog.add('realtime', 'Dados atualizados em tempo real', { count: vehicles.length });
@@ -2482,7 +3120,6 @@
         }
       }
       
-      // 🧪 TESTAR CONEXÃO
       async testConnection() {
         try {
           const connectedRef = this.database.ref('.info/connected');
@@ -2493,7 +3130,6 @@
         }
       }
       
-      // 🛠️ UTILITÁRIOS
       normalizeId(placa) {
         if (!placa) return 'undefined';
         
@@ -2513,25 +3149,24 @@
     // Criar instância global
     const firebaseService = new FirebaseService();
 
-    // 🎯 FUNÇÃO DE STATUS GERAL SIMPLIFICADA
+    // ============================================
+    // 🎯 FUNÇÕES DO SISTEMA (EXISTENTES)
+    // ============================================
+
     function calculateStatusGeral(vigenciaChecklist, statusChecklist) {
       const statusUpper = (statusChecklist || '').toUpperCase().trim();
       
-      // 🎯 APENAS OS 3 STATUS PADRONIZADOS
       if (statusUpper === 'OK') return 'OK';
       if (statusUpper === 'VENCIDO') return 'VENCIDO';
       
-      // Para qualquer outro status, considerar como PENDENTE
       return 'PENDENTE';
     }
 
-    // 🎯 FUNÇÕES AUXILIARES PARA DATAS
     function parseBrazilianDate(dateStr) {
       if (!dateStr || dateStr.toString().trim() === '') return '';
       
       const str = dateStr.toString().trim();
       
-      // Tentar formato DD/MM/YYYY
       if (str.includes('/')) {
         const parts = str.split('/');
         if (parts.length === 3) {
@@ -2542,13 +3177,11 @@
         }
       }
       
-      // Tentar formato YYYY-MM-DD (ISO)
       if (str.includes('-')) {
         const date = new Date(str);
         if (!isNaN(date.getTime())) return date;
       }
       
-      // Tentar qualquer formato de data que o JavaScript reconheça
       const date = new Date(str);
       return isNaN(date.getTime()) ? '' : date;
     }
@@ -2580,15 +3213,11 @@
     // ============================================
 
     function initAuthentication() {
-      // Verificar se já está autenticado
       if (authService.checkAuth()) {
         hideLoginShowApp();
       }
       
-      // Configurar formulário de login
       loginForm.addEventListener('submit', handleLoginSubmit);
-      
-      // Configurar logout
       btnLogout.addEventListener('click', handleLogout);
     }
 
@@ -2613,22 +3242,18 @@
       mainContainer.style.display = 'block';
       settingsIcon.style.display = 'flex';
       
-      // Atualizar informações do usuário
       const user = authService.getCurrentUser();
       loggedUser.textContent = user.username;
       currentUserInfo.textContent = user.username;
       
-      // Mostrar/ocultar seção admin
       toggleAdminSection();
-      
-      // Inicializar o sistema
       initializeApp();
     }
 
     function handleLogout() {
       if (confirm('🚪 Deseja realmente sair do sistema?')) {
         authService.logout();
-        location.reload(); // Recarregar a página para voltar ao login
+        location.reload();
       }
     }
 
@@ -2639,7 +3264,7 @@
     }
 
     // ============================================
-    // 👥 GERENCIAMENTO DE USUÁRIOS (ADMIN)
+    // 👥 GERENCIAMENTO DE USUÁRIOS (EXISTENTE)
     // ============================================
 
     function openUserManager() {
@@ -2746,7 +3371,6 @@
       try {
         authService.updateUser(username, { password: newPassword });
         
-        // Mostrar a nova senha
         alert(`🔐 SENHA RESETADA PARA ${username}\n\nNova senha: ${newPassword}\n\n⚠️ Esta senha será mostrada apenas uma vez. Anote-a em local seguro.`);
         
         showNotification(`✅ Senha de ${username} resetada com sucesso`, 'success');
@@ -2785,7 +3409,6 @@
       try {
         authService.createUser(username, password, role);
         
-        // Limpar formulário
         document.getElementById('newUsername').value = '';
         document.getElementById('newPassword').value = '';
         
@@ -2796,7 +3419,6 @@
       }
     }
 
-    // Funções de admin não implementadas (placeholders)
     function openRoleManager() {
       showNotification('🎭 Esta funcionalidade será implementada em breve', 'info');
     }
@@ -2813,40 +3435,31 @@
     // ⚙️ SISTEMA DE SETTINGS
     // ============================================
 
-    // 🎯 INICIALIZAR SETTINGS
     function initSettings() {
       console.log('⚙️ Inicializando sistema de Settings...');
       
-      // Toggle do menu
       settingsIcon.addEventListener('click', toggleSettingsMenu);
       btnCloseSettings.addEventListener('click', closeSettingsMenu);
       
-      // Click fora fecha menu
       document.addEventListener('click', (e) => {
         if (!settingsMenu.contains(e.target) && !settingsIcon.contains(e.target)) {
           closeSettingsMenu();
         }
       });
       
-      // Configurar upload de arquivos
       setupFileUpload();
-      
-      // Atualizar estatísticas no settings
       updateSettingsStats();
       updateDetailedStats();
-      
-      // Atualizar informações do sistema
       updateSystemInfo();
     }
 
-    // 🎪 TOGGLE DO MENU
     function toggleSettingsMenu() {
       settingsMenu.classList.toggle('show');
       if (settingsMenu.classList.contains('show')) {
         updateSettingsStats();
         updateDetailedStats();
         updateSystemInfo();
-        showDuplicatesInfo();
+        updateNcStatus('Pronto para importar dados');
       }
     }
 
@@ -2854,17 +3467,16 @@
       settingsMenu.classList.remove('show');
     }
 
-    // 📤 CONFIGURAR UPLOAD DE ARQUIVOS
     function setupFileUpload() {
-      // Click na área de drop
+      const dropAreaSettings = document.getElementById('dropAreaSettings');
+      const fileInputSettings = document.getElementById('fileInputSettings');
+      
       dropAreaSettings.addEventListener('click', () => {
         fileInputSettings.click();
       });
       
-      // Selecionar arquivo
       fileInputSettings.addEventListener('change', handleSettingsFileSelect);
       
-      // Drag & drop
       ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
         dropAreaSettings.addEventListener(eventName, preventDefaults, false);
       });
@@ -2891,19 +3503,27 @@
       dropAreaSettings.addEventListener('drop', handleSettingsDrop, false);
     }
 
-    // 📁 PROCESSAR ARQUIVO NO SETTINGS
     function handleSettingsDrop(e) {
       const dt = e.dataTransfer;
       const files = dt.files;
       if (files.length) {
-        processSettingsFile(files[0]);
+        handleSettingsFileSelect({ target: { files } });
       }
     }
 
     function handleSettingsFileSelect(e) {
       const files = e.target.files;
       if (files.length) {
-        processSettingsFile(files[0]);
+        const file = files[0];
+        
+        // Verificar se é planilha de NC
+        if (file.name.includes('NaoConformidade') || file.name.includes('Não Conformidade')) {
+          // Processar como NC
+          ncImportarPlanilha(file);
+        } else {
+          // Processar como veículos (existente)
+          processSettingsFile(file);
+        }
       }
     }
 
@@ -2916,7 +3536,6 @@
         
         showNotification(`✅ ${processed.length} veículos prontos para importar`, 'success');
         
-        // Perguntar se quer importar
         if (confirm(`Importar ${processed.length} veículos do arquivo ${file.name}?\n\n⚠️ Isso substituirá os dados atuais.`)) {
           await importToFirebase(processed, file.name);
         }
@@ -2927,7 +3546,6 @@
       }
     }
 
-    // 📖 LER ARQUIVO EXCEL
     function readExcelFile(file) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -2947,7 +3565,6 @@
       });
     }
 
-    // 🔄 PROCESSAR DADOS DA PLANILHA (COM OS 3 STATUS)
     async function processSpreadsheetData(data, fileName) {
       const processed = [];
       const ignored = [];
@@ -2961,13 +3578,11 @@
       for (let i = 0; i < data.length; i++) {
         const row = data[i];
         
-        // Atualizar progresso
         const progress = Math.round(((i + 1) / data.length) * 100);
         progressBar.style.width = `${progress}%`;
         progressText.textContent = `Processando ${i + 1} de ${data.length}...`;
         
         try {
-          // Extrair dados
           const placa = extractField(row, [
             'Veículo', 'Veiculo', 'VEÍCULO', 'VEICULO', 
             'Placa', 'placa', 'PLACA', 'Veiculo', 'Veículo'
@@ -2988,7 +3603,6 @@
             'Validade Checklist', 'Vencimento'
           ]);
           
-          // Validar placa
           if (!placa || placa.toString().trim() === '') {
             ignored.push({ linha: i + 1, motivo: 'Placa vazia' });
             continue;
@@ -2996,13 +3610,11 @@
           
           const placaNormalizada = placa.toString().trim().toUpperCase();
           
-          // 🎯 CONVERTER STATUS PARA OS 3 PADRÕES
-          let statusChecklist = 'PENDENTE'; // Padrão
+          let statusChecklist = 'PENDENTE';
           
           if (statusChecklistRaw) {
             const statusLower = statusChecklistRaw.toString().toLowerCase();
             
-            // Mapeamento para os 3 status
             if (statusLower.includes('válido') || statusLower.includes('valido') || 
                 statusLower.includes('aprovado') || statusLower.includes('ok')) {
               statusChecklist = 'OK';
@@ -3011,21 +3623,18 @@
             } else if (statusLower.includes('pendente') || statusLower.includes('pendência')) {
               statusChecklist = 'PENDENTE';
             } else {
-              // Tentar inferir pelo conteúdo
               if (statusLower.includes('reprovado') || statusLower.includes('inválido')) {
                 statusChecklist = 'PENDENTE';
               } else {
-                statusChecklist = 'PENDENTE'; // Padrão
+                statusChecklist = 'PENDENTE';
               }
             }
           }
           
-          // Usar a validade diretamente se disponível
           let vigenciaChecklist = '';
           if (validade && validade.toString().trim().toLowerCase() !== 'no embarque') {
             vigenciaChecklist = formatDateForInput(validade);
           } else if (dataRealizacao) {
-            // Se não houver validade específica, usar data de realização + 30 dias
             try {
               const dataReal = parseBrazilianDate(dataRealizacao);
               if (dataReal && !isNaN(dataReal.getTime())) {
@@ -3037,7 +3646,6 @@
             }
           }
           
-          // Calcular status geral (usando a função simplificada)
           const statusGeral = calculateStatusGeral(vigenciaChecklist, statusChecklist);
           
           processed.push({
@@ -3056,7 +3664,6 @@
         }
       }
       
-      // Resetar progresso
       progressBar.style.width = '0%';
       progressText.textContent = 'Processando...';
       importProgress.style.display = 'none';
@@ -3070,7 +3677,6 @@
       return processed;
     }
 
-    // 🎯 FUNÇÃO AUXILIAR PARA EXTRAIR CAMPOS
     function extractField(row, possibleKeys) {
       for (const key of possibleKeys) {
         if (row[key] !== undefined && row[key] !== null && row[key] !== '') {
@@ -3085,12 +3691,10 @@
       return '';
     }
 
-    // 📤 IMPORTAR PARA FIREBASE
     async function importToFirebase(data, fileName) {
       try {
         showNotification(`📤 Importando ${data.length} veículos...`, 'info');
         
-        // Preparar updates
         const updates = {};
         data.forEach(vehicle => {
           const safeKey = firebaseService.normalizeId(vehicle.placa);
@@ -3102,10 +3706,8 @@
           };
         });
         
-        // Enviar para Firebase
         await firebaseService.database.ref().update(updates);
         
-        // Atualizar dados locais
         vehicleData = data;
         applyFiltersAndRender();
         
@@ -3129,8 +3731,14 @@
       }
     }
 
-    // 📊 ATUALIZAR ESTATÍSTICAS DETALHADAS
     function updateDetailedStats() {
+      const detailedFirebase = document.getElementById('detailedFirebase');
+      const detailedLocal = document.getElementById('detailedLocal');
+      const detailedSyncs = document.getElementById('detailedSyncs');
+      const detailedLastSync = document.getElementById('detailedLastSync');
+      const detailedLoads = document.getElementById('detailedLoads');
+      const detailedLogs = document.getElementById('detailedLogs');
+      
       if (detailedFirebase) detailedFirebase.textContent = appStats.firebaseCount || 0;
       if (detailedLocal) detailedLocal.textContent = appStats.localCount || vehicleData.length || 0;
       if (detailedSyncs) detailedSyncs.textContent = appStats.saves || 0;
@@ -3144,14 +3752,15 @@
       }
     }
 
-    // 💾 EXPORTAR BACKUP JSON
     function exportBackupJSON() {
       const backupData = {
         timestamp: new Date().toISOString(),
-        version: 'RONDOLOG v15.0',
+        version: 'RONDOLOG v15.1',
         user: authService.getCurrentUser()?.username || 'Não autenticado',
         vehicleCount: vehicleData.length,
         vehicles: vehicleData,
+        ncCount: ncModule.dados.length,
+        ncData: ncModule.dados,
         stats: appStats,
         logs: syncLog.entries.slice(-50)
       };
@@ -3174,7 +3783,6 @@
       });
     }
 
-    // 📊 ATUALIZAR ESTATÍSTICAS NO SETTINGS
     function updateSettingsStats() {
       const total = vehicleData.length;
       const ok = vehicleData.filter(v => v.statusGeral === 'OK').length;
@@ -3189,7 +3797,6 @@
       document.getElementById('settingsSyncCount').textContent = appStats.saves || 0;
     }
 
-    // ℹ️ ATUALIZAR INFORMAÇÕES DO SISTEMA
     function updateSystemInfo() {
       const lastUpdateInfo = document.getElementById('lastUpdateInfo');
       const totalProcessedInfo = document.getElementById('totalProcessedInfo');
@@ -3206,13 +3813,186 @@
     }
 
     // ============================================
+    // 🚨 FUNÇÕES DE NÃO CONFORMIDADES (NOVAS)
+    // ============================================
+
+    function ncImportarPlanilha(file = null) {
+      if (!file) {
+        // Criar input de arquivo
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.xlsx,.xls,.csv';
+        input.onchange = (e) => {
+          if (e.target.files.length) {
+            ncModule.importarPlanilha(e.target.files[0]);
+          }
+        };
+        input.click();
+      } else {
+        ncModule.importarPlanilha(file);
+      }
+      
+      closeSettingsMenu();
+    }
+
+    function ncConfigurarAlertas() {
+      showNotification('🔔 Configuração de alertas em desenvolvimento', 'info');
+      closeSettingsMenu();
+    }
+
+    function ncLimparHistorico() {
+      if (!authService.hasPermission('nc_admin')) {
+        showNotification('⚠️ Apenas administradores podem limpar histórico', 'warning');
+        return;
+      }
+      
+      if (!confirm('🗑️ LIMPAR HISTÓRICO DE NÃO CONFORMIDADES\n\nEsta ação removerá TODOS os registros de NCs.\n\n⚠️ Esta ação não pode ser desfeita!\n\nDeseja continuar?')) {
+        return;
+      }
+      
+      // Implementar limpeza do Firebase
+      showNotification('🔄 Limpando histórico...', 'info');
+      closeSettingsMenu();
+    }
+
+    function ncVerEstatisticas() {
+      const stats = ncModule.stats;
+      
+      const mensagem = `
+📊 ESTATÍSTICAS DE NÃO CONFORMIDADES
+══════════════════════════════════
+• Total de NCs: ${stats.total}
+• NCs hoje: ${stats.hoje}
+• Veículos envolvidos: ${stats.veiculos.size}
+• Motoristas envolvidos: ${stats.motoristas.size}
+
+📈 DISTRIBUIÇÃO POR TIPO:
+${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${tipo}: ${count}`).join('\n')}
+      `;
+      
+      alert(mensagem);
+      closeSettingsMenu();
+    }
+
+    function ncVerDetalhes(id) {
+      ncModule.verDetalhes(id);
+    }
+
+    function ncExcluir(id) {
+      ncModule.excluir(id);
+    }
+
+    function closeNcViewModal() {
+      document.getElementById('ncViewModal').style.display = 'none';
+    }
+
+    function ncExportarPDF() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      
+      doc.setFontSize(20);
+      doc.text('RONDOLOG - DETALHES DA NÃO CONFORMIDADE', 105, 15, { align: 'center' });
+      
+      doc.setFontSize(10);
+      doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, 105, 25, { align: 'center' });
+      
+      // Implementar exportação dos detalhes atuais
+      showNotification('📋 Exportação de detalhes em desenvolvimento', 'info');
+    }
+
+    // ============================================
+    // 🎪 CONTROLE DE ABAS (NOVO)
+    // ============================================
+
+    function showTab(tabName) {
+      // Esconder todas as abas
+      document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.remove('active');
+      });
+      
+      // Remover active de todos os botões
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      
+      // Mostrar aba selecionada
+      const tabId = `tab${tabName.charAt(0).toUpperCase() + tabName.slice(1)}`;
+      document.getElementById(tabId).classList.add('active');
+      
+      // Ativar botão
+      event.target.classList.add('active');
+      
+      // Se for a aba de não conformidades, carregar dados
+      if (tabName === 'naoConformidades') {
+        // Configurar ordenação da tabela NC
+        setupNcTableSorting();
+        
+        // Configurar filtros NC
+        setupNcFilters();
+        
+        // Carregar dados se ainda não carregou
+        if (ncModule.dados.length === 0) {
+          ncModule.carregarDoFirebase();
+        }
+      }
+    }
+
+    function setupNcTableSorting() {
+      const headers = document.querySelectorAll('#ncDataTable thead th[data-sort]');
+      headers.forEach(header => {
+        header.addEventListener('click', () => {
+          const column = header.getAttribute('data-sort');
+          
+          headers.forEach(h => {
+            if (h !== header) {
+              h.classList.remove('sorted-asc', 'sorted-desc');
+            }
+          });
+
+          if (ncModule.currentSort.column === column) {
+            ncModule.currentSort.direction = ncModule.currentSort.direction === 'asc' ? 'desc' : 'asc';
+          } else {
+            ncModule.currentSort.column = column;
+            ncModule.currentSort.direction = 'asc';
+          }
+
+          header.classList.add(ncModule.currentSort.direction === 'asc' ? 'sorted-asc' : 'sorted-desc');
+          ncModule.aplicarFiltros();
+          ncModule.renderizarTabela();
+        });
+      });
+    }
+
+    function setupNcFilters() {
+      document.getElementById('ncTipoFilter').addEventListener('change', () => {
+        ncModule.aplicarFiltros();
+        ncModule.renderizarTabela();
+      });
+      
+      document.getElementById('ncVeiculoFilter').addEventListener('input', () => {
+        ncModule.aplicarFiltros();
+        ncModule.renderizarTabela();
+      });
+      
+      document.getElementById('ncMotoristaFilter').addEventListener('input', () => {
+        ncModule.aplicarFiltros();
+        ncModule.renderizarTabela();
+      });
+      
+      document.getElementById('ncDataFilter').addEventListener('change', () => {
+        ncModule.aplicarFiltros();
+        ncModule.renderizarTabela();
+      });
+    }
+
+    // ============================================
     // 🔥 FUNÇÕES PRINCIPAIS DO SISTEMA
     // ============================================
 
     function initializeApp() {
-      console.log('🚀 RONDOLOG v15.0 - Inicializando aplicação...');
+      console.log('🚀 RONDOLOG v15.1 - Inicializando aplicação...');
       
-      syncLog.add('system', 'Sistema RONDOLOG v15.0 inicializando...', {
+      syncLog.add('system', 'Sistema RONDOLOG v15.1 inicializando...', {
         user: authService.getCurrentUser()?.username
       });
       
@@ -3220,9 +4000,11 @@
       setupEventListeners();
       setupSorting();
       updateSaveStatus();
-      updateStatsPanel();
       updateDetailedStats();
       initSettings();
+      
+      // Mostrar menu de abas (remover display: none)
+      document.getElementById('tabMenu').style.display = 'flex';
       
       // Conectar ao Firebase
       connectToFirebase();
@@ -3235,7 +4017,6 @@
           isOnlineMode = true;
           updateSyncInfo('Conectado ao Firebase');
           
-          // Configurar listener em tempo real
           firebaseRealtimeListener = firebaseService.setupRealtimeListener((vehicles) => {
             console.log('🔄 Dados atualizados em tempo real:', vehicles.length);
             vehicleData = vehicles;
@@ -3244,10 +4025,8 @@
             updateSettingsStats();
             updateDetailedStats();
             appStats.localCount = vehicles.length;
-            updateStatsPanel();
           });
           
-          // Carregar dados iniciais
           await loadInitialData();
         }
       } catch (error) {
@@ -3256,13 +4035,12 @@
         applyFiltersAndRender();
       }
       
-      console.log('✅ Sistema inicializado - 100% Firebase');
+      console.log('✅ Sistema inicializado');
       syncLog.add('system', 'Sistema inicializado com sucesso', {
         user: authService.getCurrentUser()?.username
       });
     }
 
-    // 📥 CARREGAR DADOS INICIAIS
     async function loadInitialData() {
       try {
         showNotification('📥 Carregando dados do servidor...', 'info');
@@ -3277,8 +4055,6 @@
           appStats.localCount = vehicles.length;
           appStats.totalProcessed += vehicles.length;
           appStats.lastUpdate = new Date().toISOString();
-          updateStatsPanel();
-          updateDetailedStats();
           updateSettingsStats();
           updateSystemInfo();
           saveConfig();
@@ -3299,7 +4075,6 @@
       }
     }
 
-    // 💾 SALVAR NO FIREBASE
     async function saveToFirebase() {
       if (vehicleData.length === 0) {
         showNotification('📭 Nenhum dado para salvar', 'warning');
@@ -3335,8 +4110,6 @@
         appStats.lastUpdate = new Date().toISOString();
         lastSaveTime = new Date();
         updateSaveStatus();
-        updateStatsPanel();
-        updateDetailedStats();
         updateSettingsStats();
         updateSystemInfo();
         saveConfig();
@@ -3358,8 +4131,6 @@
         updateSyncInfo('❌ Erro ao salvar');
         updateOnlineStatus(false);
         appStats.errors++;
-        updateStatsPanel();
-        updateDetailedStats();
         updateSettingsStats();
         saveConfig();
         syncLog.add('error', 'Erro no salvamento', { 
@@ -3375,12 +4146,10 @@
     }
 
     // ============================================
-    // 🎯 FUNÇÕES DO SISTEMA
+    // 🎯 FUNÇÕES DO SISTEMA (EXISTENTES)
     // ============================================
 
-    // 🎯 FUNÇÕES DE MODAL
     function openAddModal() {
-      // Verificar permissão
       if (!authService.hasPermission('add_vehicles')) {
         showNotification('⚠️ Você não tem permissão para adicionar veículos', 'warning');
         return;
@@ -3394,7 +4163,6 @@
     }
 
     function openEditModal(index) {
-      // Verificar permissão
       if (!authService.hasPermission('edit_own') && !authService.hasPermission('edit_all')) {
         showNotification('⚠️ Você não tem permissão para editar veículos', 'warning');
         return;
@@ -3428,11 +4196,9 @@
       editModal.style.display = 'none';
     }
 
-    // 🎯 MANIPULAR ENVIO DO FORMULÁRIO
     async function handleFormSubmit(e) {
       e.preventDefault();
       
-      // Verificar permissão
       if (!authService.hasPermission('add_vehicles') && currentEditIndex === -1) {
         showNotification('⚠️ Você não tem permissão para adicionar veículos', 'warning');
         return;
@@ -3506,7 +4272,6 @@
       appStats.lastUpdate = new Date().toISOString();
       updateSystemInfo();
       
-      // Salvar no Firebase em background
       if (isOnlineMode) {
         setTimeout(async () => {
           try {
@@ -3529,9 +4294,7 @@
       closeEditModal();
     }
 
-    // 🗑️ EXCLUIR VEÍCULO
     async function deleteVehicle(index) {
-      // Verificar permissão
       if (!authService.hasPermission('delete_all')) {
         showNotification('⚠️ Você não tem permissão para excluir veículos', 'warning');
         return;
@@ -3559,7 +4322,6 @@
         user: authService.getCurrentUser()?.username
       });
       
-      // Excluir do Firebase se online
       if (isOnlineMode) {
         try {
           await firebaseService.deleteVehicle(vehicle.placa);
@@ -3582,7 +4344,6 @@
       }
     }
 
-    // 🎯 FUNÇÕES DE FILTRO
     function applyFiltersAndRender() {
       const statusValue = statusFilter.value;
       const dateValue = dateFilter.value;
@@ -3622,9 +4383,8 @@
       updateSummaryCards();
     }
 
-    // 🎯 FUNÇÕES DE ORDENAÇÃO
     function setupSorting() {
-      const headers = document.querySelectorAll('thead th[data-sort]');
+      const headers = document.querySelectorAll('#dataTable thead th[data-sort]');
       headers.forEach(header => {
         header.addEventListener('click', () => {
           const column = header.getAttribute('data-sort');
@@ -3669,16 +4429,17 @@
       });
     }
 
-    // 🎯 FUNÇÕES DE RENDERIZAÇÃO
     function renderTable() {
+      const tbody = document.getElementById('tableBody');
+      
       if (filteredData.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px; color: var(--text-secondary);">Nenhum dado encontrado</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px; color: var(--text-secondary);">Nenhum dado encontrado</td></tr>';
         totalCount.textContent = vehicleData.length;
         filteredCount.textContent = 0;
         return;
       }
 
-      tableBody.innerHTML = filteredData.map((vehicle, index) => {
+      tbody.innerHTML = filteredData.map((vehicle, index) => {
         const originalIndex = vehicleData.findIndex(v => 
           v.placa === vehicle.placa && 
           v.vigenciaChecklist === vehicle.vigenciaChecklist
@@ -3701,7 +4462,6 @@
             rowClass = 'pending';
         }
         
-        // Verificar permissões para mostrar botões
         const canEdit = authService.hasPermission('edit_own') || authService.hasPermission('edit_all');
         const canDelete = authService.hasPermission('delete_all');
         
@@ -3737,7 +4497,6 @@
       expiredVehicles.textContent = expired;
     }
 
-    // 🎯 FUNÇÕES DE SALVAMENTO
     function updateSaveStatus() {
       if (lastSaveTime) {
         const now = new Date();
@@ -3758,7 +4517,6 @@
       }
     }
 
-    // 🎯 CONFIGURAÇÃO DE EVENT LISTENERS
     function setupEventListeners() {
       btnDarkMode.addEventListener('click', toggleDarkMode);
       statusFilter.addEventListener('change', applyFiltersAndRender);
@@ -3773,6 +4531,9 @@
         }
         if (e.target === document.getElementById('userManagerModal')) {
           closeUserManager();
+        }
+        if (e.target === document.getElementById('ncViewModal')) {
+          closeNcViewModal();
         }
       });
     }
@@ -3796,7 +4557,6 @@
       }
     }
 
-    // 📊 ATUALIZAR STATUS ONLINE/OFFLINE
     function updateOnlineStatus(connected) {
       isOnlineMode = connected;
       
@@ -3829,13 +4589,6 @@
       }
     }
 
-    // 📊 ATUALIZAR PAINEL DE ESTATÍSTICAS
-    function updateStatsPanel() {
-      // Esta função agora está vazia pois removemos o painel de estatísticas
-      // Mas mantemos para compatibilidade
-    }
-
-    // ⚙️ CONFIGURAÇÃO
     function loadConfig() {
       isDarkMode = localStorage.getItem('rondolog_dark_mode') === 'true';
       if (isDarkMode) {
@@ -3857,7 +4610,6 @@
       localStorage.setItem('rondolog_stats', JSON.stringify(appStats));
     }
 
-    // 🎯 FUNÇÕES DE EXPORTAÇÃO
     function exportXLS() {
       let dataToExport = filteredData;
       let filename = `rondolog_frota_${new Date().toISOString().split('T')[0]}.xlsx`;
@@ -3951,7 +4703,6 @@
       closeSettingsMenu();
     }
 
-    // 🔔 FUNÇÃO DE NOTIFICAÇÃO
     function showNotification(message, type = 'info') {
       const notification = document.createElement('div');
       notification.className = `notification ${type}`;
@@ -3992,14 +4743,17 @@
     // ============================================
     
     document.addEventListener('DOMContentLoaded', function() {
-      console.log('🚀 RONDOLOG v15.0 - Sistema de Gestão de Frotas');
+      console.log('🚀 RONDOLOG v15.1 - Sistema de Gestão de Frotas');
       console.log('🔐 Iniciando sistema de autenticação...');
       
-      // Primeiro inicializar autenticação
       initAuthentication();
     });
 
+    // ============================================
     // 🎯 FUNÇÕES GLOBAIS
+    // ============================================
+    
+    // Funções existentes
     window.openEditModal = openEditModal;
     window.deleteVehicle = deleteVehicle;
     window.exportPDF = exportPDF;
@@ -4023,7 +4777,7 @@
     window.removeDuplicatesKeepLatest = removeDuplicatesKeepLatest;
     window.findDuplicates = findDuplicates;
     
-    // 👥 Funções de gerenciamento de usuários
+    // Funções de gerenciamento de usuários
     window.openUserManager = openUserManager;
     window.closeUserManager = closeUserManager;
     window.changeUserRole = changeUserRole;
@@ -4034,6 +4788,19 @@
     window.openRoleManager = openRoleManager;
     window.viewAuditLogs = viewAuditLogs;
     window.systemDiagnostics = systemDiagnostics;
+    
+    // Funções de Não Conformidades (NOVAS)
+    window.ncImportarPlanilha = ncImportarPlanilha;
+    window.ncConfigurarAlertas = ncConfigurarAlertas;
+    window.ncLimparHistorico = ncLimparHistorico;
+    window.ncVerEstatisticas = ncVerEstatisticas;
+    window.ncVerDetalhes = ncVerDetalhes;
+    window.ncExcluir = ncExcluir;
+    window.closeNcViewModal = closeNcViewModal;
+    window.ncExportarPDF = ncExportarPDF;
+    
+    // Função de controle de abas
+    window.showTab = showTab;
   </script>
 </body>
 </html>
