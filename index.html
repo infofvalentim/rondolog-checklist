@@ -418,7 +418,7 @@
       width: 100%;
       border-collapse: collapse;
       background: var(--bg-primary);
-      min-width: 1000px;
+      min-width: 800px;
     }
 
     thead th {
@@ -775,12 +775,27 @@
       background: #c53030;
     }
 
-    /* 🔗 ESTILOS SINCRONIZAÇÃO GOOGLE SHEETS */
+    /* 🔗 🔄 NOVO ESTILO PARA SINCRONIZAÇÃO FIREBASE - MELHORADO */
     .sync-section {
       background: linear-gradient(135deg, #1a237e 0%, #283593 100%);
       padding: 15px 30px;
       border-bottom: 3px solid var(--primary-red);
       margin-top: -1px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .sync-section::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px);
+      background-size: 20px 20px;
+      opacity: 0.3;
+      z-index: 0;
     }
 
     .sync-header {
@@ -788,22 +803,40 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      position: relative;
+      z-index: 1;
+    }
+
+    .sync-header h4 {
+      margin: 0;
+      color: white;
+      font-weight: 600;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
 
     .sync-controls {
       display: flex;
-      gap: 10px;
+      gap: 15px;
       flex-wrap: wrap;
       align-items: center;
+      position: relative;
+      z-index: 1;
     }
 
     .sync-info {
       margin-top: 10px;
-      padding: 8px 12px;
+      padding: 12px 16px;
       background: rgba(255, 255, 255, 0.1);
-      border-radius: var(--radius-sm);
-      font-size: 12px;
-      color: rgba(255, 255, 255, 0.8);
+      border-radius: var(--radius-md);
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.9);
+      border-left: 3px solid var(--primary-red);
+      backdrop-filter: blur(10px);
+      position: relative;
+      z-index: 1;
     }
 
     /* Status online/offline */
@@ -816,6 +849,9 @@
       align-items: center;
       gap: 8px;
       transition: all 0.3s ease;
+      position: relative;
+      z-index: 1;
+      backdrop-filter: blur(5px);
     }
 
     .online-status.online {
@@ -908,73 +944,365 @@
       background: rgba(255, 255, 255, 0.05);
     }
 
-    /* 🆕 ESTILOS PARA PAINEL DE ESTATÍSTICAS */
-    .stats-panel {
-      background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
-      padding: 15px 30px;
-      border-bottom: 3px solid var(--primary-red);
-      margin-top: -1px;
+    /* ⚙️ ÍCONE SETTINGS FLUTUANTE - DESIGN MELHORADO */
+    .settings-icon {
+      position: fixed;
+      top: 25px;
+      right: 25px;
+      width: 45px;
+      height: 45px;
+      background: linear-gradient(135deg, var(--primary-red) 0%, #cc0000 100%);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      cursor: pointer;
+      z-index: 1000;
+      box-shadow: var(--shadow-heavy);
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      border: 2px solid white;
+      animation: float 3s ease-in-out infinite;
     }
 
-    .stats-header {
-      margin-bottom: 10px;
+    .settings-icon:hover {
+      transform: rotate(90deg) scale(1.1);
+      box-shadow: 0 8px 25px rgba(255, 0, 0, 0.4);
+      background: linear-gradient(135deg, #cc0000 0%, #990000 100%);
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-5px); }
+    }
+
+    /* 🎪 MENU SETTINGS */
+    .settings-menu {
+      position: fixed;
+      top: 85px;
+      right: 25px;
+      width: 380px;
+      background: var(--bg-primary);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-heavy);
+      z-index: 1001;
+      display: none;
+      border: 1px solid var(--border-color);
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+
+    .settings-header {
+      padding: 20px 25px;
+      background: linear-gradient(135deg, var(--primary-black) 0%, #2d2d2d 100%);
+      border-bottom: 3px solid var(--primary-red);
       display: flex;
       justify-content: space-between;
       align-items: center;
-    }
-
-    .stats-controls {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      align-items: center;
-    }
-
-    .stats-item {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 8px 16px;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: var(--radius-sm);
       color: white;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .settings-header h4 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn-close {
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      color: white;
+      padding: 0;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: var(--transition);
+    }
+
+    .btn-close:hover {
+      background: rgba(255, 255, 255, 0.2);
+      transform: rotate(90deg);
+    }
+
+    .settings-section {
+      padding: 20px 25px;
+      border-bottom: 1px solid var(--border-color);
+      transition: var(--transition);
+    }
+
+    .settings-section:hover {
+      background: var(--bg-secondary);
+    }
+
+    .settings-section:last-child {
+      border-bottom: none;
+    }
+
+    .settings-section h5 {
+      margin: 0 0 15px 0;
+      color: var(--text-primary);
+      font-size: 14px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .settings-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+
+    .btn-settings {
+      padding: 12px 15px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      cursor: pointer;
+      text-align: left;
+      font-size: 13px;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 500;
+    }
+
+    .btn-settings:hover {
+      background: var(--primary-red);
+      color: white;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(255, 0, 0, 0.2);
+      border-color: var(--primary-red);
+    }
+
+    .btn-settings.small {
+      padding: 8px 12px;
       font-size: 12px;
-      border: 1px solid rgba(255, 255, 255, 0.2);
     }
 
-    .stats-item span:first-child {
-      opacity: 0.8;
+    .drop-area-settings {
+      border: 2px dashed var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 25px 20px;
+      text-align: center;
+      margin: 15px 0;
+      cursor: pointer;
+      transition: var(--transition);
+      background: var(--bg-secondary);
     }
 
-    .stats-item span:last-child {
+    .drop-area-settings:hover {
+      border-color: var(--primary-red);
+      background: rgba(255, 0, 0, 0.05);
+    }
+
+    /* 📊 ESTILOS PARA ESTATÍSTICAS DETALHADAS NO SETTINGS */
+    .stats-mini {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-bottom: 15px;
+      font-size: 12px;
+    }
+
+    .stats-mini div {
+      padding: 10px 12px;
+      background: var(--bg-secondary);
+      border-radius: var(--radius-sm);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border: 1px solid var(--border-color);
+    }
+
+    .stats-mini span {
       font-weight: 700;
+      color: var(--primary-red);
       font-size: 14px;
     }
 
-    .stats-item.warning {
-      background: rgba(255, 193, 7, 0.2);
-      border-color: rgba(255, 193, 7, 0.4);
+    /* Grid para estatísticas detalhadas */
+    .stats-grid-detailed {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-bottom: 15px;
     }
 
-    .stats-item.error {
-      background: rgba(255, 0, 0, 0.2);
-      border-color: rgba(255, 0, 0, 0.4);
+    .stat-item-detailed {
+      padding: 12px 15px;
+      background: var(--bg-secondary);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
     }
 
-    .stats-item.success {
-      background: rgba(0, 200, 83, 0.2);
-      border-color: rgba(0, 200, 83, 0.4);
+    .stat-label {
+      font-size: 11px;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
 
-    /* 🔄 BOTÕES DE SINCRONIZAÇÃO */
-    .btn-sync {
-      background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);
+    .stat-value {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--primary-red);
+    }
+
+    .sync-info-mini {
+      padding: 10px 12px;
+      background: rgba(0, 200, 83, 0.1);
+      border-radius: var(--radius-sm);
+      font-size: 11px;
+      color: var(--green);
+      border: 1px solid rgba(0, 200, 83, 0.2);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .sync-info-mini.offline {
+      background: rgba(255, 0, 0, 0.1);
+      color: var(--primary-red);
+      border-color: rgba(255, 0, 0, 0.2);
+    }
+
+    /* 🔄 ANIMAÇÃO DE ENTRADA */
+    @keyframes slideInRight {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    .settings-menu.show {
+      display: block;
+      animation: slideInRight 0.3s ease;
+    }
+
+    /* 🌙 DARK MODE SETTINGS */
+    .dark-mode .settings-menu {
+      background: var(--bg-secondary);
+      border-color: #3a4556;
+    }
+
+    .dark-mode .settings-header {
+      background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+    }
+
+    .dark-mode .btn-settings {
+      background: #2d3748;
+      border-color: #3a4556;
+    }
+
+    .dark-mode .btn-settings:hover {
+      background: var(--primary-red);
+    }
+
+    .dark-mode .drop-area-settings {
+      background: #2d3748;
+      border-color: #3a4556;
+    }
+
+    .dark-mode .drop-area-settings:hover {
+      background: rgba(255, 0, 0, 0.1);
+    }
+
+    .dark-mode .stats-mini div {
+      background: #2d3748;
+      border-color: #3a4556;
+    }
+
+    .dark-mode .stat-item-detailed {
+      background: #2d3748;
+      border-color: #3a4556;
+    }
+
+    /* 🔐 ESTILOS PARA MODAL DE LOGIN */
+    .login-modal {
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(10px);
+    }
+
+    .login-modal .modal-content {
+      max-width: 380px;
+      text-align: center;
+    }
+
+    .login-logo {
+      font-size: 48px;
+      margin-bottom: 15px;
+      display: block;
+    }
+
+    .login-title {
+      font-size: 24px;
+      margin-bottom: 5px;
+      color: var(--primary-black);
+    }
+
+    .login-subtitle {
+      color: var(--text-secondary);
+      margin-bottom: 25px;
+      font-size: 14px;
+    }
+
+    .login-form {
+      margin-top: 20px;
+    }
+
+    .login-btn {
+      width: 100%;
+      margin-top: 15px;
+      padding: 12px;
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .login-error {
+      color: var(--primary-red);
+      font-size: 12px;
+      margin-top: 10px;
+      display: none;
+    }
+
+    /* 🔄 BOTÃO DE LOGOUT NO HEADER */
+    .btn-logout {
+      background: transparent;
+      border: 2px solid #ff6b6b;
+      color: #ff6b6b;
+      padding: 10px 15px;
+    }
+
+    .btn-logout:hover {
+      background: #ff6b6b;
       color: white;
-    }
-
-    .btn-sync:hover {
-      background: linear-gradient(135deg, #43A047 0%, #1B5E20 100%);
-      box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
     }
 
     /* 📱 RESPONSIVIDADE */
@@ -1020,40 +1348,267 @@
       .online-status {
         justify-content: center;
       }
+      
+      .settings-menu {
+        width: 90%;
+        right: 5%;
+        left: 5%;
+        top: 85px;
+      }
+      
+      .settings-icon {
+        top: 20px;
+        right: 20px;
+        width: 40px;
+        height: 40px;
+        font-size: 20px;
+      }
+      
+      .settings-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .stats-grid-detailed {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="container">
+  <!-- 🔐 MODAL DE LOGIN (INICIALMENTE VISÍVEL) -->
+  <div class="modal login-modal" id="loginModal" style="display: flex;">
+    <div class="modal-content">
+      <div class="login-logo">🚛</div>
+      <h3 class="login-title">RONDOLOG - Sistema de Gestão</h3>
+      <p class="login-subtitle">Acesso restrito à equipe autorizada</p>
+      
+      <form id="loginForm" class="login-form">
+        <div class="form-group">
+          <label>Usuário</label>
+          <input type="text" class="form-control" id="loginUser" placeholder="Digite seu usuário" value="Felipe" required>
+        </div>
+        
+        <div class="form-group">
+          <label>Senha</label>
+          <input type="password" class="form-control" id="loginPassword" placeholder="Digite sua senha" value="123456" required>
+        </div>
+        
+        <div class="login-error" id="loginError">
+          ❌ Usuário ou senha incorretos
+        </div>
+        
+        <button type="submit" class="btn btn-primary login-btn">
+          🔑 Entrar no Sistema
+        </button>
+        
+        <div style="margin-top: 20px; font-size: 11px; color: var(--text-secondary);">
+          <p>⚠️ Dados sensíveis - Use com responsabilidade</p>
+          <p>Todas as ações são monitoradas e registradas</p>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ⚙️ ÍCONE SETTINGS FLUTUANTE - DESIGN MELHORADO -->
+  <div class="settings-icon" id="settingsIcon" style="display: none;">
+    ⚙️
+  </div>
+
+  <!-- 🎪 MENU SETTINGS (inicialmente escondido) -->
+  <div class="settings-menu" id="settingsMenu">
+    <div class="settings-header">
+      <h4>⚙️ RONDOLOG - Configurações Avançadas</h4>
+      <button class="btn-close" id="btnCloseSettings">×</button>
+    </div>
+    
+    <!-- 📤 IMPORTAR DADOS -->
+    <div class="settings-section">
+      <h5>📤 Importar Dados</h5>
+      <div class="drop-area-settings" id="dropAreaSettings">
+        <div style="font-size: 40px; margin: 10px 0;">📁</div>
+        <p>Arraste planilha aqui ou clique para selecionar</p>
+        <p><small>.xlsx, .xls, .csv</small></p>
+        <input type="file" id="fileInputSettings" accept=".xlsx,.xls,.csv" hidden>
+      </div>
+      <div id="importProgress" style="display:none; margin-top:10px;">
+        <div style="width:0%; height:6px; background:#ff0000; border-radius:3px;" id="importProgressBar"></div>
+        <small id="importProgressText">Processando...</small>
+      </div>
+    </div>
+    
+    <!-- 📥 EXPORTAR DADOS -->
+    <div class="settings-section">
+      <h5>📥 Exportar Dados</h5>
+      <div class="settings-grid">
+        <button class="btn-settings" onclick="exportPDF()">
+          📋 PDF - Relatório Atual
+        </button>
+        <button class="btn-settings" onclick="exportXLS()">
+          📊 Excel - Dados Atuais
+        </button>
+        <button class="btn-settings" onclick="exportBackupJSON()">
+          💾 Backup Completo (JSON)
+        </button>
+        <button class="btn-settings" onclick="showNotification('Exportação em desenvolvimento', 'info')">
+          🗂️ Exportar para CSV
+        </button>
+      </div>
+    </div>
+    
+    <!-- 📊 ESTATÍSTICAS DETALHADAS (MOVIDO PARA AQUI) -->
+    <div class="settings-section">
+      <h5>📊 Estatísticas Detalhadas</h5>
+      <div class="stats-grid-detailed">
+        <div class="stat-item-detailed">
+          <span class="stat-label">Firebase:</span>
+          <span class="stat-value" id="detailedFirebase">0</span>
+        </div>
+        <div class="stat-item-detailed">
+          <span class="stat-label">Local:</span>
+          <span class="stat-value" id="detailedLocal">0</span>
+        </div>
+        <div class="stat-item-detailed">
+          <span class="stat-label">Sincronizações:</span>
+          <span class="stat-value" id="detailedSyncs">0</span>
+        </div>
+        <div class="stat-item-detailed">
+          <span class="stat-label">Última Sinc:</span>
+          <span class="stat-value" id="detailedLastSync">-</span>
+        </div>
+        <div class="stat-item-detailed">
+          <span class="stat-label">Carregamentos:</span>
+          <span class="stat-value" id="detailedLoads">0</span>
+        </div>
+        <div class="stat-item-detailed">
+          <span class="stat-label">Logs Ativos:</span>
+          <span class="stat-value" id="detailedLogs">0</span>
+        </div>
+      </div>
+      <button class="btn-settings" onclick="showDetailedStats()">
+        📈 Ver Relatório Completo
+      </button>
+    </div>
+    
+    <!-- 🔥 SINCRONIZAÇÃO FIREBASE -->
+    <div class="settings-section">
+      <h5>🔥 Sincronização Firebase</h5>
+      <div id="syncStatusMini" class="sync-info-mini">
+        <span class="online-dot" style="width: 8px; height: 8px;"></span>
+        Online - Conectado
+      </div>
+      <div class="settings-grid">
+        <button class="btn-settings" onclick="testFirebaseConnection()">
+          🔌 Testar Conexão
+        </button>
+        <button class="btn-settings" onclick="loadInitialData()">
+          ⬇️ Carregar do Firebase
+        </button>
+        <button class="btn-settings" onclick="saveToFirebase()">
+          💾 Salvar no Firebase
+        </button>
+        <button class="btn-settings" onclick="diagnoseFirebaseData()">
+          🔍 Diagnosticar
+        </button>
+      </div>
+    </div>
+    
+    <!-- 🔧 FERRAMENTAS DE MANUTENÇÃO -->
+    <div class="settings-section">
+      <h5>🔧 Ferramentas de Manutenção</h5>
+      <div class="settings-grid">
+        <button class="btn-settings" onclick="checkDataIntegrity()">
+          ✅ Verificar Integridade
+        </button>
+        <button class="btn-settings" onclick="analyzeCountDiscrepancy()">
+          🔢 Analisar Contagem
+        </button>
+        <button class="btn-settings" onclick="recoverAllData()" style="background:#dc3545; color:white; border-color:#dc3545;">
+          🔄 Recuperar Tudo
+        </button>
+        <button class="btn-settings" onclick="clearAllData()" style="background:#6c757d; color:white; border-color:#6c757d;">
+          🗑️ Limpar Dados
+        </button>
+      </div>
+    </div>
+    
+    <!-- 🗑️ REMOVER DUPLICADOS -->
+    <div class="settings-section">
+      <h5>🗑️ Remover Duplicados</h5>
+      <div class="settings-grid">
+        <button class="btn-settings" onclick="removeDuplicates()">
+          🔍 Encontrar Duplicados
+        </button>
+        <button class="btn-settings" onclick="removeDuplicatesKeepLatest()" style="background:#dc3545; color:white; border-color:#dc3545;">
+          🗑️ Remover (Manter Mais Recente)
+        </button>
+      </div>
+      <div id="duplicatesInfo" style="margin-top:10px; font-size:11px; color:var(--text-secondary);">
+        <!-- Informações sobre duplicados serão exibidas aqui -->
+      </div>
+    </div>
+    
+    <!-- 📊 ESTATÍSTICAS DO SISTEMA -->
+    <div class="settings-section">
+      <h5>📊 Estatísticas do Sistema</h5>
+      <div class="stats-mini">
+        <div>Total Veículos: <span id="settingsVehicleCount">0</span></div>
+        <div>Status OK: <span id="settingsOkCount">0</span></div>
+        <div>Pendentes: <span id="settingsPendingCount">0</span></div>
+        <div>Vencidos: <span id="settingsExpiredCount">0</span></div>
+        <div>Firebase: <span id="settingsFirebaseCount">0</span></div>
+        <div>Sincronizações: <span id="settingsSyncCount">0</span></div>
+      </div>
+    </div>
+    
+    <!-- ⚙️ CONFIGURAÇÕES DO SISTEMA -->
+    <div class="settings-section">
+      <h5>⚙️ Configurações do Sistema</h5>
+      <div class="settings-grid">
+        <button class="btn-settings" onclick="toggleDarkMode()">
+          🌙 Alternar Modo Escuro
+        </button>
+        <button class="btn-settings" onclick="openAddModal()">
+          ➕ Novo Veículo
+        </button>
+        <button class="btn-settings" onclick="resetFilters()">
+          🔄 Resetar Filtros
+        </button>
+        <button class="btn-settings" onclick="clearLogs()">
+          📝 Limpar Logs
+        </button>
+      </div>
+    </div>
+    
+    <!-- ℹ️ INFORMAÇÕES DO SISTEMA -->
+    <div class="settings-section">
+      <h5>ℹ️ Informações do Sistema</h5>
+      <div style="font-size: 11px; color: var(--text-secondary); line-height: 1.4;">
+        <p><strong>RONDOLOG v15.0</strong> - Sistema de Gestão de Frotas</p>
+        <p>100% Integrado com Firebase</p>
+        <p>Usuário: <span id="currentUserInfo">Não autenticado</span></p>
+        <p>Última atualização: <span id="lastUpdateInfo">Carregando...</span></p>
+        <p>Total de registros processados: <span id="totalProcessedInfo">0</span></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🎭 CONTAINER PRINCIPAL (INICIALMENTE ESCONDIDO) -->
+  <div class="container" id="mainContainer" style="display: none;">
     <!-- 🎭 HEADER -->
     <div class="header">
       <div class="header-content">
         <div class="header-titles">
           <h1>RONDOLOG - SISTEMA DE GESTÃO DE FROTAS</h1>
-          <div class="header-subtitle">Sincronização bidirecional: Firebase ↔ Google Sheets</div>
+          <div class="header-subtitle">Sincronização em tempo real com Firebase</div>
         </div>
         <div class="controls">
           <button class="btn btn-dark-mode" id="btnDarkMode">
             <span>🌙</span> Modo Escuro
           </button>
           
-          <!-- 📊 DROPDOWN DE EXPORTAÇÃO -->
-          <div class="export-dropdown" id="exportDropdown">
-            <button class="btn btn-warning" type="button" id="btnExport">
-              <span>📊</span> Exportar
-            </button>
-            <div class="export-menu">
-              <button class="export-option" type="button" onclick="exportPDF()">
-                <span>📋</span> PDF - Relatório Atual
-              </button>
-              <button class="export-option" type="button" onclick="exportXLS()">
-                <span>📊</span> Excel - Dados Atuais
-              </button>
-            </div>
-          </div>
-          
-          <button class="btn btn-success" id="btnAddNew" type="button">
-            <span>➕</span> Novo Veículo
+          <!-- 🔐 BOTÃO DE LOGOUT -->
+          <button class="btn btn-logout" id="btnLogout">
+            <span>🚪</span> Sair
           </button>
           
           <!-- 💾 STATUS DE SALVAMENTO -->
@@ -1064,87 +1619,17 @@
       </div>
     </div>
     
-    <!-- 🔗 SEÇÃO DE SINCRONIZAÇÃO FIREBASE -->
+    <!-- 🔗 SEÇÃO DE SINCRONIZAÇÃO FIREBASE - LAYOUT MELHORADO -->
     <div class="sync-section">
       <div class="sync-header">
-        <h4 style="margin: 0; color: white;">🔄 Sincronização Bidirecional</h4>
-      </div>
-      
-      <div class="sync-controls">
-        <button class="btn btn-info" id="btnTestConnection" type="button">
-          <span>🔌</span> Testar Conexão
-        </button>
-        
-        <button class="btn btn-success" id="btnLoadOnline" type="button">
-          <span>⬇️</span> Carregar do Firebase
-        </button>
-        
-        <button class="btn btn-primary" id="btnSaveOnline" type="button">
-          <span>💾</span> Salvar no Firebase
-        </button>
-        
-        <button class="btn btn-warning" id="btnMigrateSheets" type="button">
-          <span>🚚</span> Migrar do Sheets
-        </button>
-        
-        <!-- NOVO: BOTÃO DE SINCRONIZAÇÃO COM SHEETS -->
-        <button class="btn btn-sync" id="btnSyncSheets" type="button">
-          <span>📤</span> Sinc. com Sheets
-        </button>
-        
-        <!-- NOVOS BOTÕES DE DIAGNÓSTICO E RECUPERAÇÃO -->
-        <button class="btn btn-info" id="btnDiagnose" type="button">
-          <span>🔍</span> Diagnosticar
-        </button>
-        
-        <button class="btn btn-warning" id="btnFixData" type="button">
-          <span>🔧</span> Corrigir Dados
-        </button>
-        
-        <button class="btn btn-danger" id="btnRecover" type="button">
-          <span>🔄</span> Recuperar Tudo
-        </button>
-        
+        <h4>🔥 Sincronização Firebase</h4>
         <div class="online-status online" id="onlineStatus">
           <span class="online-dot"></span> Online
         </div>
       </div>
       
       <div class="sync-info" id="syncInfo">
-        Sistema conectado. Clique em "Sinc. com Sheets" para atualizar o Google Sheets.
-      </div>
-    </div>
-
-    <!-- 📊 PAINEL DE ESTATÍSTICAS DETALHADAS -->
-    <div class="stats-panel">
-      <div class="stats-header">
-        <h4 style="margin: 0; color: white;">📊 Estatísticas Detalhadas</h4>
-        <button class="btn btn-info" id="btnShowStats" style="font-size: 12px; padding: 8px 12px;">
-          <span>📈</span> Ver Detalhes
-        </button>
-      </div>
-      
-      <div class="stats-controls">
-        <div class="stats-item">
-          <span>📦 Firebase:</span>
-          <span id="statFirebaseCount">0</span>
-        </div>
-        <div class="stats-item">
-          <span>💻 Local:</span>
-          <span id="statLocalCount">0</span>
-        </div>
-        <div class="stats-item">
-          <span>🔄 Sincs:</span>
-          <span id="statSyncCount">0</span>
-        </div>
-        <div class="stats-item">
-          <span>📤 Sheets:</span>
-          <span id="statSheetsCount">0</span>
-        </div>
-        <div class="stats-item">
-          <span>📝 Logs:</span>
-          <span id="statLogCount">0</span>
-        </div>
+        Sistema conectado ao Firebase. Use o menu de configurações (⚙️) para sincronizar.
       </div>
     </div>
     
@@ -1191,22 +1676,14 @@
         <div class="filter-label">Busca Inteligente</div>
         <input type="text" class="filter-input" id="searchInput" placeholder="Placa, status, data...">
       </div>
-      <button class="btn btn-info" id="btnCheckIntegrity" style="font-size: 12px; padding: 8px 12px;">
-        <span>✅</span> Verificar Integridade
-      </button>
-      <button class="btn btn-warning" id="btnAnalyzeCount" style="font-size: 12px; padding: 8px 12px;">
-        <span>🔢</span> Analisar Contagem
-      </button>
     </div>
 
-    <!-- 📋 TABELA -->
+    <!-- 📋 TABELA (REMOVIDAS AS COLUNAS STATUS PLACA E VIGÊNCIA PESQ. PLACA) -->
     <div class="table-container">
       <table id="dataTable">
         <thead>
           <tr>
             <th data-sort="placa">PLACA</th>
-            <th data-sort="statusPlaca">STATUS PLACA</th>
-            <th data-sort="vigenciaPlaca">VIGÊNCIA PESQ. PLACA</th>
             <th data-sort="vigenciaChecklist">CHECKLIST VIGÊNCIA</th>
             <th data-sort="statusChecklist">CHECKLIST STATUS</th>
             <th data-sort="statusGeral">STATUS GERAL</th>
@@ -1215,8 +1692,8 @@
         </thead>
         <tbody id="tableBody">
           <tr>
-            <td colspan="7" style="text-align: center; padding: 40px; color: var(--text-secondary);">
-              Carregando dados do Firebase...
+            <td colspan="5" style="text-align: center; padding: 40px; color: var(--text-secondary);">
+              Faça login para carregar dados...
             </td>
           </tr>
         </tbody>
@@ -1227,8 +1704,8 @@
     <div class="footer">
       <div class="footer-info">
         <div>RONDOLOG - SISTEMA DE GESTÃO DE FROTAS</div>
-        <div id="lastSaveInfo">Último salvamento: Nunca</div>
-        <div id="lastSyncSheetsInfo">Última sinc. Sheets: Nunca</div>
+        <div id="lastSaveInfo">Usuário: <span id="loggedUser">Não autenticado</span></div>
+        <div id="lastSyncSheetsInfo">Sistema 100% Firebase</div>
       </div>
       <div class="stats">
         <div class="stat-item">
@@ -1241,7 +1718,7 @@
     </div>
   </div>
 
-  <!-- 🎭 MODAL DE EDIÇÃO/ADIÇÃO -->
+  <!-- 🎭 MODAL DE EDIÇÃO/ADIÇÃO (COM OS 3 NOVOS STATUS) -->
   <div class="modal" id="editModal">
     <div class="modal-content">
       <h3 id="modalTitle">Adicionar Novo Veículo</h3>
@@ -1252,33 +1729,18 @@
           <div class="error-message" id="placaError">Placa é obrigatória</div>
         </div>
         <div class="form-group">
-          <label>Status da Placa</label>
-          <select class="form-control" id="editStatusPlaca">
-            <option value="">Selecione...</option>
-            <option value="Regular">Regular</option>
-            <option value="Irregular">Irregular</option>
-            <option value="Pendente">Pendente</option>
-            <option value="Em acordo">Em acordo</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Vigência Pesquisa Placa</label>
-          <input type="date" class="form-control" id="editVigenciaPlaca">
-        </div>
-        <div class="form-group">
           <label>Checklist Vigência *</label>
           <input type="date" class="form-control" id="editVigenciaChecklist" required>
           <div class="error-message" id="vigenciaChecklistError">Vigência do checklist é obrigatória</div>
         </div>
         <div class="form-group">
           <label>Checklist Status *</label>
+          <!-- 🎯 MODIFICAÇÃO 1: APENAS OS 3 STATUS PADRONIZADOS -->
           <select class="form-control" id="editStatusChecklist" required>
             <option value="">Selecione...</option>
-            <option value="Aprovado">Aprovado</option>
-            <option value="Reprovado">Reprovado</option>
-            <option value="Pendente">Pendente</option>
-            <option value="Em acordo">Em acordo</option>
-            <option value="Vencido">Vencido</option>
+            <option value="PENDENTE">PENDENTE</option>
+            <option value="OK">OK</option>
+            <option value="VENCIDO">VENCIDO</option>
           </select>
           <div class="error-message" id="statusChecklistError">Status do checklist é obrigatório</div>
         </div>
@@ -1293,8 +1755,62 @@
   <script>
     // ============================================
     // RONDOLOG - SISTEMA DE GESTÃO DE FROTAS
-    // Versão: 14.0 - SINCRONIZAÇÃO BIDIRECIONAL
+    // Versão: 15.0 - 100% FIREBASE
     // ============================================
+    
+    // 🔐 SISTEMA DE AUTENTICAÇÃO SIMPLES
+    const authService = {
+      user: null,
+      
+      login(username, password) {
+        // Credenciais fixas (em produção, usar hash e banco de dados)
+        const validCredentials = {
+          username: 'Felipe',
+          password: '123456'
+        };
+        
+        if (username === validCredentials.username && password === validCredentials.password) {
+          this.user = {
+            username: username,
+            loginTime: new Date().toISOString()
+          };
+          
+          // Salvar no localStorage
+          localStorage.setItem('rondolog_user', JSON.stringify(this.user));
+          localStorage.setItem('rondolog_authenticated', 'true');
+          
+          // Registrar login
+          syncLog.add('auth', `Usuário ${username} autenticado com sucesso`, {
+            loginTime: this.user.loginTime
+          });
+          
+          return true;
+        }
+        return false;
+      },
+      
+      logout() {
+        syncLog.add('auth', `Usuário ${this.user?.username} fez logout`);
+        this.user = null;
+        localStorage.removeItem('rondolog_user');
+        localStorage.removeItem('rondolog_authenticated');
+      },
+      
+      checkAuth() {
+        const storedUser = localStorage.getItem('rondolog_user');
+        const isAuthenticated = localStorage.getItem('rondolog_authenticated') === 'true';
+        
+        if (isAuthenticated && storedUser) {
+          this.user = JSON.parse(storedUser);
+          return true;
+        }
+        return false;
+      },
+      
+      getCurrentUser() {
+        return this.user;
+      }
+    };
     
     // 🎯 VARIÁVEIS GLOBAIS
     let vehicleData = [];
@@ -1316,11 +1832,10 @@
       lastSync: null,
       errors: 0,
       firebaseCount: 0,
-      localCount: 0
+      localCount: 0,
+      totalProcessed: 0,
+      lastUpdate: null
     };
-
-    // 🔗 URL DO SEU GOOGLE APPS SCRIPT
-    const GOOGLE_SHEETS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxQD_S6Uk5cUlgBx_ydNXoc7xxTuE1YHBg5G45WxgIRmp0DcTCA3BEON2lW5Fu6o-VE2w/exec';
 
     // 📋 LOG DE SINCRONIZAÇÃO DETALHADO
     const syncLog = {
@@ -1331,7 +1846,8 @@
           timestamp: new Date().toISOString(),
           type,
           message,
-          details
+          details,
+          user: authService.getCurrentUser()?.username || 'Sistema'
         };
         
         this.entries.push(entry);
@@ -1339,6 +1855,7 @@
         
         // Atualizar contador de logs
         updateStatsPanel();
+        updateDetailedStats();
         
         // Manter apenas últimos 100 logs
         if (this.entries.length > 100) {
@@ -1355,13 +1872,22 @@
       clear: function() {
         this.entries = [];
         updateStatsPanel();
+        updateDetailedStats();
+        showNotification('📝 Logs limpos com sucesso', 'success');
       }
     };
 
     // 🎯 ELEMENTOS DOM
+    const loginModal = document.getElementById('loginModal');
+    const loginForm = document.getElementById('loginForm');
+    const loginError = document.getElementById('loginError');
+    const mainContainer = document.getElementById('mainContainer');
+    const settingsIcon = document.getElementById('settingsIcon');
+    const btnLogout = document.getElementById('btnLogout');
+    const loggedUser = document.getElementById('loggedUser');
+    const currentUserInfo = document.getElementById('currentUserInfo');
+    
     const btnDarkMode = document.getElementById('btnDarkMode');
-    const btnAddNew = document.getElementById('btnAddNew');
-    const btnExport = document.getElementById('btnExport');
     const statusFilter = document.getElementById('statusFilter');
     const dateFilter = document.getElementById('dateFilter');
     const searchInput = document.getElementById('searchInput');
@@ -1379,32 +1905,28 @@
     const expiredVehicles = document.getElementById('expiredVehicles');
     const totalCount = document.getElementById('totalCount');
     const filteredCount = document.getElementById('filteredCount');
-    const exportDropdown = document.getElementById('exportDropdown');
     const syncInfo = document.getElementById('syncInfo');
     const onlineStatus = document.getElementById('onlineStatus');
-    const btnTestConnection = document.getElementById('btnTestConnection');
-    const btnLoadOnline = document.getElementById('btnLoadOnline');
-    const btnSaveOnline = document.getElementById('btnSaveOnline');
-    const btnMigrateSheets = document.getElementById('btnMigrateSheets');
-    const btnDiagnose = document.getElementById('btnDiagnose');
-    const btnFixData = document.getElementById('btnFixData');
-    const btnRecover = document.getElementById('btnRecover');
-    const btnShowStats = document.getElementById('btnShowStats');
-    const btnCheckIntegrity = document.getElementById('btnCheckIntegrity');
-    const btnAnalyzeCount = document.getElementById('btnAnalyzeCount');
-    const btnSyncSheets = document.getElementById('btnSyncSheets'); // NOVO
     
-    // Elementos do painel de estatísticas
-    const statFirebaseCount = document.getElementById('statFirebaseCount');
-    const statLocalCount = document.getElementById('statLocalCount');
-    const statSyncCount = document.getElementById('statSyncCount');
-    const statSheetsCount = document.getElementById('statSheetsCount');
-    const statLogCount = document.getElementById('statLogCount');
+    // Elementos do painel de estatísticas detalhadas
+    const detailedFirebase = document.getElementById('detailedFirebase');
+    const detailedLocal = document.getElementById('detailedLocal');
+    const detailedSyncs = document.getElementById('detailedSyncs');
+    const detailedLastSync = document.getElementById('detailedLastSync');
+    const detailedLoads = document.getElementById('detailedLoads');
+    const detailedLogs = document.getElementById('detailedLogs');
 
-    // 🔥 FIREBASE SERVICE - VERSÃO CORRIGIDA
+    // ⚙️ ELEMENTOS DO SETTINGS
+    const settingsMenu = document.getElementById('settingsMenu');
+    const btnCloseSettings = document.getElementById('btnCloseSettings');
+    const dropAreaSettings = document.getElementById('dropAreaSettings');
+    const fileInputSettings = document.getElementById('fileInputSettings');
+    const syncStatusMini = document.getElementById('syncStatusMini');
+
+    // 🔥 FIREBASE SERVICE
     class FirebaseService {
       constructor() {
-        // SEUS DADOS DO FIREBASE (não mude)
+        // DADOS DO FIREBASE
         this.firebaseConfig = {
           apiKey: "AIzaSyDLBgeNjBJ8o2I4yh4ggBbwVwJQxa3zp94",
           authDomain: "rondolog-frotas.firebaseapp.com",
@@ -1416,7 +1938,7 @@
           measurementId: "G-NY9VLX8BC9"
         };
         
-        // Inicializar Firebase (sintaxe da versão 8)
+        // Inicializar Firebase
         if (!firebase.apps.length) {
           this.app = firebase.initializeApp(this.firebaseConfig);
         } else {
@@ -1472,7 +1994,8 @@
             updates[`vehicles/${safeKey}`] = {
               ...vehicle,
               updatedAt: firebase.database.ServerValue.TIMESTAMP,
-              updatedBy: this.userId || 'anonymous'
+              updatedBy: this.userId || 'anonymous',
+              lastUpdatedBy: authService.getCurrentUser()?.username || 'Sistema'
             };
           });
           
@@ -1488,7 +2011,7 @@
         }
       }
       
-      // 📥 CARREGAR TODOS OS VEÍCULOS (VERSÃO ROBUSTA)
+      // 📥 CARREGAR TODOS OS VEÍCULOS
       async loadVehicles() {
         try {
           console.log('📥 Carregando dados...');
@@ -1503,24 +2026,40 @@
           }
           
           const vehicles = [];
-          let corruptedCount = 0;
+          const loadReport = {
+            total: snapshot.numChildren(),
+            loaded: 0,
+            ignored: 0,
+            problems: []
+          };
           
           snapshot.forEach(childSnapshot => {
             try {
-              const vehicle = childSnapshot.val();
+              const rawVehicle = childSnapshot.val();
+              const key = childSnapshot.key;
               
-              // Validar dados básicos
-              if (vehicle && vehicle.placa) {
-                // Garantir que a placa seja string e trim
-                vehicle.placa = vehicle.placa.toString().trim().toUpperCase();
+              if (rawVehicle && rawVehicle.placa) {
+                const normalizedPlaca = rawVehicle.placa.toString().trim().toUpperCase();
                 
-                // Garantir outros campos
-                vehicle.statusPlaca = vehicle.statusPlaca || '';
-                vehicle.vigenciaPlaca = vehicle.vigenciaPlaca || '';
+                if (normalizedPlaca === '' || normalizedPlaca === 'UNDEFINED') {
+                  loadReport.ignored++;
+                  loadReport.problems.push({
+                    key,
+                    reason: 'Placa vazia ou "UNDEFINED"',
+                    data: rawVehicle
+                  });
+                  return;
+                }
+                
+                const vehicle = {
+                  ...rawVehicle,
+                  placa: normalizedPlaca
+                };
+                
                 vehicle.vigenciaChecklist = vehicle.vigenciaChecklist || '';
                 vehicle.statusChecklist = vehicle.statusChecklist || '';
                 
-                // Calcular status geral se não existir
+                // 🎯 MODIFICAÇÃO 2: USAR OS 3 STATUS PADRONIZADOS
                 if (!vehicle.statusGeral) {
                   vehicle.statusGeral = calculateStatusGeral(
                     vehicle.vigenciaChecklist, 
@@ -1529,27 +2068,48 @@
                 }
                 
                 vehicles.push(vehicle);
+                loadReport.loaded++;
+                
               } else {
-                console.warn('⚠️ Dado corrompido encontrado:', childSnapshot.key);
-                corruptedCount++;
+                loadReport.ignored++;
+                loadReport.problems.push({
+                  key,
+                  reason: rawVehicle ? 'Sem campo placa' : 'Dados nulos',
+                  data: rawVehicle
+                });
               }
             } catch (error) {
-              console.error('❌ Erro ao processar veículo:', error);
-              corruptedCount++;
+              loadReport.ignored++;
+              loadReport.problems.push({
+                key: childSnapshot.key,
+                reason: `Erro: ${error.message}`,
+                data: childSnapshot.val()
+              });
             }
           });
           
           console.log(`✅ ${vehicles.length} veículos carregados`);
-          syncLog.add('load', `${vehicles.length} veículos carregados`, { corrupted: corruptedCount });
+          console.log('📊 RELATÓRIO DE CARREGAMENTO:');
+          console.log(`   Total no Firebase: ${loadReport.total}`);
+          console.log(`   Carregados com sucesso: ${loadReport.loaded}`);
+          console.log(`   Ignorados: ${loadReport.ignored}`);
           
-          // Atualizar estatísticas
-          appStats.firebaseCount = snapshot.numChildren();
+          syncLog.add('load', `Carregamento concluído: ${vehicles.length} veículos`, loadReport);
+          
+          appStats.firebaseCount = loadReport.total;
           appStats.localCount = vehicles.length;
+          appStats.totalProcessed += vehicles.length;
+          appStats.lastUpdate = new Date().toISOString();
           updateStatsPanel();
+          updateDetailedStats();
+          updateSettingsStats();
           
-          if (corruptedCount > 0) {
-            console.warn(`⚠️ ${corruptedCount} registros corrompidos encontrados`);
-            showNotification(`⚠️ ${corruptedCount} registros com problemas encontrados`, 'warning');
+          if (loadReport.ignored > 0) {
+            const lossRate = ((loadReport.ignored / loadReport.total) * 100).toFixed(2);
+            showNotification(
+              `⚠️ ${loadReport.ignored} registros ignorados ao carregar (${lossRate}% de perda)`, 
+              'warning'
+            );
           }
           
           return vehicles;
@@ -1591,6 +2151,8 @@
               callback(vehicles);
               appStats.firebaseCount = snapshot.numChildren();
               updateStatsPanel();
+              updateDetailedStats();
+              updateSettingsStats();
               syncLog.add('realtime', 'Dados atualizados em tempo real', { count: vehicles.length });
             }
           });
@@ -1612,24 +2174,15 @@
         }
       }
       
-      // 🛠️ UTILITÁRIOS - FUNÇÃO NORMALIZEID CORRIGIDA
+      // 🛠️ UTILITÁRIOS
       normalizeId(placa) {
-        // Remover todos os caracteres especiais e espaços
         if (!placa) return 'undefined';
         
-        // Converter para maiúsculas e remover espaços
         let normalized = placa.toString().toUpperCase().trim();
-        
-        // Substituir todos os caracteres não alfanuméricos por underscore
         normalized = normalized.replace(/[^A-Z0-9]/g, '_');
-        
-        // Remover underscores consecutivos
         normalized = normalized.replace(/_+/g, '_');
-        
-        // Garantir que não comece ou termine com underscore
         normalized = normalized.replace(/^_+|_+$/g, '');
         
-        // Se ficar vazio, usar um ID genérico
         if (normalized === '') {
           return 'vehicle_' + Math.random().toString(36).substr(2, 9);
         }
@@ -1641,24 +2194,548 @@
     // Criar instância global
     const firebaseService = new FirebaseService();
 
-    // 🎯 INICIALIZAÇÃO
-    document.addEventListener('DOMContentLoaded', async function() {
-      console.log('🚀 RONDOLOG v14.0 - Sincronização Bidirecional inicializando...');
-      console.log('🔥 Firebase configurado com versão 8.10.1');
-      console.log('📊 Google Sheets Web App:', GOOGLE_SHEETS_WEB_APP_URL);
+    // 🎯 MODIFICAÇÃO 3: FUNÇÃO DE STATUS GERAL SIMPLIFICADA
+    function calculateStatusGeral(vigenciaChecklist, statusChecklist) {
+      const statusUpper = (statusChecklist || '').toUpperCase().trim();
       
-      syncLog.add('system', 'Sistema RONDOLOG v14.0 inicializando...');
-      syncLog.add('sheets', `URL do Google Sheets Web App configurada: ${GOOGLE_SHEETS_WEB_APP_URL}`);
+      // 🎯 APENAS OS 3 STATUS PADRONIZADOS
+      if (statusUpper === 'OK') return 'OK';
+      if (statusUpper === 'VENCIDO') return 'VENCIDO';
+      
+      // Para qualquer outro status, considerar como PENDENTE
+      return 'PENDENTE';
+    }
+
+    // 🎯 FUNÇÕES AUXILIARES PARA DATAS
+    function parseBrazilianDate(dateStr) {
+      if (!dateStr || dateStr.toString().trim() === '') return '';
+      
+      const str = dateStr.toString().trim();
+      
+      // Tentar formato DD/MM/YYYY
+      if (str.includes('/')) {
+        const parts = str.split('/');
+        if (parts.length === 3) {
+          const day = parseInt(parts[0], 10);
+          const month = parseInt(parts[1], 10) - 1;
+          const year = parseInt(parts[2], 10);
+          return new Date(year, month, day);
+        }
+      }
+      
+      // Tentar formato YYYY-MM-DD (ISO)
+      if (str.includes('-')) {
+        const date = new Date(str);
+        if (!isNaN(date.getTime())) return date;
+      }
+      
+      // Tentar qualquer formato de data que o JavaScript reconheça
+      const date = new Date(str);
+      return isNaN(date.getTime()) ? '' : date;
+    }
+
+    function formatDateForInput(dateString) {
+      if (!dateString) return '';
+      try {
+        const date = parseBrazilianDate(dateString);
+        if (!date || isNaN(date.getTime())) return '';
+        return date.toISOString().split('T')[0];
+      } catch {
+        return '';
+      }
+    }
+
+    function formatDate(dateString) {
+      if (!dateString) return '-';
+      try {
+        const date = parseBrazilianDate(dateString);
+        if (!date || isNaN(date.getTime())) return dateString;
+        return date.toLocaleDateString('pt-BR');
+      } catch {
+        return dateString;
+      }
+    }
+
+    // 🎯 FUNÇÃO AUXILIAR PARA EXTRAIR CAMPOS
+    function extractField(row, possibleKeys) {
+      for (const key of possibleKeys) {
+        if (row[key] !== undefined && row[key] !== null && row[key] !== '') {
+          return row[key];
+        }
+        
+        const keyWithSpace = key.replace(/([A-Z])/g, ' $1').trim();
+        if (row[keyWithSpace] !== undefined) {
+          return row[keyWithSpace];
+        }
+      }
+      return '';
+    }
+
+    // ============================================
+    // 🔐 SISTEMA DE AUTENTICAÇÃO
+    // ============================================
+
+    function initAuthentication() {
+      // Verificar se já está autenticado
+      if (authService.checkAuth()) {
+        hideLoginShowApp();
+      }
+      
+      // Configurar formulário de login
+      loginForm.addEventListener('submit', handleLoginSubmit);
+      
+      // Configurar logout
+      btnLogout.addEventListener('click', handleLogout);
+    }
+
+    function handleLoginSubmit(e) {
+      e.preventDefault();
+      
+      const username = document.getElementById('loginUser').value.trim();
+      const password = document.getElementById('loginPassword').value;
+      
+      if (authService.login(username, password)) {
+        hideLoginShowApp();
+      } else {
+        loginError.style.display = 'block';
+        setTimeout(() => {
+          loginError.style.display = 'none';
+        }, 3000);
+      }
+    }
+
+    function hideLoginShowApp() {
+      loginModal.style.display = 'none';
+      mainContainer.style.display = 'block';
+      settingsIcon.style.display = 'flex';
+      
+      // Atualizar informações do usuário
+      const user = authService.getCurrentUser();
+      loggedUser.textContent = user.username;
+      currentUserInfo.textContent = user.username;
+      
+      // Inicializar o sistema
+      initializeApp();
+    }
+
+    function handleLogout() {
+      if (confirm('🚪 Deseja realmente sair do sistema?')) {
+        authService.logout();
+        location.reload(); // Recarregar a página para voltar ao login
+      }
+    }
+
+    // ============================================
+    // ⚙️ SISTEMA DE SETTINGS
+    // ============================================
+
+    // 🎯 INICIALIZAR SETTINGS
+    function initSettings() {
+      console.log('⚙️ Inicializando sistema de Settings...');
+      
+      // Toggle do menu
+      settingsIcon.addEventListener('click', toggleSettingsMenu);
+      btnCloseSettings.addEventListener('click', closeSettingsMenu);
+      
+      // Click fora fecha menu
+      document.addEventListener('click', (e) => {
+        if (!settingsMenu.contains(e.target) && !settingsIcon.contains(e.target)) {
+          closeSettingsMenu();
+        }
+      });
+      
+      // Configurar upload de arquivos
+      setupFileUpload();
+      
+      // Atualizar estatísticas no settings
+      updateSettingsStats();
+      updateDetailedStats();
+      
+      // Atualizar informações do sistema
+      updateSystemInfo();
+    }
+
+    // 🎪 TOGGLE DO MENU
+    function toggleSettingsMenu() {
+      settingsMenu.classList.toggle('show');
+      if (settingsMenu.classList.contains('show')) {
+        updateSettingsStats();
+        updateDetailedStats();
+        updateSystemInfo();
+        showDuplicatesInfo();
+      }
+    }
+
+    function closeSettingsMenu() {
+      settingsMenu.classList.remove('show');
+    }
+
+    // 📤 CONFIGURAR UPLOAD DE ARQUIVOS
+    function setupFileUpload() {
+      // Click na área de drop
+      dropAreaSettings.addEventListener('click', () => {
+        fileInputSettings.click();
+      });
+      
+      // Selecionar arquivo
+      fileInputSettings.addEventListener('change', handleSettingsFileSelect);
+      
+      // Drag & drop
+      ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropAreaSettings.addEventListener(eventName, preventDefaults, false);
+      });
+      
+      function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      
+      ['dragenter', 'dragover'].forEach(eventName => {
+        dropAreaSettings.addEventListener(eventName, () => {
+          dropAreaSettings.style.borderColor = 'var(--primary-red)';
+          dropAreaSettings.style.background = 'var(--bg-secondary)';
+        }, false);
+      });
+      
+      ['dragleave', 'drop'].forEach(eventName => {
+        dropAreaSettings.addEventListener(eventName, () => {
+          dropAreaSettings.style.borderColor = 'var(--border-color)';
+          dropAreaSettings.style.background = '';
+        }, false);
+      });
+      
+      dropAreaSettings.addEventListener('drop', handleSettingsDrop, false);
+    }
+
+    // 📁 PROCESSAR ARQUIVO NO SETTINGS
+    function handleSettingsDrop(e) {
+      const dt = e.dataTransfer;
+      const files = dt.files;
+      if (files.length) {
+        processSettingsFile(files[0]);
+      }
+    }
+
+    function handleSettingsFileSelect(e) {
+      const files = e.target.files;
+      if (files.length) {
+        processSettingsFile(files[0]);
+      }
+    }
+
+    async function processSettingsFile(file) {
+      try {
+        showNotification(`📁 Processando ${file.name}...`, 'info');
+        
+        const data = await readExcelFile(file);
+        const processed = await processSpreadsheetData(data, file.name);
+        
+        showNotification(`✅ ${processed.length} veículos prontos para importar`, 'success');
+        
+        // Perguntar se quer importar
+        if (confirm(`Importar ${processed.length} veículos do arquivo ${file.name}?\n\n⚠️ Isso substituirá os dados atuais.`)) {
+          await importToFirebase(processed, file.name);
+        }
+        
+      } catch (error) {
+        console.error('❌ Erro ao processar arquivo:', error);
+        showNotification(`❌ Erro: ${error.message}`, 'error');
+      }
+    }
+
+    // 📖 LER ARQUIVO EXCEL
+    function readExcelFile(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const jsonData = XLSX.utils.sheet_to_json(sheet);
+            resolve(jsonData);
+          } catch (error) {
+            reject(error);
+          }
+        };
+        reader.onerror = reject;
+        reader.readAsArrayBuffer(file);
+      });
+    }
+
+    // 🔄 PROCESSAR DADOS DA PLANILHA (COM OS 3 STATUS)
+    async function processSpreadsheetData(data, fileName) {
+      const processed = [];
+      const ignored = [];
+      
+      const progressBar = document.getElementById('importProgressBar');
+      const progressText = document.getElementById('importProgressText');
+      const importProgress = document.getElementById('importProgress');
+      
+      importProgress.style.display = 'block';
+      
+      for (let i = 0; i < data.length; i++) {
+        const row = data[i];
+        
+        // Atualizar progresso
+        const progress = Math.round(((i + 1) / data.length) * 100);
+        progressBar.style.width = `${progress}%`;
+        progressText.textContent = `Processando ${i + 1} de ${data.length}...`;
+        
+        try {
+          // Extrair dados NOVO FORMATO (sua planilha)
+          const placa = extractField(row, [
+            'Veículo', 'Veiculo', 'VEÍCULO', 'VEICULO', 
+            'Placa', 'placa', 'PLACA', 'Veiculo', 'Veículo'
+          ]);
+          
+          const statusChecklistRaw = extractField(row, [
+            'Status', 'STATUS', 'status',
+            'Status Checklist', 'Status do Checklist'
+          ]);
+          
+          const dataRealizacao = extractField(row, [
+            'Data Realização', 'Data Realizacao', 'DATA REALIZAÇÃO',
+            'Data', 'Data Checklist', 'Data do Checklist'
+          ]);
+          
+          const validade = extractField(row, [
+            'Validade', 'VALIDADE', 'validade',
+            'Validade Checklist', 'Vencimento'
+          ]);
+          
+          // Validar placa
+          if (!placa || placa.toString().trim() === '') {
+            ignored.push({ linha: i + 1, motivo: 'Placa vazia' });
+            continue;
+          }
+          
+          const placaNormalizada = placa.toString().trim().toUpperCase();
+          
+          // 🎯 CONVERTER STATUS PARA OS 3 PADRÕES
+          let statusChecklist = 'PENDENTE'; // Padrão
+          
+          if (statusChecklistRaw) {
+            const statusLower = statusChecklistRaw.toString().toLowerCase();
+            
+            // Mapeamento para os 3 status
+            if (statusLower.includes('válido') || statusLower.includes('valido') || 
+                statusLower.includes('aprovado') || statusLower.includes('ok')) {
+              statusChecklist = 'OK';
+            } else if (statusLower.includes('vencido') || statusLower.includes('expirado')) {
+              statusChecklist = 'VENCIDO';
+            } else if (statusLower.includes('pendente') || statusLower.includes('pendência')) {
+              statusChecklist = 'PENDENTE';
+            } else {
+              // Tentar inferir pelo conteúdo
+              if (statusLower.includes('reprovado') || statusLower.includes('inválido')) {
+                statusChecklist = 'PENDENTE';
+              } else {
+                statusChecklist = 'PENDENTE'; // Padrão
+              }
+            }
+          }
+          
+          // Usar a validade diretamente se disponível
+          let vigenciaChecklist = '';
+          if (validade && validade.toString().trim().toLowerCase() !== 'no embarque') {
+            vigenciaChecklist = formatDateForInput(validade);
+          } else if (dataRealizacao) {
+            // Se não houver validade específica, usar data de realização + 30 dias
+            try {
+              const dataReal = parseBrazilianDate(dataRealizacao);
+              if (dataReal && !isNaN(dataReal.getTime())) {
+                dataReal.setDate(dataReal.getDate() + 30);
+                vigenciaChecklist = dataReal.toISOString().split('T')[0];
+              }
+            } catch (e) {
+              console.warn('Erro ao calcular vigência:', e);
+            }
+          }
+          
+          // Calcular status geral (usando a função simplificada)
+          const statusGeral = calculateStatusGeral(vigenciaChecklist, statusChecklist);
+          
+          processed.push({
+            placa: placaNormalizada,
+            vigenciaChecklist: vigenciaChecklist,
+            statusChecklist: statusChecklist, // 🎯 AGORA APENAS OS 3 STATUS
+            statusGeral: statusGeral,
+            importedAt: Date.now(),
+            sourceFile: fileName,
+            sourceRow: i + 1,
+            importedBy: authService.getCurrentUser()?.username || 'Sistema',
+            // Campos originais da planilha para referência
+            originalData: {
+              dataRealizacao: dataRealizacao,
+              validade: validade,
+              statusOriginal: statusChecklistRaw
+            }
+          });
+          
+        } catch (error) {
+          ignored.push({ linha: i + 1, motivo: `Erro: ${error.message}` });
+        }
+      }
+      
+      // Resetar progresso
+      progressBar.style.width = '0%';
+      progressText.textContent = 'Processando...';
+      importProgress.style.display = 'none';
+      
+      console.log(`✅ Processados: ${processed.length}, Ignorados: ${ignored.length}`);
+      
+      if (ignored.length > 0) {
+        console.warn('Linhas ignoradas:', ignored);
+      }
+      
+      return processed;
+    }
+
+    // 📤 IMPORTAR PARA FIREBASE
+    async function importToFirebase(data, fileName) {
+      try {
+        showNotification(`📤 Importando ${data.length} veículos...`, 'info');
+        
+        // Preparar updates
+        const updates = {};
+        data.forEach(vehicle => {
+          const safeKey = firebaseService.normalizeId(vehicle.placa);
+          updates[`vehicles/${safeKey}`] = {
+            ...vehicle,
+            updatedAt: firebase.database.ServerValue.TIMESTAMP,
+            updatedBy: firebaseService.userId || 'import_tool',
+            lastUpdatedBy: authService.getCurrentUser()?.username || 'Sistema'
+          };
+        });
+        
+        // Enviar para Firebase
+        await firebaseService.database.ref().update(updates);
+        
+        // Atualizar dados locais
+        vehicleData = data;
+        applyFiltersAndRender();
+        
+        showNotification(`✅ ${data.length} veículos importados com sucesso!`, 'success');
+        updateSettingsStats();
+        updateDetailedStats();
+        
+        syncLog.add('import', `Importação via Settings: ${data.length} veículos`, {
+          fileName: fileName,
+          count: data.length,
+          importedBy: authService.getCurrentUser()?.username
+        });
+        
+      } catch (error) {
+        console.error('❌ Erro na importação:', error);
+        showNotification(`❌ Erro na importação: ${error.message}`, 'error');
+        syncLog.add('error', 'Erro na importação via Settings', { 
+          error: error.message,
+          user: authService.getCurrentUser()?.username
+        });
+      }
+    }
+
+    // 📊 ATUALIZAR ESTATÍSTICAS DETALHADAS
+    function updateDetailedStats() {
+      if (detailedFirebase) detailedFirebase.textContent = appStats.firebaseCount || 0;
+      if (detailedLocal) detailedLocal.textContent = appStats.localCount || vehicleData.length || 0;
+      if (detailedSyncs) detailedSyncs.textContent = appStats.saves || 0;
+      if (detailedLoads) detailedLoads.textContent = appStats.loads || 0;
+      if (detailedLogs) detailedLogs.textContent = syncLog.entries.length || 0;
+      
+      if (detailedLastSync) {
+        detailedLastSync.textContent = appStats.lastSync 
+          ? new Date(appStats.lastSync).toLocaleTimeString('pt-BR')
+          : '-';
+      }
+    }
+
+    // 💾 EXPORTAR BACKUP JSON
+    function exportBackupJSON() {
+      const backupData = {
+        timestamp: new Date().toISOString(),
+        version: 'RONDOLOG v15.0',
+        user: authService.getCurrentUser()?.username || 'Não autenticado',
+        vehicleCount: vehicleData.length,
+        vehicles: vehicleData,
+        stats: appStats,
+        logs: syncLog.entries.slice(-50) // Últimos 50 logs
+      };
+      
+      const jsonStr = JSON.stringify(backupData, null, 2);
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `rondolog_backup_${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      
+      showNotification('💾 Backup JSON gerado com sucesso!', 'success');
+      syncLog.add('export', 'Backup JSON exportado', { 
+        count: vehicleData.length,
+        user: authService.getCurrentUser()?.username
+      });
+    }
+
+    // 📊 ATUALIZAR ESTATÍSTICAS NO SETTINGS
+    function updateSettingsStats() {
+      const total = vehicleData.length;
+      const ok = vehicleData.filter(v => v.statusGeral === 'OK').length;
+      const pending = vehicleData.filter(v => v.statusGeral === 'PENDENTE').length;
+      const expired = vehicleData.filter(v => v.statusGeral === 'VENCIDO').length;
+      
+      document.getElementById('settingsVehicleCount').textContent = total;
+      document.getElementById('settingsOkCount').textContent = ok;
+      document.getElementById('settingsPendingCount').textContent = pending;
+      document.getElementById('settingsExpiredCount').textContent = expired;
+      document.getElementById('settingsFirebaseCount').textContent = appStats.firebaseCount || 0;
+      document.getElementById('settingsSyncCount').textContent = appStats.saves || 0;
+    }
+
+    // ℹ️ ATUALIZAR INFORMAÇÕES DO SISTEMA
+    function updateSystemInfo() {
+      const lastUpdateInfo = document.getElementById('lastUpdateInfo');
+      const totalProcessedInfo = document.getElementById('totalProcessedInfo');
+      
+      if (lastUpdateInfo) {
+        lastUpdateInfo.textContent = appStats.lastUpdate 
+          ? new Date(appStats.lastUpdate).toLocaleString('pt-BR')
+          : 'Nunca';
+      }
+      
+      if (totalProcessedInfo) {
+        totalProcessedInfo.textContent = appStats.totalProcessed || 0;
+      }
+    }
+
+    // ============================================
+    // 🔥 FUNÇÕES PRINCIPAIS DO SISTEMA
+    // ============================================
+
+    function initializeApp() {
+      console.log('🚀 RONDOLOG v15.0 - Inicializando aplicação...');
+      
+      syncLog.add('system', 'Sistema RONDOLOG v15.0 inicializando...', {
+        user: authService.getCurrentUser()?.username
+      });
       
       loadConfig();
       setupEventListeners();
       setupSorting();
-      setupExportDropdown();
       updateSaveStatus();
       updateStatsPanel();
-      updateSheetsSyncInfo();
+      updateDetailedStats();
+      initSettings();
       
       // Conectar ao Firebase
+      connectToFirebase();
+    }
+
+    async function connectToFirebase() {
       try {
         const connected = await firebaseService.connect();
         if (connected) {
@@ -1671,6 +2748,8 @@
             vehicleData = vehicles;
             applyFiltersAndRender();
             updateSummaryCards();
+            updateSettingsStats();
+            updateDetailedStats();
             appStats.localCount = vehicles.length;
             updateStatsPanel();
           });
@@ -1684,322 +2763,10 @@
         applyFiltersAndRender();
       }
       
-      console.log('✅ Sistema inicializado com sincronização bidirecional');
-      syncLog.add('system', 'Sistema inicializado com sucesso - Sincronização bidirecional ativa');
-    });
-
-    // ============================================
-    // 🔄 SISTEMA DE SINCRONIZAÇÃO COM GOOGLE SHEETS
-    // ============================================
-
-    // 📤 SINCRONIZAR COM GOOGLE SHEETS
-    async function syncWithGoogleSheets() {
-      try {
-        if (vehicleData.length === 0) {
-          showNotification('📭 Nenhum dado para sincronizar com Sheets', 'warning');
-          return false;
-        }
-        
-        showNotification('📤 Sincronizando com Google Sheets...', 'info');
-        updateSyncInfo('Enviando dados para Google Sheets...');
-        
-        // Preparar dados para envio
-        const sheetsData = vehicleData.map(vehicle => ({
-          placa: vehicle.placa || '',
-          statusPlaca: vehicle.statusPlaca || '',
-          vigenciaPlaca: vehicle.vigenciaPlaca || '',
-          vigenciaChecklist: vehicle.vigenciaChecklist || '',
-          statusChecklist: vehicle.statusChecklist || '',
-          statusGeral: vehicle.statusGeral || ''
-        }));
-        
-        console.log(`📤 Enviando ${sheetsData.length} registros para Google Sheets...`);
-        syncLog.add('sheets', 'Iniciando sincronização com Google Sheets', { count: sheetsData.length });
-        
-        // Enviar dados para o Google Apps Script
-        const response = await fetch(GOOGLE_SHEETS_WEB_APP_URL, {
-          method: 'POST',
-          mode: 'no-cors', // Google Apps Script requer no-cors
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            action: 'update',
-            data: sheetsData,
-            timestamp: new Date().toISOString(),
-            count: sheetsData.length
-          })
-        });
-        
-        // Tentar ler a resposta mesmo com no-cors
-        try {
-          // Como usamos no-cors, não podemos ler a resposta diretamente
-          // Mas podemos assumir que foi bem-sucedido se não houver erro de rede
-          console.log('✅ Dados enviados para Google Sheets (no-cors mode)');
-          
-          // Atualizar estatísticas
-          appStats.sheetsSyncs++;
-          lastSyncSheetsTime = new Date();
-          updateSheetsSyncInfo();
-          updateStatsPanel();
-          
-          showNotification(`✅ ${sheetsData.length} registros sincronizados com Google Sheets!`, 'success');
-          updateSyncInfo(`✅ Sheets atualizado: ${sheetsData.length} registros`);
-          
-          syncLog.add('sheets', 'Sincronização com Google Sheets concluída com sucesso', {
-            count: sheetsData.length,
-            timestamp: lastSyncSheetsTime.toISOString()
-          });
-          
-          return true;
-          
-        } catch (error) {
-          // Mesmo com erro na leitura da resposta, o envio pode ter sido bem-sucedido
-          console.log('⚠️ Resposta não pode ser lida (no-cors), mas dados enviados');
-          syncLog.add('sheets', 'Dados enviados para Sheets (resposta no-cors)', { count: sheetsData.length });
-          
-          // Atualizar estatísticas mesmo assim
-          appStats.sheetsSyncs++;
-          lastSyncSheetsTime = new Date();
-          updateSheetsSyncInfo();
-          updateStatsPanel();
-          
-          showNotification(`📤 Dados enviados para Google Sheets`, 'success');
-          updateSyncInfo('✅ Sheets atualizado');
-          
-          return true;
-        }
-        
-      } catch (error) {
-        console.error('❌ Erro na sincronização com Sheets:', error);
-        showNotification(`❌ Erro ao sincronizar com Sheets: ${error.message}`, 'error');
-        updateSyncInfo('❌ Erro ao sincronizar com Sheets');
-        
-        syncLog.add('error', 'Erro na sincronização com Google Sheets', { error: error.message });
-        appStats.errors++;
-        updateStatsPanel();
-        
-        return false;
-      }
-    }
-
-    // 💾 SALVAR NO FIREBASE E SINCRONIZAR COM SHEETS
-    async function saveToFirebaseWithSheetsSync() {
-      if (vehicleData.length === 0) {
-        showNotification('📭 Nenhum dado para salvar', 'warning');
-        return false;
-      }
-      
-      if (syncInProgress) {
-        showNotification('⏳ Já sincronizando...', 'info');
-        return false;
-      }
-      
-      if (!confirm(`💾 SALVAR E SINCRONIZAR - RONDOLOG\n══════════════════════════════\n\n` +
-                   `Esta ação irá:\n` +
-                   `1. 💾 Salvar ${vehicleData.length} veículos no Firebase\n` +
-                   `2. 📤 Enviar dados para o Google Sheets\n` +
-                   `3. 🔄 Atualizar ambas as plataformas\n\n` +
-                   `══════════════════════════════\n` +
-                   `Deseja continuar?`)) {
-        return false;
-      }
-      
-      const btn = btnSaveOnline;
-      const originalText = btn.innerHTML;
-      
-      btn.innerHTML = '<span>⏳</span> Salvando...';
-      btn.disabled = true;
-      syncInProgress = true;
-      showNotification('💾 Salvando e sincronizando...', 'info');
-      updateSyncInfo('Iniciando salvamento e sincronização...');
-      syncLog.add('save', `Iniciando salvamento com sincronização de ${vehicleData.length} veículos`);
-      
-      try {
-        // 1. Salvar no Firebase
-        await firebaseService.saveAllVehicles(vehicleData);
-        
-        // 2. Atualizar estatísticas Firebase
-        appStats.saves++;
-        appStats.lastSync = new Date().toISOString();
-        appStats.firebaseCount = vehicleData.length;
-        lastSaveTime = new Date();
-        updateSaveStatus();
-        updateStatsPanel();
-        saveConfig();
-        
-        // 3. Sincronizar com Google Sheets
-        const sheetsSynced = await syncWithGoogleSheets();
-        
-        if (sheetsSynced) {
-          showNotification(`✅ ${vehicleData.length} veículos salvos e sincronizados!`, 'success');
-          updateSyncInfo(`✅ Salvo e sincronizado: ${vehicleData.length} veículos`);
-        } else {
-          showNotification(`✅ ${vehicleData.length} veículos salvos no Firebase (Sheets falhou)`, 'warning');
-          updateSyncInfo(`✅ Salvo no Firebase: ${vehicleData.length} veículos`);
-        }
-        
-        updateOnlineStatus(true);
-        
-        syncLog.add('save', `Salvamento com sincronização concluído`, { 
-          count: vehicleData.length,
-          sheetsSynced: sheetsSynced
-        });
-        
-        return true;
-        
-      } catch (error) {
-        console.error('❌ Erro ao salvar no Firebase:', error);
-        showNotification(`❌ Erro: ${error.message}`, 'error');
-        updateSyncInfo('❌ Erro ao salvar');
-        updateOnlineStatus(false);
-        appStats.errors++;
-        updateStatsPanel();
-        saveConfig();
-        syncLog.add('error', 'Erro no salvamento com sincronização', { error: error.message, count: vehicleData.length });
-        return false;
-        
-      } finally {
-        btn.innerHTML = originalText;
-        btn.disabled = false;
-        syncInProgress = false;
-      }
-    }
-
-    // 🚚 MIGRAÇÃO DO GOOGLE SHEETS PARA FIREBASE COM SINCRONIZAÇÃO REVERSA
-    async function migrateFromSheets() {
-      if (!confirm('🚚 MIGRAR DO GOOGLE SHEETS - RONDOLOG\n══════════════════════════════\n\n' +
-                   'Esta operação irá:\n' +
-                   '1. 📥 Importar dados do Google Sheets\n' +
-                   '2. 🔍 Validar e limpar os dados\n' +
-                   '3. 💾 Salvar no Firebase\n' +
-                   '4. 🔄 Sincronizar de volta para o Sheets\n\n' +
-                   '⚠️ Dados atuais serão substituídos\n' +
-                   '══════════════════════════════\n' +
-                   'Deseja continuar?')) {
-        return;
-      }
-      
-      try {
-        showNotification('🚚 Migrando dados do Google Sheets...', 'info');
-        updateSyncInfo('Migrando dados...');
-        syncLog.add('migrate', 'Iniciando migração do Google Sheets');
-        
-        // URL do seu script
-        const url = `${GOOGLE_SHEETS_WEB_APP_URL}?action=getData&t=${Date.now()}`;
-        
-        const response = await fetch(url);
-        const result = await response.json();
-        
-        if (result.status === 'success') {
-          const data = result.data || {};
-          const rawVehicles = data.data || data || [];
-          
-          console.log(`📥 Dados brutos recebidos: ${rawVehicles.length} registros`);
-          syncLog.add('migrate', `Dados brutos recebidos do Sheets: ${rawVehicles.length} registros`);
-          
-          // FILTRAR E LIMPAR DADOS
-          const migrationStats = {
-            total: rawVehicles.length,
-            valid: 0,
-            invalid: 0,
-            empty: 0,
-            errors: 0
-          };
-          
-          vehicleData = rawVehicles
-            .map((v, index) => {
-              try {
-                // Extrair dados independentemente do nome da coluna
-                const placa = v.placa || v.Placa || v.PLACA || '';
-                
-                // Ignorar se placa estiver vazia
-                if (!placa || placa.toString().trim() === '') {
-                  migrationStats.empty++;
-                  console.warn(`⚠️ Registro ${index}: Placa vazia`);
-                  return null;
-                }
-                
-                const vigenciaPlaca = v.vigenciaPlaca || v['Vigência Pesquisa Placa'] || v['VIGENCIA PLACA'] || '';
-                const statusPlaca = v.statusPlaca || v['Status Placa'] || v['STATUS PLACA'] || '';
-                const vigenciaChecklist = v.vigenciaChecklist || v['Checklist Vigência'] || v['CHECKLIST VIGENCIA'] || '';
-                const statusChecklist = v.statusChecklist || v['Checklist Status'] || v['CHECKLIST STATUS'] || '';
-                
-                migrationStats.valid++;
-                
-                return {
-                  placa: placa.toString().trim().toUpperCase(),
-                  statusPlaca: statusPlaca.toString().trim(),
-                  vigenciaPlaca: formatDateForInput(vigenciaPlaca),
-                  vigenciaChecklist: formatDateForInput(vigenciaChecklist),
-                  statusChecklist: statusChecklist.toString().trim(),
-                  statusGeral: calculateStatusGeral(vigenciaChecklist, statusChecklist),
-                  migrated: true,
-                  migratedAt: new Date().toISOString(),
-                  sourceRow: index + 1
-                };
-              } catch (error) {
-                migrationStats.errors++;
-                console.warn(`❌ Erro ao processar registro ${index}:`, v, error);
-                return null;
-              }
-            })
-            .filter(v => v !== null); // Remover nulos
-          
-          migrationStats.invalid = migrationStats.total - migrationStats.valid - migrationStats.empty - migrationStats.errors;
-          
-          console.log(`✅ Dados processados: ${vehicleData.length} veículos válidos`);
-          console.log(`📊 Estatísticas da migração:`, migrationStats);
-          
-          syncLog.add('migrate', 'Dados processados com sucesso', {
-            ...migrationStats,
-            finalCount: vehicleData.length
-          });
-          
-          if (vehicleData.length === 0) {
-            showNotification('📭 Nenhum dado válido para migrar', 'warning');
-            updateSyncInfo('❌ Nenhum dado válido');
-            return;
-          }
-          
-          // Salvar no Firebase
-          showNotification(`💾 Salvando ${vehicleData.length} veículos no Firebase...`, 'info');
-          updateSyncInfo(`Salvando ${vehicleData.length} veículos...`);
-          
-          await firebaseService.saveAllVehicles(vehicleData);
-          
-          // Sincronizar de volta para o Sheets para garantir consistência
-          showNotification(`📤 Sincronizando com Google Sheets...`, 'info');
-          await syncWithGoogleSheets();
-          
-          applyFiltersAndRender();
-          
-          // Montar resumo da migração
-          let summary = `✅ ${vehicleData.length} veículos migrados e sincronizados!`;
-          
-          if (migrationStats.empty > 0) {
-            summary += `\n🗑️ ${migrationStats.empty} registros com placa vazia`;
-          }
-          if (migrationStats.errors > 0) {
-            summary += `\n❌ ${migrationStats.errors} erros de processamento`;
-          }
-          if (migrationStats.invalid > 0) {
-            summary += `\n⚠️ ${migrationStats.invalid} registros inválidos`;
-          }
-          
-          showNotification(summary, 'success');
-          updateSyncInfo(`✅ ${vehicleData.length} veículos migrados e sincronizados`);
-          
-        } else {
-          throw new Error('Erro na resposta do Google Sheets');
-        }
-        
-      } catch (error) {
-        console.error('❌ Migração falhou:', error);
-        showNotification(`❌ Falha na migração: ${error.message}`, 'error');
-        updateSyncInfo('❌ Migração falhou');
-        syncLog.add('error', 'Falha na migração do Google Sheets', { error: error.message });
-      }
+      console.log('✅ Sistema inicializado - 100% Firebase');
+      syncLog.add('system', 'Sistema inicializado com sucesso', {
+        user: authService.getCurrentUser()?.username
+      });
     }
 
     // 📥 CARREGAR DADOS INICIAIS
@@ -2015,14 +2782,19 @@
           applyFiltersAndRender();
           appStats.loads++;
           appStats.localCount = vehicles.length;
+          appStats.totalProcessed += vehicles.length;
+          appStats.lastUpdate = new Date().toISOString();
           updateStatsPanel();
+          updateDetailedStats();
+          updateSettingsStats();
+          updateSystemInfo();
           saveConfig();
           
           showNotification(`✅ ${vehicles.length} veículos carregados do servidor`, 'success');
           updateSyncInfo(`${vehicles.length} veículos carregados`);
           syncLog.add('load', `Dados iniciais carregados: ${vehicles.length} veículos`);
         } else {
-          updateSyncInfo('Nenhum dado encontrado - pronto para migrar');
+          updateSyncInfo('Nenhum dado encontrado');
           syncLog.add('load', 'Nenhum dado encontrado no Firebase');
         }
         
@@ -2034,120 +2806,78 @@
       }
     }
 
-    // 📊 ATUALIZAR PAINEL DE ESTATÍSTICAS
-    function updateStatsPanel() {
-      if (statFirebaseCount) {
-        statFirebaseCount.textContent = appStats.firebaseCount || 0;
+    // 💾 SALVAR NO FIREBASE
+    async function saveToFirebase() {
+      if (vehicleData.length === 0) {
+        showNotification('📭 Nenhum dado para salvar', 'warning');
+        return false;
       }
-      if (statLocalCount) {
-        statLocalCount.textContent = appStats.localCount || vehicleData.length || 0;
+      
+      if (syncInProgress) {
+        showNotification('⏳ Já sincronizando...', 'info');
+        return false;
       }
-      if (statSyncCount) {
-        statSyncCount.textContent = appStats.saves || 0;
+      
+      if (!confirm(`💾 SALVAR NO FIREBASE - RONDOLOG\n══════════════════════════════\n\n` +
+                   `Esta ação irá salvar ${vehicleData.length} veículos no Firebase.\n\n` +
+                   `══════════════════════════════\n` +
+                   `Deseja continuar?`)) {
+        return false;
       }
-      if (statSheetsCount) {
-        statSheetsCount.textContent = appStats.sheetsSyncs || 0;
-      }
-      if (statLogCount) {
-        statLogCount.textContent = syncLog.entries.length || 0;
-      }
-    }
-
-    // 📊 ATUALIZAR INFO DE SINCRONIZAÇÃO COM SHEETS
-    function updateSheetsSyncInfo() {
-      if (lastSyncSheetsInfo) {
-        if (lastSyncSheetsTime) {
-          const now = new Date();
-          const diff = Math.floor((now - lastSyncSheetsTime) / 1000);
-          
-          let text = '';
-          if (diff < 60) {
-            text = `Última sinc. Sheets: ${diff} segundos atrás`;
-          } else if (diff < 3600) {
-            text = `Última sinc. Sheets: ${Math.floor(diff / 60)} minutos atrás`;
-          } else {
-            text = `Última sinc. Sheets: ${lastSyncSheetsTime.toLocaleString('pt-BR')}`;
-          }
-          
-          lastSyncSheetsInfo.textContent = text;
-        } else {
-          lastSyncSheetsInfo.textContent = 'Nunca sincronizado com Sheets';
-        }
-      }
-    }
-
-    // 🔍 ANALISAR DIFERENÇAS DE CONTAGEM
-    async function analyzeCountDiscrepancy() {
+      
+      syncInProgress = true;
+      showNotification('💾 Salvando no Firebase...', 'info');
+      updateSyncInfo('Salvando dados...');
+      syncLog.add('save', `Iniciando salvamento de ${vehicleData.length} veículos`, {
+        user: authService.getCurrentUser()?.username
+      });
+      
       try {
-        console.log('🔍 Iniciando análise de contagem...');
-        showNotification('🔍 Analisando diferenças de contagem...', 'info');
-        syncLog.add('diagnose', 'Iniciando análise de contagem');
+        await firebaseService.saveAllVehicles(vehicleData);
         
-        const snapshot = await firebaseService.database.ref('vehicles').once('value');
+        appStats.saves++;
+        appStats.lastSync = new Date().toISOString();
+        appStats.firebaseCount = vehicleData.length;
+        appStats.totalProcessed += vehicleData.length;
+        appStats.lastUpdate = new Date().toISOString();
+        lastSaveTime = new Date();
+        updateSaveStatus();
+        updateStatsPanel();
+        updateDetailedStats();
+        updateSettingsStats();
+        updateSystemInfo();
+        saveConfig();
         
-        if (!snapshot.exists()) {
-          console.log('📭 Nenhum dado encontrado no Firebase');
-          showNotification('📭 Nenhum dado encontrado no Firebase', 'warning');
-          syncLog.add('diagnose', 'Nenhum dado encontrado para análise');
-          return null;
-        }
+        showNotification(`✅ ${vehicleData.length} veículos salvos no Firebase!`, 'success');
+        updateSyncInfo(`✅ Salvo: ${vehicleData.length} veículos`);
+        updateOnlineStatus(true);
         
-        const firebaseCount = snapshot.numChildren();
-        const localCount = vehicleData.length;
-        
-        console.log('📊 Análise de contagem:');
-        console.log(`   Firebase: ${firebaseCount} registros`);
-        console.log(`   Local: ${localCount} registros`);
-        console.log(`   Diferença: ${Math.abs(firebaseCount - localCount)}`);
-        
-        syncLog.add('diagnose', 'Análise de contagem concluída', {
-          firebase: firebaseCount,
-          local: localCount,
-          difference: Math.abs(firebaseCount - localCount)
+        syncLog.add('save', `Salvamento concluído`, { 
+          count: vehicleData.length,
+          user: authService.getCurrentUser()?.username
         });
         
-        // Montar relatório
-        let report = `🔍 ANÁLISE DE CONTAGEM - RONDOLOG\n`;
-        report += `══════════════════════════════\n\n`;
-        report += `📊 ESTATÍSTICAS GERAIS:\n`;
-        report += `   • Total no Firebase: ${firebaseCount}\n`;
-        report += `   • Total local: ${localCount}\n`;
-        report += `   • Diferença: ${Math.abs(firebaseCount - localCount)}\n`;
-        report += `   • Sinc. Sheets: ${appStats.sheetsSyncs} vezes\n\n`;
-        
-        report += `📈 RECOMENDAÇÕES:\n`;
-        
-        if (firebaseCount > localCount) {
-          report += `   • Firebase tem mais dados. Carregue novamente do Firebase.\n`;
-        } else if (localCount > firebaseCount) {
-          report += `   • Local tem mais dados. Use "Salvar no Firebase".\n`;
-        }
-        
-        if (appStats.sheetsSyncs === 0) {
-          report += `   • Use "Sinc. com Sheets" para atualizar o Google Sheets.\n`;
-        }
-        
-        report += `\n══════════════════════════════\n`;
-        report += `🕒 ${new Date().toLocaleString('pt-BR')}`;
-        
-        // Mostrar relatório
-        alert(report);
-        
-        showNotification(
-          `🔍 Análise: Firebase ${firebaseCount}, Local ${localCount}`, 
-          firebaseCount !== localCount ? 'warning' : 'success'
-        );
-        
-        return {
-          firebaseCount,
-          localCount
-        };
+        return true;
         
       } catch (error) {
-        console.error('❌ Erro na análise de contagem:', error);
-        showNotification('❌ Erro na análise de contagem', 'error');
-        syncLog.add('error', 'Erro na análise de contagem', { error: error.message });
-        return null;
+        console.error('❌ Erro ao salvar no Firebase:', error);
+        showNotification(`❌ Erro: ${error.message}`, 'error');
+        updateSyncInfo('❌ Erro ao salvar');
+        updateOnlineStatus(false);
+        appStats.errors++;
+        updateStatsPanel();
+        updateDetailedStats();
+        updateSettingsStats();
+        saveConfig();
+        syncLog.add('error', 'Erro no salvamento', { 
+          error: error.message, 
+          count: vehicleData.length,
+          user: authService.getCurrentUser()?.username
+        });
+        return false;
+        
+      } finally {
+        syncInProgress = false;
       }
     }
 
@@ -2156,7 +2886,9 @@
       try {
         console.log('🔍 Iniciando diagnóstico do Firebase...');
         showNotification('🔍 Diagnosticando dados do Firebase...', 'info');
-        syncLog.add('diagnose', 'Iniciando diagnóstico completo do Firebase');
+        syncLog.add('diagnose', 'Iniciando diagnóstico completo do Firebase', {
+          user: authService.getCurrentUser()?.username
+        });
         
         const snapshot = await firebaseService.database.ref('vehicles').once('value');
         
@@ -2167,95 +2899,62 @@
           return;
         }
         
-        console.log('📊 Análise dos dados no Firebase:');
-        console.log('----------------------------------');
+        const total = snapshot.numChildren();
+        const local = vehicleData.length;
+        const difference = Math.abs(total - local);
         
-        const allKeys = [];
-        const problemKeys = [];
-        const validVehicles = [];
-        
-        snapshot.forEach(childSnapshot => {
-          const key = childSnapshot.key;
-          const vehicle = childSnapshot.val();
-          allKeys.push(key);
-          
-          // Verificar problemas
-          if (!vehicle) {
-            console.warn(`❌ Chave sem dados: ${key}`);
-            problemKeys.push({ key, issue: 'Sem dados' });
-          } else if (!vehicle.placa) {
-            console.warn(`❌ Veículo sem placa: ${key}`);
-            problemKeys.push({ key, issue: 'Sem placa', data: vehicle });
-          } else if (typeof vehicle.placa !== 'string') {
-            console.warn(`❌ Placa não é string: ${key}`, vehicle.placa);
-            problemKeys.push({ key, issue: 'Placa inválida', data: vehicle });
-          } else {
-            validVehicles.push(vehicle);
-          }
-        });
-        
-        console.log(`📈 Estatísticas:`);
-        console.log(`   Total de chaves: ${allKeys.length}`);
-        console.log(`   Veículos válidos: ${validVehicles.length}`);
-        console.log(`   Problemas encontrados: ${problemKeys.length}`);
-        console.log('----------------------------------');
-        
-        // Mostrar resumo no alerta
         let alertMessage = `🔍 DIAGNÓSTICO DO FIREBASE - RONDOLOG\n`;
         alertMessage += `══════════════════════════════\n\n`;
         alertMessage += `📊 ESTATÍSTICAS GERAIS:\n`;
-        alertMessage += `   Total de chaves: ${allKeys.length}\n`;
-        alertMessage += `   Veículos válidos: ${validVehicles.length}\n`;
-        alertMessage += `   Problemas: ${problemKeys.length}\n`;
-        alertMessage += `   Sinc. Sheets: ${appStats.sheetsSyncs} vezes\n\n`;
+        alertMessage += `   • Total no Firebase: ${total}\n`;
+        alertMessage += `   • Total local: ${local}\n`;
+        alertMessage += `   • Diferença: ${difference}\n`;
+        alertMessage += `   • Sincronizações: ${appStats.saves} vezes\n\n`;
         
-        if (problemKeys.length > 0) {
-          alertMessage += `⚠️ PROBLEMAS ENCONTRADOS:\n`;
-          problemKeys.slice(0, 5).forEach(problem => {
-            alertMessage += `   • ${problem.key}: ${problem.issue}\n`;
-          });
-          if (problemKeys.length > 5) {
-            alertMessage += `   ... e mais ${problemKeys.length - 5} problemas\n`;
-          }
+        if (difference > 0) {
+          alertMessage += `⚠️ ATENÇÃO:\n`;
+          alertMessage += `   • Dados inconsistentes entre Firebase e local\n`;
+          alertMessage += `   • Use "Salvar no Firebase" para sincronizar\n`;
         }
         
-        alertMessage += `\n📊 CONTEXTUALIZAÇÃO:\n`;
-        alertMessage += `   Você está vendo ${vehicleData.length} de ${validVehicles.length} veículos válidos.\n\n`;
-        
-        alertMessage += `🔧 RECOMENDAÇÕES:\n`;
-        if (problemKeys.length > 0) {
-          alertMessage += `   • Use "Corrigir Dados" para problemas\n`;
+        alertMessage += `\n🔧 RECOMENDAÇÕES:\n`;
+        if (difference > 0) {
+          alertMessage += `   • Sincronize os dados\n`;
         }
-        if (appStats.sheetsSyncs === 0) {
-          alertMessage += `   • Use "Sinc. com Sheets" para atualizar o Google Sheets\n`;
+        if (appStats.errors > 0) {
+          alertMessage += `   • Verifique os logs de erro\n`;
         }
         
         alertMessage += `\n══════════════════════════════\n`;
         alertMessage += `🕒 ${new Date().toLocaleString('pt-BR')}`;
+        alertMessage += `\n👤 Usuário: ${authService.getCurrentUser()?.username || 'Não autenticado'}`;
         
         alert(alertMessage);
         
         showNotification(
-          `🔍 Diagnóstico: ${validVehicles.length} válidos, ${problemKeys.length} problemas`, 
-          problemKeys.length > 0 ? 'warning' : 'success'
+          `🔍 Diagnóstico: Firebase ${total}, Local ${local}`, 
+          difference > 0 ? 'warning' : 'success'
         );
         
         syncLog.add('diagnose', 'Diagnóstico concluído', {
-          total: allKeys.length,
-          valid: validVehicles.length,
-          problems: problemKeys.length
+          firebase: total,
+          local: local,
+          difference: difference,
+          user: authService.getCurrentUser()?.username
         });
         
         return {
-          total: allKeys.length,
-          valid: validVehicles.length,
-          problems: problemKeys.length
+          firebase: total,
+          local: local
         };
         
       } catch (error) {
         console.error('❌ Erro no diagnóstico:', error);
         showNotification('❌ Erro no diagnóstico', 'error');
-        syncLog.add('error', 'Erro no diagnóstico', { error: error.message });
+        syncLog.add('error', 'Erro no diagnóstico', { 
+          error: error.message,
+          user: authService.getCurrentUser()?.username
+        });
       }
     }
 
@@ -2267,8 +2966,7 @@
                    '2. 🔧 Corrigir todos os problemas encontrados\n' +
                    '3. 🗑️ Remover duplicados automaticamente\n' +
                    '4. 🔄 Normalizar todas as placas\n' +
-                   '5. 💾 Salvar apenas dados válidos\n' +
-                   '6. 📤 Sincronizar com Google Sheets\n\n' +
+                   '5. 💾 Salvar apenas dados válidos\n\n' +
                    '⚠️ OPERAÇÃO IRREVERSÍVEL\n' +
                    '══════════════════════════════\n' +
                    'Deseja continuar?')) {
@@ -2278,154 +2976,304 @@
       try {
         showNotification('🔄 Iniciando recuperação completa...', 'info');
         updateSyncInfo('Recuperação iniciada...');
-        syncLog.add('recovery', 'Iniciando recuperação completa de dados');
+        syncLog.add('recovery', 'Iniciando recuperação completa de dados', {
+          user: authService.getCurrentUser()?.username
+        });
         
-        // 1. Fazer diagnóstico primeiro
-        const diagnosis = await diagnoseFirebaseData();
-        if (!diagnosis || diagnosis.valid === 0) {
-          showNotification('📭 Nenhum dado válido para recuperar', 'warning');
-          return;
-        }
+        // Fazer backup primeiro
+        exportBackupJSON();
         
-        // 2. Obter todos os dados brutos
-        const snapshot = await firebaseService.database.ref('vehicles').once('value');
-        
-        if (!snapshot.exists()) {
-          showNotification('📭 Nenhum dado encontrado', 'warning');
-          return;
-        }
-        
-        // 3. Processar e corrigir todos os dados
+        // Processar dados atuais
         const processedVehicles = new Map();
-        const removedKeys = [];
-        const correctedVehicles = [];
         const stats = {
-          total: snapshot.numChildren(),
+          total: vehicleData.length,
           valid: 0,
-          invalid: 0,
           duplicates: 0
         };
         
-        snapshot.forEach(childSnapshot => {
-          const key = childSnapshot.key;
-          const vehicle = childSnapshot.val();
-          
-          // Verificar se o veículo é válido
-          if (vehicle && vehicle.placa && typeof vehicle.placa === 'string') {
-            // Normalizar placa
-            const normalizedPlaca = vehicle.placa.toString().trim().toUpperCase();
-            
-            // Gerar chave segura
-            const safeKey = firebaseService.normalizeId(normalizedPlaca);
-            
-            // Preparar veículo corrigido
-            const correctedVehicle = {
-              placa: normalizedPlaca,
-              statusPlaca: vehicle.statusPlaca || '',
-              vigenciaPlaca: vehicle.vigenciaPlaca || '',
-              vigenciaChecklist: vehicle.vigenciaChecklist || '',
-              statusChecklist: vehicle.statusChecklist || '',
-              statusGeral: vehicle.statusGeral || calculateStatusGeral(vehicle.vigenciaChecklist, vehicle.statusChecklist),
-              originalKey: key,
-              recoveredAt: Date.now(),
-              // Preservar outros campos se existirem
-              ...vehicle
-            };
-            
-            // Remover campos de sistema antigos se existirem
-            delete correctedVehicle.updatedAt;
-            delete correctedVehicle.updatedBy;
-            delete correctedVehicle.correctedAt;
-            
-            // Verificar se já existe (duplicado)
-            if (processedVehicles.has(safeKey)) {
-              stats.duplicates++;
-              console.warn(`⚠️ Duplicado removido: ${normalizedPlaca} (chave: ${key})`);
+        vehicleData.forEach(vehicle => {
+          try {
+            if (vehicle && vehicle.placa) {
+              const normalizedPlaca = vehicle.placa.toString().trim().toUpperCase();
+              
+              if (normalizedPlaca === '' || normalizedPlaca === 'UNDEFINED') {
+                return;
+              }
+              
+              const safeKey = firebaseService.normalizeId(normalizedPlaca);
+              
+              // 🎯 APLICAR OS 3 STATUS PADRONIZADOS
+              let statusChecklist = vehicle.statusChecklist || 'PENDENTE';
+              const statusUpper = statusChecklist.toUpperCase().trim();
+              
+              // Converter para os 3 status
+              if (statusUpper === 'APROVADO' || statusUpper === 'VÁLIDO' || statusUpper === 'VALIDO') {
+                statusChecklist = 'OK';
+              } else if (statusUpper === 'VENCIDO' || statusUpper.includes('EXPIROU')) {
+                statusChecklist = 'VENCIDO';
+              } else if (statusUpper === 'REPROVADO' || statusUpper.includes('INVÁLIDO')) {
+                statusChecklist = 'PENDENTE';
+              }
+              // Se já for PENDENTE, OK ou VENCIDO, mantém
+              
+              const correctedVehicle = {
+                ...vehicle,
+                placa: normalizedPlaca,
+                statusChecklist: statusChecklist,
+                statusGeral: calculateStatusGeral(vehicle.vigenciaChecklist, statusChecklist),
+                recoveredAt: Date.now(),
+                recoveredBy: authService.getCurrentUser()?.username || 'Sistema'
+              };
+              
+              // Verificar duplicado
+              if (processedVehicles.has(safeKey)) {
+                stats.duplicates++;
+              }
+              
+              processedVehicles.set(safeKey, correctedVehicle);
+              stats.valid++;
             }
-            
-            // Usar Map para evitar duplicados (mantém o último encontrado)
-            processedVehicles.set(safeKey, correctedVehicle);
-            correctedVehicles.push(correctedVehicle);
-            stats.valid++;
-            
-            // Marcar chave antiga para remoção se diferente
-            if (key !== safeKey) {
-              removedKeys.push(key);
-            }
-          } else {
-            // Marcar dados inválidos para remoção
-            removedKeys.push(key);
-            stats.invalid++;
-            console.warn(`🗑️ Dado inválido removido: ${key}`, vehicle);
+          } catch (error) {
+            console.warn('Erro ao processar veículo:', error);
           }
         });
         
-        console.log(`📊 Resultado do processamento:`);
-        console.log(`   • Total analisado: ${stats.total}`);
-        console.log(`   • Válidos: ${stats.valid}`);
-        console.log(`   • Inválidos: ${stats.invalid}`);
-        console.log(`   • Duplicados: ${stats.duplicates}`);
-        console.log(`   • Chaves para remover: ${removedKeys.length}`);
-        
-        syncLog.add('recovery', 'Processamento concluído', stats);
-        
-        // 4. Preparar atualizações
-        const updates = {};
-        
-        // Adicionar veículos corrigidos
-        processedVehicles.forEach((vehicle, safeKey) => {
-          updates[`vehicles/${safeKey}`] = {
-            ...vehicle,
-            updatedAt: firebase.database.ServerValue.TIMESTAMP,
-            updatedBy: firebaseService.userId || 'recovery_system',
-            recoveryVersion: '14.0'
-          };
-        });
-        
-        // Remover chaves antigas/inválidas
-        removedKeys.forEach(key => {
-          updates[`vehicles/${key}`] = null;
-        });
-        
-        // 5. Aplicar todas as atualizações
-        await firebaseService.database.ref().update(updates);
-        
-        // 6. Atualizar dados locais
+        // Atualizar dados locais
         vehicleData = Array.from(processedVehicles.values());
         
-        // 7. Sincronizar com Google Sheets
-        await syncWithGoogleSheets();
+        // Salvar no Firebase
+        await firebaseService.saveAllVehicles(vehicleData);
         
-        // 8. Log dos resultados
+        // Log dos resultados
         console.log('✅ Recuperação concluída:');
         console.log(`   • Veículos salvos: ${processedVehicles.size}`);
-        console.log(`   • Registros removidos: ${removedKeys.length}`);
+        console.log(`   • Duplicados eliminados: ${stats.duplicates}`);
         
         syncLog.add('recovery', 'Recuperação concluída com sucesso', {
           saved: processedVehicles.size,
-          removed: removedKeys.length,
-          finalCount: processedVehicles.size
+          duplicates: stats.duplicates,
+          finalCount: processedVehicles.size,
+          user: authService.getCurrentUser()?.username
         });
         
         showNotification(
           `✅ Recuperação concluída!\n` +
           `📦 ${processedVehicles.size} veículos salvos\n` +
-          `🗑️ ${removedKeys.length} registros removidos\n` +
-          `⚠️ ${stats.duplicates} duplicados eliminados\n` +
-          `📤 Sincronizado com Google Sheets`, 
+          `🗑️ ${stats.duplicates} duplicados eliminados`, 
           'success'
         );
         
         updateSyncInfo(`Recuperado: ${processedVehicles.size} veículos`);
         
-        // 9. Recarregar os dados
+        // Recarregar os dados
         applyFiltersAndRender();
+        updateSettingsStats();
+        updateDetailedStats();
         
       } catch (error) {
         console.error('❌ Erro na recuperação:', error);
         showNotification(`❌ Erro na recuperação: ${error.message}`, 'error');
         updateSyncInfo('Erro na recuperação');
-        syncLog.add('error', 'Erro na recuperação de dados', { error: error.message });
+        syncLog.add('error', 'Erro na recuperação de dados', { 
+          error: error.message,
+          user: authService.getCurrentUser()?.username
+        });
+      }
+    }
+
+    // ============================================
+    // 🗑️ FUNÇÕES PARA REMOVER DUPLICADOS
+    // ============================================
+
+    // 🔍 ENCONTRAR DUPLICADOS
+    function findDuplicates() {
+      const duplicates = new Map();
+      const duplicateGroups = [];
+      
+      vehicleData.forEach((vehicle, index) => {
+        const placa = vehicle.placa?.toUpperCase().trim();
+        if (!placa) return;
+        
+        if (!duplicates.has(placa)) {
+          duplicates.set(placa, []);
+        }
+        duplicates.get(placa).push({
+          index,
+          vehicle,
+          timestamp: vehicle.updatedAt || vehicle.importedAt || 0
+        });
+      });
+      
+      duplicates.forEach((group, placa) => {
+        if (group.length > 1) {
+          duplicateGroups.push({
+            placa,
+            count: group.length,
+            entries: group.sort((a, b) => b.timestamp - a.timestamp) // Mais recente primeiro
+          });
+        }
+      });
+      
+      return duplicateGroups.sort((a, b) => b.count - a.count);
+    }
+
+    // 📊 MOSTRAR INFORMAÇÕES SOBRE DUPLICADOS
+    function showDuplicatesInfo() {
+      const duplicates = findDuplicates();
+      const duplicatesInfo = document.getElementById('duplicatesInfo');
+      
+      if (!duplicatesInfo) return duplicates;
+      
+      if (duplicates.length === 0) {
+        duplicatesInfo.innerHTML = '<span style="color:var(--green);">✅ Nenhum duplicado encontrado</span>';
+        return duplicates;
+      }
+      
+      let infoHTML = `<span style="color:var(--yellow);">⚠️ ${duplicates.length} placas duplicadas encontradas:</span><br>`;
+      
+      duplicates.slice(0, 10).forEach(group => {
+        const latestDate = group.entries[0].timestamp 
+          ? new Date(group.entries[0].timestamp).toLocaleDateString('pt-BR')
+          : 'Data desconhecida';
+        
+        infoHTML += `• <strong>${group.placa}</strong>: ${group.count} registros (mais recente: ${latestDate})<br>`;
+      });
+      
+      if (duplicates.length > 10) {
+        infoHTML += `... e mais ${duplicates.length - 10} placas duplicadas`;
+      }
+      
+      infoHTML += `<br><small>Total de registros duplicados: ${duplicates.reduce((sum, g) => sum + (g.count - 1), 0)}</small>`;
+      
+      duplicatesInfo.innerHTML = infoHTML;
+      return duplicates;
+    }
+
+    // 🗑️ REMOVER DUPLICADOS (MANTER MAIS RECENTE)
+    async function removeDuplicatesKeepLatest() {
+      const duplicates = findDuplicates();
+      
+      if (duplicates.length === 0) {
+        showNotification('✅ Nenhum duplicado para remover', 'success');
+        return;
+      }
+      
+      const totalDuplicates = duplicates.reduce((sum, g) => sum + (g.count - 1), 0);
+      
+      if (!confirm(`🗑️ REMOVER DUPLICADOS - RONDOLOG\n══════════════════════════════\n\n` +
+                   `Esta operação irá:\n` +
+                   `• Encontrar ${duplicates.length} placas duplicadas\n` +
+                   `• Remover ${totalDuplicates} registros duplicados\n` +
+                   `• Manter apenas o registro mais recente de cada placa\n\n` +
+                   `⚠️ OPERAÇÃO IRREVERSÍVEL - FAÇA BACKUP ANTES!\n` +
+                   `══════════════════════════════\n` +
+                   `Deseja continuar?`)) {
+        return;
+      }
+      
+      try {
+        showNotification('🔄 Removendo duplicados...', 'info');
+        syncLog.add('duplicates', 'Iniciando remoção de duplicados', { 
+          duplicatePlacas: duplicates.length,
+          totalDuplicates: totalDuplicates,
+          user: authService.getCurrentUser()?.username
+        });
+        
+        const uniqueVehicles = new Map();
+        const removedCounts = new Map();
+        
+        // Processar veículos, mantendo apenas o mais recente
+        vehicleData.forEach(vehicle => {
+          const placa = vehicle.placa?.toUpperCase().trim();
+          if (!placa) return;
+          
+          const existing = uniqueVehicles.get(placa);
+          const currentTimestamp = vehicle.updatedAt || vehicle.importedAt || 0;
+          
+          if (!existing || currentTimestamp > existing.timestamp) {
+            uniqueVehicles.set(placa, {
+              vehicle,
+              timestamp: currentTimestamp
+            });
+          }
+          
+          // Contar removidos
+          if (existing) {
+            removedCounts.set(placa, (removedCounts.get(placa) || 0) + 1);
+          }
+        });
+        
+        // Atualizar dados locais
+        const newVehicleData = Array.from(uniqueVehicles.values()).map(item => item.vehicle);
+        const removedTotal = vehicleData.length - newVehicleData.length;
+        
+        vehicleData = newVehicleData;
+        
+        // Atualizar Firebase
+        if (isOnlineMode) {
+          await firebaseService.saveAllVehicles(vehicleData);
+        }
+        
+        // Atualizar interface
+        applyFiltersAndRender();
+        updateSettingsStats();
+        updateDetailedStats();
+        appStats.localCount = vehicleData.length;
+        updateStatsPanel();
+        updateSystemInfo();
+        
+        // Log dos resultados
+        console.log(`✅ Duplicados removidos: ${removedTotal} registros`);
+        console.log(`✅ Veículos únicos: ${vehicleData.length}`);
+        
+        syncLog.add('duplicates', 'Duplicados removidos com sucesso', {
+          removed: removedTotal,
+          remaining: vehicleData.length,
+          duplicateGroups: duplicates.length,
+          user: authService.getCurrentUser()?.username
+        });
+        
+        showNotification(
+          `✅ Duplicados removidos!\n` +
+          `🗑️ ${removedTotal} registros removidos\n` +
+          `📊 ${vehicleData.length} veículos únicos mantidos`, 
+          'success'
+        );
+        
+        // Atualizar informações sobre duplicados
+        showDuplicatesInfo();
+        
+      } catch (error) {
+        console.error('❌ Erro ao remover duplicados:', error);
+        showNotification(`❌ Erro: ${error.message}`, 'error');
+        syncLog.add('error', 'Erro ao remover duplicados', { 
+          error: error.message,
+          user: authService.getCurrentUser()?.username
+        });
+      }
+    }
+
+    // 🔍 FUNÇÃO PARA ENCONTRAR DUPLICADOS (botão)
+    function removeDuplicates() {
+      const duplicates = showDuplicatesInfo();
+      
+      if (duplicates.length === 0) {
+        showNotification('✅ Nenhum duplicado encontrado', 'success');
+      } else {
+        const totalDuplicates = duplicates.reduce((sum, g) => sum + (g.count - 1), 0);
+        
+        alert(`🔍 DUPLICADOS ENCONTRADOS - RONDOLOG\n══════════════════════════════\n\n` +
+              `📊 RESUMO:\n` +
+              `• Placas duplicadas: ${duplicates.length}\n` +
+              `• Registros duplicados: ${totalDuplicates}\n` +
+              `• Veículos únicos: ${vehicleData.length - totalDuplicates}\n\n` +
+              `📋 TOP 10 PLACAS DUPLICADAS:\n` +
+              duplicates.slice(0, 10).map(g => 
+                `• ${g.placa}: ${g.count} registros`
+              ).join('\n') +
+              (duplicates.length > 10 ? `\n\n... e mais ${duplicates.length - 10} placas` : '') +
+              `\n\n══════════════════════════════\n` +
+              `Use "Remover (Manter Mais Recente)" para limpar os duplicados.`);
       }
     }
 
@@ -2435,18 +3283,20 @@
       
       let statsReport = `📊 ESTATÍSTICAS DETALHADAS - RONDOLOG\n`;
       statsReport += `══════════════════════════════\n\n`;
+      statsReport += `👤 USUÁRIO: ${authService.getCurrentUser()?.username || 'Não autenticado'}\n\n`;
+      
       statsReport += `📈 DADOS DO SISTEMA:\n`;
       statsReport += `   • Veículos locais: ${vehicleData.length}\n`;
       statsReport += `   • Firebase: ${appStats.firebaseCount || 0}\n`;
       statsReport += `   • Carregamentos: ${appStats.loads}\n`;
       statsReport += `   • Salvamentos: ${appStats.saves}\n`;
-      statsReport += `   • Sinc. Sheets: ${appStats.sheetsSyncs}\n`;
       statsReport += `   • Erros: ${appStats.errors}\n`;
-      statsReport += `   • Logs: ${syncLog.entries.length}\n\n`;
+      statsReport += `   • Logs: ${syncLog.entries.length}\n`;
+      statsReport += `   • Total processado: ${appStats.totalProcessed}\n\n`;
       
       statsReport += `🕒 ÚLTIMA SINCRONIZAÇÃO:\n`;
       statsReport += `   • Firebase: ${appStats.lastSync ? new Date(appStats.lastSync).toLocaleString('pt-BR') : 'Nunca'}\n`;
-      statsReport += `   • Sheets: ${lastSyncSheetsTime ? lastSyncSheetsTime.toLocaleString('pt-BR') : 'Nunca'}\n\n`;
+      statsReport += `   • Atualização: ${appStats.lastUpdate ? new Date(appStats.lastUpdate).toLocaleString('pt-BR') : 'Nunca'}\n\n`;
       
       statsReport += `📋 ÚLTIMOS LOGS (${recentLogs.length}):\n`;
       if (recentLogs.length === 0) {
@@ -2462,19 +3312,18 @@
       statsReport += `🕒 ${new Date().toLocaleString('pt-BR')}`;
       
       alert(statsReport);
-      syncLog.add('stats', 'Estatísticas detalhadas visualizadas');
+      syncLog.add('stats', 'Estatísticas detalhadas visualizadas', {
+        user: authService.getCurrentUser()?.username
+      });
     }
 
     // 🧪 TESTAR CONEXÃO FIREBASE
     async function testFirebaseConnection() {
-      const btn = btnTestConnection;
-      const originalText = btn.innerHTML;
-      
-      btn.innerHTML = '<span>⏳</span> Testando...';
-      btn.disabled = true;
       showNotification('🔌 Testando conexão...', 'info');
       updateSyncInfo('Testando conexão...');
-      syncLog.add('connection', 'Testando conexão com Firebase');
+      syncLog.add('connection', 'Testando conexão com Firebase', {
+        user: authService.getCurrentUser()?.username
+      });
       
       try {
         const isConnected = await firebaseService.testConnection();
@@ -2483,22 +3332,26 @@
           showNotification('✅ Conexão Firebase estabelecida!', 'success');
           updateSyncInfo('✅ Conexão OK');
           updateOnlineStatus(true);
-          syncLog.add('connection', 'Conexão testada com sucesso - ONLINE');
+          syncLog.add('connection', 'Conexão testada com sucesso - ONLINE', {
+            user: authService.getCurrentUser()?.username
+          });
         } else {
           showNotification('❌ Sem conexão com o Firebase', 'error');
           updateSyncInfo('❌ Sem conexão');
           updateOnlineStatus(false);
-          syncLog.add('connection', 'Conexão testada - OFFLINE');
+          syncLog.add('connection', 'Conexão testada - OFFLINE', {
+            user: authService.getCurrentUser()?.username
+          });
         }
         
       } catch (error) {
         console.error('❌ Erro no teste de conexão:', error);
         showNotification('❌ Erro no teste de conexão', 'error');
         updateSyncInfo('❌ Erro no teste');
-        syncLog.add('error', 'Erro no teste de conexão', { error: error.message });
-      } finally {
-        btn.innerHTML = originalText;
-        btn.disabled = false;
+        syncLog.add('error', 'Erro no teste de conexão', { 
+          error: error.message,
+          user: authService.getCurrentUser()?.username
+        });
       }
     }
 
@@ -2515,6 +3368,16 @@
           onlineStatus.innerHTML = '<span class="offline-dot"></span> Offline';
         }
       }
+      
+      if (syncStatusMini) {
+        if (connected) {
+          syncStatusMini.className = 'sync-info-mini';
+          syncStatusMini.innerHTML = '<span class="online-dot" style="width: 8px; height: 8px;"></span> Online - Conectado';
+        } else {
+          syncStatusMini.className = 'sync-info-mini offline';
+          syncStatusMini.innerHTML = '<span class="offline-dot" style="width: 8px; height: 8px;"></span> Offline - Sem conexão';
+        }
+      }
     }
 
     function updateSyncInfo(message) {
@@ -2523,6 +3386,12 @@
         const timeStr = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
         syncInfo.innerHTML = `${message} <small style="opacity:0.7;">(${timeStr})</small>`;
       }
+    }
+
+    // 📊 ATUALIZAR PAINEL DE ESTATÍSTICAS
+    function updateStatsPanel() {
+      // Esta função agora está vazia pois removemos o painel de estatísticas
+      // Mas mantemos para compatibilidade
     }
 
     // ⚙️ CONFIGURAÇÃO
@@ -2536,7 +3405,9 @@
       const savedStats = localStorage.getItem('rondolog_stats');
       if (savedStats) {
         appStats = JSON.parse(savedStats);
-        updateStatsPanel();
+        updateDetailedStats();
+        updateSettingsStats();
+        updateSystemInfo();
       }
     }
 
@@ -2545,35 +3416,13 @@
       localStorage.setItem('rondolog_stats', JSON.stringify(appStats));
     }
 
-    // 🎯 CONFIGURAÇÃO DO DROPDOWN DE EXPORTAÇÃO
-    function setupExportDropdown() {
-      btnExport.addEventListener('click', function(e) {
-        e.stopPropagation();
-        exportDropdown.classList.toggle('active');
-      });
-
-      exportDropdown.addEventListener('click', function(e) {
-        e.stopPropagation();
-      });
-
-      document.addEventListener('click', function() {
-        exportDropdown.classList.remove('active');
-      });
-
-      const exportOptions = document.querySelectorAll('.export-option');
-      exportOptions.forEach(option => {
-        option.addEventListener('click', function() {
-          exportDropdown.classList.remove('active');
-        });
-      });
-    }
-
     // 🎯 FUNÇÕES DE MODAL
     function openAddModal() {
       currentEditIndex = -1;
       modalTitle.textContent = 'Adicionar Novo Veículo';
       clearEditForm();
       editModal.style.display = 'flex';
+      closeSettingsMenu();
     }
 
     function openEditModal(index) {
@@ -2582,8 +3431,6 @@
 
       modalTitle.textContent = 'Editar Veículo';
       document.getElementById('editPlaca').value = vehicle.placa || '';
-      document.getElementById('editStatusPlaca').value = vehicle.statusPlaca || '';
-      document.getElementById('editVigenciaPlaca').value = formatDateForInput(vehicle.vigenciaPlaca) || '';
       document.getElementById('editVigenciaChecklist').value = formatDateForInput(vehicle.vigenciaChecklist) || '';
       document.getElementById('editStatusChecklist').value = vehicle.statusChecklist || '';
 
@@ -2592,8 +3439,6 @@
 
     function clearEditForm() {
       document.getElementById('editPlaca').value = '';
-      document.getElementById('editStatusPlaca').value = '';
-      document.getElementById('editVigenciaPlaca').value = '';
       document.getElementById('editVigenciaChecklist').value = '';
       document.getElementById('editStatusChecklist').value = '';
       
@@ -2644,41 +3489,53 @@
       
       const newVehicle = {
         placa: placa.toUpperCase().trim(),
-        statusPlaca: document.getElementById('editStatusPlaca').value,
-        vigenciaPlaca: document.getElementById('editVigenciaPlaca').value,
         vigenciaChecklist: vigenciaChecklist,
         statusChecklist: statusChecklist,
-        statusGeral: calculateStatusGeral(vigenciaChecklist, statusChecklist)
+        statusGeral: calculateStatusGeral(vigenciaChecklist, statusChecklist),
+        updatedBy: authService.getCurrentUser()?.username || 'Sistema'
       };
 
       if (currentEditIndex === -1) {
         vehicleData.push(newVehicle);
         showNotification('✅ Veículo adicionado localmente', 'success');
-        syncLog.add('edit', 'Novo veículo adicionado', { placa: newVehicle.placa });
+        syncLog.add('edit', 'Novo veículo adicionado', { 
+          placa: newVehicle.placa,
+          user: authService.getCurrentUser()?.username
+        });
       } else {
         vehicleData[currentEditIndex] = newVehicle;
         showNotification('✅ Dados atualizados localmente', 'success');
-        syncLog.add('edit', 'Veículo editado', { placa: newVehicle.placa, index: currentEditIndex });
+        syncLog.add('edit', 'Veículo editado', { 
+          placa: newVehicle.placa, 
+          index: currentEditIndex,
+          user: authService.getCurrentUser()?.username
+        });
       }
 
       applyFiltersAndRender();
+      updateSettingsStats();
+      updateDetailedStats();
       appStats.localCount = vehicleData.length;
-      updateStatsPanel();
+      appStats.totalProcessed++;
+      appStats.lastUpdate = new Date().toISOString();
+      updateSystemInfo();
       
-      // Salvar no Firebase e sincronizar com Sheets em background
+      // Salvar no Firebase em background
       if (isOnlineMode) {
         setTimeout(async () => {
           try {
             await firebaseService.saveAllVehicles(vehicleData);
             console.log('✅ Alterações sincronizadas com Firebase');
-            
-            // Sincronizar com Google Sheets também
-            await syncWithGoogleSheets();
-            
-            syncLog.add('sync', 'Alterações sincronizadas com Firebase e Sheets em background', { count: vehicleData.length });
+            syncLog.add('sync', 'Alterações sincronizadas com Firebase em background', { 
+              count: vehicleData.length,
+              user: authService.getCurrentUser()?.username
+            });
           } catch (error) {
             console.error('❌ Erro na sincronização:', error);
-            syncLog.add('error', 'Erro na sincronização em background', { error: error.message });
+            syncLog.add('error', 'Erro na sincronização em background', { 
+              error: error.message,
+              user: authService.getCurrentUser()?.username
+            });
           }
         }, 500);
       }
@@ -2698,26 +3555,37 @@
       
       vehicleData.splice(index, 1);
       applyFiltersAndRender();
+      updateSettingsStats();
+      updateDetailedStats();
       appStats.localCount = vehicleData.length;
-      updateStatsPanel();
+      appStats.lastUpdate = new Date().toISOString();
+      updateSystemInfo();
       
-      syncLog.add('delete', `Veículo excluído localmente`, { placa: vehicle.placa, index });
+      syncLog.add('delete', `Veículo excluído localmente`, { 
+        placa: vehicle.placa, 
+        index,
+        user: authService.getCurrentUser()?.username
+      });
       
-      // Excluir do Firebase e atualizar Sheets se online
+      // Excluir do Firebase se online
       if (isOnlineMode) {
         try {
           await firebaseService.deleteVehicle(vehicle.placa);
           console.log('✅ Veículo excluído do Firebase');
           
-          // Sincronizar com Google Sheets após exclusão
-          await syncWithGoogleSheets();
-          
-          showNotification('✅ Veículo excluído do servidor e Sheets atualizado', 'success');
-          syncLog.add('delete', `Veículo excluído do Firebase e Sheets atualizado`, { placa: vehicle.placa });
+          showNotification('✅ Veículo excluído do servidor', 'success');
+          syncLog.add('delete', `Veículo excluído do Firebase`, { 
+            placa: vehicle.placa,
+            user: authService.getCurrentUser()?.username
+          });
         } catch (error) {
           console.error('❌ Erro ao excluir do Firebase:', error);
           showNotification('⚠️ Erro ao excluir do servidor', 'warning');
-          syncLog.add('error', 'Erro ao excluir do Firebase', { placa: vehicle.placa, error: error.message });
+          syncLog.add('error', 'Erro ao excluir do Firebase', { 
+            placa: vehicle.placa, 
+            error: error.message,
+            user: authService.getCurrentUser()?.username
+          });
         }
       }
     }
@@ -2748,9 +3616,7 @@
         
         const searchMatch = !searchValue || 
           (vehicle.placa && vehicle.placa.toLowerCase().includes(searchValue)) ||
-          (vehicle.statusPlaca && vehicle.statusPlaca.toLowerCase().includes(searchValue)) ||
           (vehicle.statusChecklist && vehicle.statusChecklist.toLowerCase().includes(searchValue)) ||
-          (vehicle.vigenciaPlaca && vehicle.vigenciaPlaca.toString().toLowerCase().includes(searchValue)) ||
           (vehicle.vigenciaChecklist && vehicle.vigenciaChecklist.toString().toLowerCase().includes(searchValue));
         
         return statusMatch && dateMatch && searchMatch;
@@ -2795,7 +3661,7 @@
         let aValue = a[column] || '';
         let bValue = b[column] || '';
         
-        if (column === 'vigenciaPlaca' || column === 'vigenciaChecklist') {
+        if (column === 'vigenciaChecklist') {
           aValue = aValue ? new Date(aValue) : new Date(0);
           bValue = bValue ? new Date(bValue) : new Date(0);
         }
@@ -2811,75 +3677,10 @@
       });
     }
 
-    // 🎯 FUNÇÕES DE DATA
-    function formatDateForInput(dateString) {
-      if (!dateString) return '';
-      try {
-        const date = new Date(dateString);
-        return isNaN(date.getTime()) ? dateString : date.toISOString().split('T')[0];
-      } catch {
-        return dateString;
-      }
-    }
-
-    function formatDate(dateString) {
-      if (!dateString) return '-';
-      try {
-        const date = new Date(dateString);
-        return isNaN(date.getTime()) ? dateString : date.toLocaleDateString('pt-BR');
-      } catch {
-        return dateString;
-      }
-    }
-
-    // 🎯 FUNÇÃO DE STATUS GERAL
-    function calculateStatusGeral(vigenciaChecklist, statusChecklist) {
-      if (!statusChecklist || statusChecklist.trim() === '') {
-        return 'PENDENTE';
-      }
-      
-      const statusUpper = statusChecklist.toUpperCase().trim();
-      
-      if (statusUpper === 'VENCIDO') {
-        return 'VENCIDO';
-      }
-      
-      if (statusUpper === 'EM ACORDO' || statusUpper === 'EM ACORDO.') {
-        return 'OK';
-      }
-      
-      if (!vigenciaChecklist) {
-        return 'PENDENTE';
-      }
-      
-      try {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        
-        const validadeDate = new Date(vigenciaChecklist);
-        validadeDate.setHours(0, 0, 0, 0);
-        
-        if (isNaN(validadeDate.getTime())) {
-          return 'PENDENTE';
-        }
-        
-        const diffTime = validadeDate.getTime() - today.getTime();
-        
-        if (diffTime > 0) {
-          return 'OK';
-        } else {
-          return 'VENCIDO';
-        }
-      } catch (error) {
-        console.error('Erro ao calcular status:', error);
-        return 'PENDENTE';
-      }
-    }
-
     // 🎯 FUNÇÕES DE RENDERIZAÇÃO
     function renderTable() {
       if (filteredData.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px; color: var(--text-secondary);">Nenhum dado encontrado</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px; color: var(--text-secondary);">Nenhum dado encontrado</td></tr>';
         totalCount.textContent = vehicleData.length;
         filteredCount.textContent = 0;
         return;
@@ -2911,8 +3712,6 @@
         return `
           <tr class="${rowClass}">
             <td><span class="vehicle-plate">${vehicle.placa || '-'}</span></td>
-            <td>${vehicle.statusPlaca || '-'}</td>
-            <td>${formatDate(vehicle.vigenciaPlaca)}</td>
             <td>${formatDate(vehicle.vigenciaChecklist)}</td>
             <td>${vehicle.statusChecklist || '-'}</td>
             <td><span class="status-badge ${statusClass}">${statusText}</span></td>
@@ -2966,23 +3765,11 @@
     // 🎯 CONFIGURAÇÃO DE EVENT LISTENERS
     function setupEventListeners() {
       btnDarkMode.addEventListener('click', toggleDarkMode);
-      btnAddNew.addEventListener('click', openAddModal);
       statusFilter.addEventListener('change', applyFiltersAndRender);
       dateFilter.addEventListener('change', applyFiltersAndRender);
       searchInput.addEventListener('input', applyFiltersAndRender);
       btnCancelModal.addEventListener('click', closeEditModal);
       editForm.addEventListener('submit', handleFormSubmit);
-      btnTestConnection.addEventListener('click', testFirebaseConnection);
-      btnLoadOnline.addEventListener('click', loadInitialData);
-      btnSaveOnline.addEventListener('click', saveToFirebaseWithSheetsSync); // ALTERADO
-      btnMigrateSheets.addEventListener('click', migrateFromSheets);
-      btnDiagnose.addEventListener('click', diagnoseFirebaseData);
-      btnFixData.addEventListener('click', recoverAllData);
-      btnRecover.addEventListener('click', recoverAllData);
-      btnShowStats.addEventListener('click', showDetailedStats);
-      btnCheckIntegrity.addEventListener('click', checkDataIntegrity);
-      btnAnalyzeCount.addEventListener('click', analyzeCountDiscrepancy);
-      btnSyncSheets.addEventListener('click', syncWithGoogleSheets); // NOVO
       
       window.addEventListener('click', function(e) {
         if (e.target === editModal) {
@@ -2998,11 +3785,15 @@
       if (isDarkMode) {
         btnDarkMode.innerHTML = '<span>☀️</span> Modo Claro';
         localStorage.setItem('rondolog_dark_mode', 'true');
-        syncLog.add('system', 'Modo escuro ativado');
+        syncLog.add('system', 'Modo escuro ativado', {
+          user: authService.getCurrentUser()?.username
+        });
       } else {
         btnDarkMode.innerHTML = '<span>🌙</span> Modo Escuro';
         localStorage.setItem('rondolog_dark_mode', 'false');
-        syncLog.add('system', 'Modo claro ativado');
+        syncLog.add('system', 'Modo claro ativado', {
+          user: authService.getCurrentUser()?.username
+        });
       }
     }
 
@@ -3018,8 +3809,6 @@
 
       const excelData = dataToExport.map(vehicle => ({
         'PLACA': vehicle.placa || '',
-        'VIGÊNCIA PESQUISA PLACA': formatDate(vehicle.vigenciaPlaca),
-        'STATUS PLACA': vehicle.statusPlaca || '',
         'CHECKLIST VIGÊNCIA': formatDate(vehicle.vigenciaChecklist),
         'CHECKLIST STATUS': vehicle.statusChecklist || '',
         'STATUS GERAL': vehicle.statusGeral || ''
@@ -3030,13 +3819,16 @@
       XLSX.utils.book_append_sheet(workbook, worksheet, 'Checklist');
 
       const colWidths = [
-        { wch: 12 }, { wch: 20 }, { wch: 18 }, 
-        { wch: 20 }, { wch: 18 }, { wch: 15 }
+        { wch: 12 }, { wch: 20 }, { wch: 18 }, { wch: 15 }
       ];
       worksheet['!cols'] = colWidths;
 
       XLSX.writeFile(workbook, filename);
-      syncLog.add('export', `Exportado para Excel: ${dataToExport.length} registros`, { filename });
+      syncLog.add('export', `Exportado para Excel: ${dataToExport.length} registros`, { 
+        filename,
+        user: authService.getCurrentUser()?.username
+      });
+      closeSettingsMenu();
     }
 
     function exportPDF() {
@@ -3050,6 +3842,7 @@
       doc.setFontSize(10);
       doc.setTextColor(100, 100, 100);
       doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, 105, 22, { align: 'center' });
+      doc.text(`Usuário: ${authService.getCurrentUser()?.username || 'Não autenticado'}`, 105, 28, { align: 'center' });
       
       let dataToExport = filteredData;
       let title = 'RELATÓRIO DA FROTA';
@@ -3063,8 +3856,6 @@
         
         const tableData = dataToExport.map(vehicle => [
           vehicle.placa || '',
-          formatDate(vehicle.vigenciaPlaca),
-          vehicle.statusPlaca || '',
           formatDate(vehicle.vigenciaChecklist),
           vehicle.statusChecklist || '',
           vehicle.statusGeral || ''
@@ -3072,17 +3863,15 @@
 
         doc.autoTable({
           startY: 45,
-          head: [['PLACA', 'VIGÊNCIA PESQ.', 'STATUS PLACA', 'CHECKLIST VIGÊNCIA', 'CHECKLIST STATUS', 'STATUS GERAL']],
+          head: [['PLACA', 'CHECKLIST VIGÊNCIA', 'CHECKLIST STATUS', 'STATUS GERAL']],
           body: tableData,
           styles: { fontSize: 8 },
           headStyles: { fillColor: [0, 0, 0] },
           columnStyles: {
-            0: { cellWidth: 20 },
-            1: { cellWidth: 25 },
-            2: { cellWidth: 25 },
-            3: { cellWidth: 25 },
-            4: { cellWidth: 25 },
-            5: { cellWidth: 20 }
+            0: { cellWidth: 25 },
+            1: { cellWidth: 30 },
+            2: { cellWidth: 30 },
+            3: { cellWidth: 25 }
           }
         });
       }
@@ -3096,7 +3885,10 @@
       }
 
       doc.save(`rondolog_relatorio_${new Date().toISOString().split('T')[0]}.pdf`);
-      syncLog.add('export', `Exportado para PDF: ${dataToExport.length} registros`);
+      syncLog.add('export', `Exportado para PDF: ${dataToExport.length} registros`, {
+        user: authService.getCurrentUser()?.username
+      });
+      closeSettingsMenu();
     }
 
     // 🔔 FUNÇÃO DE NOTIFICAÇÃO
@@ -3139,7 +3931,9 @@
     async function checkDataIntegrity() {
       try {
         showNotification('🔍 Verificando integridade dos dados...', 'info');
-        syncLog.add('integrity', 'Iniciando verificação de integridade');
+        syncLog.add('integrity', 'Iniciando verificação de integridade', {
+          user: authService.getCurrentUser()?.username
+        });
         
         const issues = [];
         
@@ -3153,10 +3947,16 @@
             issues.push(`Veículo ${index}: Placa muito curta: "${vehicle.placa}"`);
           }
           
+          // 🎯 VERIFICAR SE O STATUS É UM DOS 3 PERMITIDOS
+          const status = vehicle.statusChecklist?.toUpperCase().trim();
+          if (status && !['PENDENTE', 'OK', 'VENCIDO'].includes(status)) {
+            issues.push(`Veículo ${vehicle.placa}: Status inválido: "${vehicle.statusChecklist}" (deve ser PENDENTE, OK ou VENCIDO)`);
+          }
+          
           // Verificar datas inválidas
           if (vehicle.vigenciaChecklist) {
-            const date = new Date(vehicle.vigenciaChecklist);
-            if (isNaN(date.getTime())) {
+            const date = parseBrazilianDate(vehicle.vigenciaChecklist);
+            if (!date || isNaN(date.getTime())) {
               issues.push(`Veículo ${vehicle.placa}: Data inválida: "${vehicle.vigenciaChecklist}"`);
             }
           }
@@ -3177,7 +3977,10 @@
         
         if (issues.length === 0) {
           showNotification('✅ Integridade dos dados verificada - Sem problemas encontrados', 'success');
-          syncLog.add('integrity', 'Integridade verificada - Sem problemas', { checked: vehicleData.length });
+          syncLog.add('integrity', 'Integridade verificada - Sem problemas', { 
+            checked: vehicleData.length,
+            user: authService.getCurrentUser()?.username
+          });
           return { valid: true, issues: [] };
         } else {
           console.warn(`⚠️ ${issues.length} problemas encontrados:`, issues);
@@ -3185,7 +3988,8 @@
           syncLog.add('integrity', 'Problemas de integridade encontrados', { 
             total: issues.length, 
             checked: vehicleData.length,
-            issues: issues.slice(0, 10) 
+            issues: issues.slice(0, 10),
+            user: authService.getCurrentUser()?.username
           });
           
           // Mostrar resumo
@@ -3196,7 +4000,7 @@
                 `⚠️ PROBLEMAS ENCONTRADOS:\n${issues.slice(0, 10).join('\n')}` +
                 (issues.length > 10 ? `\n\n... e mais ${issues.length - 10} problemas` : '') +
                 `\n\n══════════════════════════════\n` +
-                `🔧 Use "Corrigir Dados" para resolver.`);
+                `🔧 Use "Recuperar Tudo" para resolver.`);
           
           return { valid: false, issues };
         }
@@ -3204,10 +4008,181 @@
       } catch (error) {
         console.error('❌ Erro na verificação:', error);
         showNotification('❌ Erro na verificação de integridade', 'error');
-        syncLog.add('error', 'Erro na verificação de integridade', { error: error.message });
+        syncLog.add('error', 'Erro na verificação de integridade', { 
+          error: error.message,
+          user: authService.getCurrentUser()?.username
+        });
         return { valid: false, issues: [`Erro: ${error.message}`] };
       }
     }
+
+    // 🔍 ANALISAR DIFERENÇAS DE CONTAGEM
+    async function analyzeCountDiscrepancy() {
+      try {
+        console.log('🔍 Iniciando análise de contagem...');
+        showNotification('🔍 Analisando diferenças de contagem...', 'info');
+        syncLog.add('diagnose', 'Iniciando análise de contagem', {
+          user: authService.getCurrentUser()?.username
+        });
+        
+        const snapshot = await firebaseService.database.ref('vehicles').once('value');
+        
+        if (!snapshot.exists()) {
+          console.log('📭 Nenhum dado encontrado no Firebase');
+          showNotification('📭 Nenhum dado encontrado no Firebase', 'warning');
+          syncLog.add('diagnose', 'Nenhum dado encontrado para análise');
+          return null;
+        }
+        
+        const firebaseCount = snapshot.numChildren();
+        const localCount = vehicleData.length;
+        
+        console.log('📊 Análise de contagem:');
+        console.log(`   Firebase: ${firebaseCount} registros`);
+        console.log(`   Local: ${localCount} registros`);
+        console.log(`   Diferença: ${Math.abs(firebaseCount - localCount)}`);
+        
+        syncLog.add('diagnose', 'Análise de contagem concluída', {
+          firebase: firebaseCount,
+          local: localCount,
+          difference: Math.abs(firebaseCount - localCount),
+          user: authService.getCurrentUser()?.username
+        });
+        
+        // Montar relatório
+        let report = `🔍 ANÁLISE DE CONTAGEM - RONDOLOG\n`;
+        report += `══════════════════════════════\n\n`;
+        report += `👤 USUÁRIO: ${authService.getCurrentUser()?.username || 'Não autenticado'}\n\n`;
+        
+        report += `📊 ESTATÍSTICAS GERAIS:\n`;
+        report += `   • Total no Firebase: ${firebaseCount}\n`;
+        report += `   • Total local: ${localCount}\n`;
+        report += `   • Diferença: ${Math.abs(firebaseCount - localCount)}\n`;
+        report += `   • Sincronizações: ${appStats.saves} vezes\n\n`;
+        
+        report += `📈 RECOMENDAÇÕES:\n`;
+        
+        if (firebaseCount > localCount) {
+          report += `   • Firebase tem mais dados. Carregue novamente do Firebase.\n`;
+        } else if (localCount > firebaseCount) {
+          report += `   • Local tem mais dados. Use "Salvar no Firebase".\n`;
+        }
+        
+        report += `\n══════════════════════════════\n`;
+        report += `🕒 ${new Date().toLocaleString('pt-BR')}`;
+        
+        // Mostrar relatório
+        alert(report);
+        
+        showNotification(
+          `🔍 Análise: Firebase ${firebaseCount}, Local ${localCount}`, 
+          firebaseCount !== localCount ? 'warning' : 'success'
+        );
+        
+        return {
+          firebaseCount,
+          localCount
+        };
+        
+      } catch (error) {
+        console.error('❌ Erro na análise de contagem:', error);
+        showNotification('❌ Erro na análise de contagem', 'error');
+        syncLog.add('error', 'Erro na análise de contagem', { 
+          error: error.message,
+          user: authService.getCurrentUser()?.username
+        });
+        return null;
+      }
+    }
+
+    // 🔄 LIMPAR DADOS
+    async function clearAllData() {
+      if (!confirm('🗑️ LIMPAR TODOS OS DADOS - RONDOLOG\n══════════════════════════════\n\n' +
+                   '⚠️ ATENÇÃO: Esta ação é IRREVERSÍVEL!\n\n' +
+                   'Todos os dados locais e do Firebase serão excluídos.\n' +
+                   'Recomendamos fazer backup antes de continuar.\n\n' +
+                   '══════════════════════════════\n' +
+                   'Deseja realmente continuar?')) {
+        return;
+      }
+      
+      try {
+        showNotification('🗑️ Limpando todos os dados...', 'warning');
+        
+        // Fazer backup primeiro
+        exportBackupJSON();
+        
+        // Limpar dados locais
+        vehicleData = [];
+        filteredData = [];
+        
+        // Limpar Firebase
+        await firebaseService.database.ref('vehicles').remove();
+        
+        // Resetar estatísticas
+        appStats = {
+          loads: 0,
+          saves: 0,
+          sheetsSyncs: 0,
+          lastSync: null,
+          errors: 0,
+          firebaseCount: 0,
+          localCount: 0,
+          totalProcessed: 0,
+          lastUpdate: null
+        };
+        
+        syncLog.clear();
+        
+        // Atualizar interface
+        applyFiltersAndRender();
+        updateSettingsStats();
+        updateDetailedStats();
+        updateSystemInfo();
+        saveConfig();
+        
+        showNotification('✅ Todos os dados foram limpos com sucesso', 'success');
+        syncLog.add('system', 'Todos os dados foram limpos', {
+          user: authService.getCurrentUser()?.username
+        });
+        
+      } catch (error) {
+        console.error('❌ Erro ao limpar dados:', error);
+        showNotification('❌ Erro ao limpar dados', 'error');
+        syncLog.add('error', 'Erro ao limpar dados', { 
+          error: error.message,
+          user: authService.getCurrentUser()?.username
+        });
+      }
+    }
+
+    // 🔄 RESETAR FILTROS
+    function resetFilters() {
+      statusFilter.value = 'all';
+      dateFilter.value = '';
+      searchInput.value = '';
+      applyFiltersAndRender();
+      showNotification('🔄 Filtros resetados com sucesso', 'success');
+      closeSettingsMenu();
+    }
+
+    // 📝 LIMPAR LOGS
+    function clearLogs() {
+      syncLog.clear();
+      closeSettingsMenu();
+    }
+
+    // ============================================
+    // 🎯 INICIALIZAÇÃO DO SISTEMA
+    // ============================================
+    
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('🚀 RONDOLOG v15.0 - Sistema de Gestão de Frotas');
+      console.log('🔐 Iniciando sistema de autenticação...');
+      
+      // Primeiro inicializar autenticação
+      initAuthentication();
+    });
 
     // 🎯 FUNÇÕES GLOBAIS
     window.openEditModal = openEditModal;
@@ -3217,14 +4192,21 @@
     window.applyFiltersAndRender = applyFiltersAndRender;
     window.testFirebaseConnection = testFirebaseConnection;
     window.loadInitialData = loadInitialData;
-    window.saveToFirebase = saveToFirebaseWithSheetsSync;
-    window.migrateFromSheets = migrateFromSheets;
+    window.saveToFirebase = saveToFirebase;
     window.diagnoseFirebaseData = diagnoseFirebaseData;
     window.recoverAllData = recoverAllData;
     window.showDetailedStats = showDetailedStats;
     window.checkDataIntegrity = checkDataIntegrity;
     window.analyzeCountDiscrepancy = analyzeCountDiscrepancy;
-    window.syncWithGoogleSheets = syncWithGoogleSheets; // NOVO
+    window.exportBackupJSON = exportBackupJSON;
+    window.toggleDarkMode = toggleDarkMode;
+    window.openAddModal = openAddModal;
+    window.clearAllData = clearAllData;
+    window.resetFilters = resetFilters;
+    window.clearLogs = clearLogs;
+    window.removeDuplicates = removeDuplicates;
+    window.removeDuplicatesKeepLatest = removeDuplicatesKeepLatest;
+    window.findDuplicates = findDuplicates;
   </script>
 </body>
 </html>
