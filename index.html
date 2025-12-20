@@ -3910,23 +3910,44 @@ async processarPlanilha(data, fileName) {
     // ============================================
 
     function ncImportarPlanilha(file = null) {
-      if (!file) {
-        // Criar input de arquivo
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = '.xlsx,.xls,.csv';
-        input.onchange = (e) => {
-          if (e.target.files.length) {
-            ncModule.importarPlanilha(e.target.files[0]);
-          }
-        };
-        input.click();
-      } else {
-        ncModule.importarPlanilha(file);
+  // DEBUG: Verificar permissões do usuário atual
+  const user = authService.getCurrentUser();
+  console.log('🔐 DEBUG - Usuário atual:', user?.username);
+  console.log('🔐 DEBUG - Perfil:', user?.role);
+  console.log('🔐 DEBUG - Permissões do perfil:', authService.userRoles[user?.role]?.permissions);
+  console.log('🔐 DEBUG - Tem permissão nc_import?', authService.hasPermission('nc_import'));
+  console.log('🔐 DEBUG - Tem permissão nc_admin?', authService.hasPermission('nc_admin'));
+  console.log('🔐 DEBUG - É admin?', authService.isAdmin());
+  
+  // Calcular permissão
+  const temPermissao = authService.hasPermission('nc_admin') || 
+                       authService.hasPermission('nc_import') ||
+                       authService.isAdmin();
+  
+  console.log('🔐 DEBUG - Tem permissão total?', temPermissao);
+  
+  if (!temPermissao) {
+    showNotification('⚠️ Sem permissão para importar NCs', 'warning');
+    return;
+  }
+  
+  if (!file) {
+    // Criar input de arquivo
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.xlsx,.xls,.csv';
+    input.onchange = (e) => {
+      if (e.target.files.length) {
+        ncModule.importarPlanilha(e.target.files[0]);
       }
-      
-      closeSettingsMenu();
-    }
+    };
+    input.click();
+  } else {
+    ncModule.importarPlanilha(file);
+  }
+  
+  closeSettingsMenu();
+}
 
     function ncConfigurarAlertas() {
       showNotification('🔔 Configuração de alertas em desenvolvimento', 'info');
