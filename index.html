@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -8,6 +7,8 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+  <!-- Chart.js para gráficos do dashboard -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <!-- 🔥 SCRIPTS DO FIREBASE - VERSÃO 8.10.1 -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -28,6 +29,10 @@
       --yellow-dark: #ff8f00;
       --orange: #ff9800;
       --orange-dark: #f57c00;
+      --blue: #2196f3;
+      --blue-dark: #1976d2;
+      --purple: #9c27b0;
+      --purple-dark: #7b1fa2;
       
       /* Sistema de Cores */
       --bg-primary: #ffffff;
@@ -65,6 +70,10 @@
       --orange: #ed8936;
       --orange-dark: #dd6b20;
       --red-light: #fc8181;
+      --blue: #63b3ed;
+      --blue-dark: #4299e1;
+      --purple: #b794f4;
+      --purple-dark: #9f7aea;
       --gray-light: #2d3748;
       --gray-text: #a0aec0;
       --gray-dark: #1a202c;
@@ -142,8 +151,6 @@
       border-bottom: 2px solid var(--primary-red);
       padding: 0;
       overflow-x: auto;
-      /* INICIALMENTE ESCONDIDO - ATIVAR DEPOIS DOS TESTES */
-      /* display: none; */
     }
 
     .tab-btn {
@@ -244,13 +251,13 @@
     }
 
     .btn-info {
-      background: #17a2b8;
+      background: var(--blue);
       color: white;
     }
 
     .btn-info:hover {
-      background: #138496;
-      box-shadow: 0 4px 12px rgba(23, 162, 184, 0.3);
+      background: var(--blue-dark);
+      box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
     }
 
     .btn-danger {
@@ -325,6 +332,18 @@
 
     .summary-card.total {
       border-left-color: var(--gray-dark);
+    }
+
+    .summary-card.blue {
+      border-left-color: var(--blue);
+    }
+
+    .summary-card.purple {
+      border-left-color: var(--purple);
+    }
+
+    .summary-card.orange {
+      border-left-color: var(--orange);
     }
 
     .card-number {
@@ -1414,6 +1433,201 @@
       cursor: not-allowed;
     }
 
+    /* 📊 ESTILOS PARA DASHBOARD DE ANÁLISE */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: 20px;
+      padding: 20px 30px;
+    }
+
+    .chart-container {
+      background: var(--bg-primary);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      box-shadow: var(--shadow-light);
+      border: 1px solid var(--border-color);
+      transition: var(--transition);
+    }
+
+    .chart-container:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-medium);
+    }
+
+    .chart-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid var(--border-color);
+    }
+
+    .chart-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .chart-actions {
+      display: flex;
+      gap: 5px;
+    }
+
+    .chart-btn {
+      padding: 4px 8px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      font-size: 11px;
+      cursor: pointer;
+      color: var(--text-secondary);
+      transition: var(--transition);
+    }
+
+    .chart-btn:hover {
+      background: var(--primary-red);
+      color: white;
+      border-color: var(--primary-red);
+    }
+
+    .chart-wrapper {
+      position: relative;
+      height: 300px;
+      width: 100%;
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 15px;
+      padding: 20px 30px;
+    }
+
+    .metric-card {
+      background: var(--bg-primary);
+      padding: 15px;
+      border-radius: var(--radius-md);
+      text-align: center;
+      box-shadow: var(--shadow-light);
+      transition: var(--transition);
+      border-top: 4px solid var(--primary-red);
+    }
+
+    .metric-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-medium);
+    }
+
+    .metric-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--primary-red);
+      margin-bottom: 5px;
+    }
+
+    .metric-label {
+      font-size: 11px;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .metric-change {
+      font-size: 10px;
+      margin-top: 5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+
+    .metric-change.positive {
+      color: var(--green);
+    }
+
+    .metric-change.negative {
+      color: var(--primary-red);
+    }
+
+    .dashboard-filters {
+      padding: 15px 30px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .time-filter {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .time-btn {
+      padding: 6px 12px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      cursor: pointer;
+      color: var(--text-secondary);
+      transition: var(--transition);
+    }
+
+    .time-btn.active {
+      background: var(--primary-red);
+      color: white;
+      border-color: var(--primary-red);
+    }
+
+    .time-btn:hover:not(.active) {
+      background: var(--border-color);
+    }
+
+    .top-list {
+      margin-top: 15px;
+    }
+
+    .top-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 12px;
+      background: var(--bg-secondary);
+      border-radius: var(--radius-sm);
+      margin-bottom: 6px;
+      font-size: 12px;
+    }
+
+    .top-name {
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    .top-count {
+      font-weight: 600;
+      color: var(--primary-red);
+    }
+
+    .dashboard-section-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin: 25px 30px 15px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
     /* 📱 RESPONSIVIDADE */
     @media (max-width: 768px) {
       .header-content {
@@ -1503,6 +1717,32 @@
         text-align: center;
         justify-content: center;
       }
+      
+      /* Dashboard responsivo */
+      .dashboard-grid {
+        grid-template-columns: 1fr;
+        padding: 15px 20px;
+        gap: 15px;
+      }
+      
+      .chart-wrapper {
+        height: 250px;
+      }
+      
+      .dashboard-filters {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      
+      .time-filter {
+        flex-wrap: wrap;
+      }
+      
+      .metric-grid {
+        grid-template-columns: repeat(2, 1fr);
+        padding: 15px 20px;
+        gap: 10px;
+      }
     }
   </style>
 </head>
@@ -1517,13 +1757,11 @@
       <form id="loginForm" class="login-form">
         <div class="form-group">
           <label>Usuário</label>
-          <!-- REMOVIDO O VALOR PRÉ-DEFINIDO -->
           <input type="text" class="form-control" id="loginUser" placeholder="Digite seu usuário" required>
         </div>
         
         <div class="form-group">
           <label>Senha</label>
-          <!-- REMOVIDO O VALOR PRÉ-DEFINIDO -->
           <input type="password" class="form-control" id="loginPassword" placeholder="Digite sua senha" required>
         </div>
         
@@ -1765,7 +2003,7 @@
     <div class="settings-section">
       <h5>ℹ️ Informações do Sistema</h5>
       <div style="font-size: 11px; color: var(--text-secondary); line-height: 1.4;">
-        <p><strong>RONDOLOG v15.0</strong> - Sistema de Gestão de Frotas</p>
+        <p><strong>RONDOLOG v15.2</strong> - Sistema de Gestão de Frotas</p>
         <p>100% Integrado com Firebase</p>
         <p>Usuário: <span id="currentUserInfo">Não autenticado</span></p>
         <p>Última atualização: <span id="lastUpdateInfo">Carregando...</span></p>
@@ -1874,6 +2112,9 @@
       </button>
       <button class="tab-btn" onclick="showTab('naoConformidades')">
         <span>🚨</span> Não Conformidades
+      </button>
+      <button class="tab-btn" onclick="showTab('dashboard')">
+        <span>📊</span> Dashboard Análise
       </button>
     </div>
     <!-- ============================================ -->
@@ -2018,6 +2259,11 @@
             <option value="nao_informado">Início Não Informado</option>
             <option value="dados_incorretos">SM Dados Incorretos</option>
             <option value="movimento_indevido">Movimento Indevido</option>
+            <option value="isca_problema">Isca com Problema</option>
+            <option value="interacao_cliente">Interação do Cliente</option>
+            <option value="fim_nao_informado">Fim Não Informado</option>
+            <option value="sm_atrasada">SM Enviada Atrasada</option>
+            <option value="outros">Outros</option>
           </select>
         </div>
         <div class="filter-group">
@@ -2071,6 +2317,197 @@
           <div class="stat-item">
             <span id="ncFilteredCount">0</span> filtradas
           </div>
+        </div>
+      </div>
+    </div>
+    <!-- ============================================ -->
+
+    <!-- ============================================ -->
+    <!-- 📊 ABA 3: DASHBOARD DE ANÁLISE (NOVA) -->
+    <!-- ============================================ -->
+    <div id="tabDashboard" class="tab-content">
+      <!-- 📊 MÉTRICAS PRINCIPAIS -->
+      <div class="metric-grid">
+        <div class="metric-card">
+          <div class="metric-value" id="dashboardTotalNCs">0</div>
+          <div class="metric-label">Total de NCs</div>
+          <div class="metric-change positive" id="dashboardNCsChange">
+            <span>↗</span> <span>0%</span>
+          </div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value" id="dashboardMediaDiaria">0</div>
+          <div class="metric-label">Média Diária</div>
+          <div class="metric-change positive" id="dashboardMediaChange">
+            <span>↗</span> <span>0%</span>
+          </div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value" id="dashboardTopVeiculo">-</div>
+          <div class="metric-label">Veículo com + NCs</div>
+          <div class="metric-change negative" id="dashboardVeiculoChange">
+            <span>⚠️</span> <span>Monitorar</span>
+          </div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value" id="dashboardTopMotorista">-</div>
+          <div class="metric-label">Motorista com + NCs</div>
+          <div class="metric-change negative" id="dashboardMotoristaChange">
+            <span>⚠️</span> <span>Treinamento</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 🔍 FILTROS DASHBOARD -->
+      <div class="dashboard-filters">
+        <div class="filter-group">
+          <div class="filter-label">Período de Análise</div>
+          <div class="time-filter">
+            <button class="time-btn active" onclick="setDashboardPeriod('7d')">7 dias</button>
+            <button class="time-btn" onclick="setDashboardPeriod('30d')">30 dias</button>
+            <button class="time-btn" onclick="setDashboardPeriod('90d')">90 dias</button>
+            <button class="time-btn" onclick="setDashboardPeriod('all')">Todo período</button>
+          </div>
+        </div>
+        <div class="filter-group">
+          <div class="filter-label">Tipo de Gráfico</div>
+          <select class="filter-select" id="dashboardChartType">
+            <option value="bar">Barras</option>
+            <option value="line">Linhas</option>
+            <option value="pie">Pizza</option>
+            <option value="doughnut">Rosca</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 📈 SEÇÃO DE GRÁFICOS -->
+      <div class="dashboard-section-title">
+        <span>📊</span> Análise por Tipo de Não Conformidade
+      </div>
+      
+      <div class="dashboard-grid">
+        <!-- Gráfico 1: Distribuição por Tipo -->
+        <div class="chart-container">
+          <div class="chart-header">
+            <div class="chart-title">📈 Distribuição por Tipo de NC</div>
+            <div class="chart-actions">
+              <button class="chart-btn" onclick="exportChart('chartTipoNC', 'distribuicao_tipo_nc')">📥</button>
+              <button class="chart-btn" onclick="toggleChartType('chartTipoNC')">🔄</button>
+            </div>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="chartTipoNC"></canvas>
+          </div>
+          <div class="top-list" id="topTiposNC">
+            <!-- Top tipos serão carregados aqui -->
+          </div>
+        </div>
+
+        <!-- Gráfico 2: Evolução Temporal -->
+        <div class="chart-container">
+          <div class="chart-header">
+            <div class="chart-title">📅 Evolução Temporal de NCs</div>
+            <div class="chart-actions">
+              <button class="chart-btn" onclick="exportChart('chartEvolucao', 'evolucao_temporal_nc')">📥</button>
+              <button class="chart-btn" onclick="toggleChartType('chartEvolucao')">🔄</button>
+            </div>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="chartEvolucao"></canvas>
+          </div>
+          <div class="top-list" id="topDiasNC">
+            <!-- Top dias serão carregados aqui -->
+          </div>
+        </div>
+
+        <!-- Gráfico 3: Top Veículos -->
+        <div class="chart-container">
+          <div class="chart-header">
+            <div class="chart-title">🚛 Top 10 Veículos com Mais NCs</div>
+            <div class="chart-actions">
+              <button class="chart-btn" onclick="exportChart('chartTopVeiculos', 'top_veiculos_nc')">📥</button>
+              <button class="chart-btn" onclick="toggleChartType('chartTopVeiculos')">🔄</button>
+            </div>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="chartTopVeiculos"></canvas>
+          </div>
+          <div class="top-list" id="topVeiculosList">
+            <!-- Top veículos serão carregados aqui -->
+          </div>
+        </div>
+
+        <!-- Gráfico 4: Top Motoristas -->
+        <div class="chart-container">
+          <div class="chart-header">
+            <div class="chart-title">👨‍✈️ Top 10 Motoristas com Mais NCs</div>
+            <div class="chart-actions">
+              <button class="chart-btn" onclick="exportChart('chartTopMotoristas', 'top_motoristas_nc')">📥</button>
+              <button class="chart-btn" onclick="toggleChartType('chartTopMotoristas')">🔄</button>
+            </div>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="chartTopMotoristas"></canvas>
+          </div>
+          <div class="top-list" id="topMotoristasList">
+            <!-- Top motoristas serão carregados aqui -->
+          </div>
+        </div>
+      </div>
+
+      <!-- 📋 SEÇÃO DE DADOS DETALHADOS -->
+      <div class="dashboard-section-title">
+        <span>📋</span> Dados Detalhados para Análise
+      </div>
+
+      <div class="dashboard-grid">
+        <!-- Card 5: Resumo por Dia da Semana -->
+        <div class="chart-container">
+          <div class="chart-header">
+            <div class="chart-title">📅 NCs por Dia da Semana</div>
+            <div class="chart-actions">
+              <button class="chart-btn" onclick="exportChart('chartDiaSemana', 'ncs_dia_semana')">📥</button>
+            </div>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="chartDiaSemana"></canvas>
+          </div>
+          <div class="top-list" id="topDiasSemana">
+            <!-- Top dias da semana serão carregados aqui -->
+          </div>
+        </div>
+
+        <!-- Card 6: Comparativo Período -->
+        <div class="chart-container">
+          <div class="chart-header">
+            <div class="chart-title">📊 Comparativo Período Anterior</div>
+            <div class="chart-actions">
+              <button class="chart-btn" onclick="exportChart('chartComparativo', 'comparativo_periodo')">📥</button>
+            </div>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="chartComparativo"></canvas>
+          </div>
+          <div class="top-list" id="comparativoInfo">
+            <!-- Informações comparativas serão carregadas aqui -->
+          </div>
+        </div>
+      </div>
+
+      <!-- 🎭 FOOTER DASHBOARD -->
+      <div class="footer">
+        <div class="footer-info">
+          <div>RONDOLOG - DASHBOARD DE ANÁLISE QUALITATIVA</div>
+          <div id="dashboardLastUpdate">Última análise: <span id="dashboardLastUpdateTime">Nunca</span></div>
+          <div>Período analisado: <span id="dashboardPeriodo">Últimos 7 dias</span></div>
+        </div>
+        <div class="stats">
+          <button class="btn btn-info" onclick="exportDashboardPDF()">
+            📋 Exportar Relatório
+          </button>
+          <button class="btn btn-success" onclick="atualizarDashboard()">
+            🔄 Atualizar Dados
+          </button>
         </div>
       </div>
     </div>
@@ -2130,16 +2567,16 @@
   <script>
     // ============================================
     // RONDOLOG - SISTEMA DE GESTÃO DE FROTAS
-    // Versão: 15.1 - COM NÃO CONFORMIDADES
+    // Versão: 15.2 - COM DASHBOARD DE ANÁLISE
     // ============================================
     
-    // 🔐 SISTEMA DE AUTENTICAÇÃO AVANÇADO
+    // 🔐 SISTEMA DE AUTENTICAÇÃO AVANÇADO - CORRIGIDO
     const authService = {
       user: null,
       userRoles: {
         ADMIN: {
           level: 100,
-          permissions: ['create_users', 'edit_all', 'delete_all', 'system_config', 'nc_admin']
+          permissions: ['create_users', 'edit_all', 'delete_all', 'system_config', 'nc_admin', 'nc_import']
         },
         MANAGER: {
           level: 50,
@@ -2224,13 +2661,17 @@
         localStorage.removeItem('rondolog_authenticated');
       },
       
+      // 🔧 FUNÇÃO checkAuth CORRIGIDA
       checkAuth() {
         const storedUser = localStorage.getItem('rondolog_current_user');
-        const isAuthenticated = localStorage.getItem('rondolog_authenticated') === 'true';
-        
-        if (isAuthenticated && storedUser) {
-          this.user = JSON.parse(storedUser);
-          return true;
+        if (storedUser) {
+          try {
+            this.user = JSON.parse(storedUser);
+            return true;
+          } catch (e) {
+            console.error('❌ Erro ao parsear usuário do localStorage:', e);
+            return false;
+          }
         }
         return false;
       },
@@ -2355,7 +2796,7 @@
     let firebaseRealtimeListener = null;
 
     // ============================================
-    // 🚨 MÓDULO NÃO CONFORMIDADES (NOVO)
+    // 🚨 MÓDULO NÃO CONFORMIDADES
     // ============================================
     const ncModule = {
       dados: [],
@@ -2369,7 +2810,6 @@
         tipos: {}
       },
       
-      // 📤 IMPORTAR DO FIREBASE
       async carregarDoFirebase() {
         try {
           showNotification('📥 Carregando não conformidades...', 'info');
@@ -2381,7 +2821,6 @@
           const data = await response.json();
           
           if (data) {
-            // Converter objeto para array
             this.dados = Object.values(data).filter(item => item !== null);
             this.atualizarEstatisticas();
             this.aplicarFiltros();
@@ -2389,6 +2828,11 @@
             
             showNotification(`✅ ${this.dados.length} NCs carregadas`, 'success');
             updateNcStatus(`✅ ${this.dados.length} NCs carregadas`);
+            
+            // Atualizar dashboard se estiver ativo
+            if (document.getElementById('tabDashboard').classList.contains('active')) {
+              atualizarDashboard();
+            }
           } else {
             this.dados = [];
             updateNcStatus('📭 Nenhuma NC encontrada');
@@ -2404,37 +2848,76 @@
         }
       },
       
-      // 📤 IMPORTAR DE PLANILHA
-      async importarPlanilha(arquivo) {
-        if (!authService.hasPermission('nc_import')) {
+      async importarPlanilha(file = null) {
+        const temPermissao = authService.hasPermission('nc_admin') || 
+                           authService.hasPermission('nc_import') ||
+                           authService.isAdmin();
+        
+        if (!temPermissao) {
           showNotification('⚠️ Sem permissão para importar NCs', 'warning');
           return;
         }
         
+        if (!file) {
+          const input = document.createElement('input');
+          input.type = 'file';
+          input.accept = '.xlsx,.xls,.csv';
+          input.onchange = (e) => {
+            if (e.target.files.length) {
+              this.processarArquivoNC(e.target.files[0]);
+            }
+          };
+          input.click();
+        } else {
+          this.processarArquivoNC(file);
+        }
+      },
+      
+      async processarArquivoNC(arquivo) {
         try {
           showNotification(`📁 Processando ${arquivo.name}...`, 'info');
           
-          // Ler arquivo Excel
           const data = await this.lerExcel(arquivo);
           
-          // Processar dados
-          const processados = await this.processarPlanilha(data, arquivo.name);
+          console.log('🔍 ESTRUTURA DA PLANILHA NC:', {
+            nomeArquivo: arquivo.name,
+            totalLinhas: data.length,
+            cabecalhos: data.length > 0 ? Object.keys(data[0]) : [],
+            primeiraLinha: data.length > 0 ? data[0] : null
+          });
           
-          // Salvar no Firebase
-          await this.salvarNoFirebase(processados, arquivo.name);
+          const processados = await this.processarPlanilhaNC(data, arquivo.name);
           
-          // Recarregar dados
-          await this.carregarDoFirebase();
+          if (processados.length === 0) {
+            const erroMsg = `❌ NENHUMA NC VÁLIDA ENCONTRADA!\n\nArquivo: ${arquivo.name}\nLinhas na planilha: ${data.length}\n\nVerifique se a planilha contém as colunas obrigatórias:\n• Veículo\n• Não Conformidade\n• Data Ocorrencia`;
+            console.error(erroMsg);
+            alert(erroMsg);
+            showNotification('⚠️ Nenhuma NC válida encontrada', 'warning');
+            return;
+          }
+          
+          await this.salvarNCFirebase(processados, arquivo.name);
+          
+          this.dados = processados;
+          this.atualizarEstatisticas();
+          this.aplicarFiltros();
+          this.renderizarTabela();
           
           showNotification(`✅ ${processados.length} NCs importadas com sucesso!`, 'success');
+          updateNcStatus(`✅ ${processados.length} NCs carregadas`);
+          
+          // Atualizar dashboard
+          if (document.getElementById('tabDashboard').classList.contains('active')) {
+            atualizarDashboard();
+          }
           
         } catch (error) {
           console.error('❌ Erro na importação:', error);
           showNotification(`❌ Erro: ${error.message}`, 'error');
+          alert(`ERRO NA IMPORTAÇÃO:\n\n${error.message}\n\nVerifique o console (F12) para mais detalhes.`);
         }
       },
       
-      // 📖 LER ARQUIVO EXCEL
       lerExcel(file) {
         return new Promise((resolve, reject) => {
           const reader = new FileReader();
@@ -2446,80 +2929,159 @@
               const jsonData = XLSX.utils.sheet_to_json(sheet);
               resolve(jsonData);
             } catch (error) {
-              reject(error);
+              reject(new Error(`Erro ao ler arquivo Excel: ${error.message}`));
             }
           };
-          reader.onerror = reject;
+          reader.onerror = () => reject(new Error('Erro ao ler o arquivo'));
           reader.readAsArrayBuffer(file);
         });
       },
       
-      // 🔄 PROCESSAR PLANILHA DE NC
-      async processarPlanilha(data, fileName) {
+      async processarPlanilhaNC(data, fileName) {
         const processados = [];
         const hoje = new Date().toISOString().split('T')[0];
+        
+        console.log('📊 Processando planilha NC:', data.length, 'linhas');
         
         for (let i = 0; i < data.length; i++) {
           const row = data[i];
           
           try {
-            // Extrair dados da linha
+            const extrairCampo = (nomesPossiveis, defaultValue = '') => {
+              for (const nome of nomesPossiveis) {
+                if (row[nome] !== undefined && row[nome] !== null && row[nome] !== '') {
+                  return String(row[nome]).trim();
+                }
+              }
+              return defaultValue;
+            };
+            
             const nc = {
               id: `nc_${Date.now()}_${i}`,
-              viagem: row['Viagem'] || row['viagem'] || '',
-              cliente: row['Cliente'] || row['cliente'] || '',
-              embarcador: row['Embarcador'] || row['embarcador'] || '',
-              veiculo: (row['Veículo'] || row['veiculo'] || '').toString().toUpperCase(),
-              cpfCondutor: row['CPF Condutor'] || row['cpf_condutor'] || '',
-              nomeCondutor: row['Nome Condutor'] || row['nome_condutor'] || '',
-              origem: row['Origem'] || row['origem'] || '',
-              destino: row['Destino'] || row['destino'] || '',
-              naoConformidade: row['Não Conformidade'] || row['nao_conformidade'] || '',
-              dataOcorrencia: row['Data Ocorrencia'] || row['data_ocorrencia'] || '',
-              penalidade: row['Penalidade'] || row['penalidade'] || '',
-              infracao: row['Infração'] || row['infracao'] || '',
-              pontos: row['Pontos'] || row['pontos'] || '',
+              viagem: extrairCampo(['Viagem']),
+              cliente: extrairCampo(['Cliente']),
+              embarcador: extrairCampo(['Embarcador']),
+              veiculo: extrairCampo(['Veículo', 'Veiculo']).toUpperCase().trim(),
+              cpfCondutor: extrairCampo(['CPF Condutor']),
+              nomeCondutor: extrairCampo(['Nome Condutor']),
+              origem: extrairCampo(['Origem']),
+              destino: extrairCampo(['Destino']),
+              naoConformidade: extrairCampo(['Não Conformidade']),
+              dataOcorrencia: extrairCampo(['Data Ocorrencia']),
               importadoEm: hoje,
               arquivoOrigem: fileName,
               linhaOrigem: i + 1,
               importadoPor: authService.getCurrentUser()?.username || 'Sistema'
             };
             
-            // Validar dados mínimos
-            if (nc.viagem && nc.veiculo && nc.naoConformidade) {
+            if (i === 0) {
+              console.log('📝 Primeira linha processada:', nc);
+              console.log('📝 Linha original:', row);
+            }
+            
+            if (nc.veiculo && nc.veiculo !== '' && 
+                nc.naoConformidade && nc.naoConformidade !== '') {
+              
+              nc.dataOcorrencia = this.formatarDataOcorrencia(nc.dataOcorrencia);
+              nc.tipoNC = this.classificarTipoNC(nc.naoConformidade);
+              
               processados.push(nc);
+            } else {
+              console.warn(`⚠️ Linha ${i + 1} ignorada - Dados insuficientes:`, {
+                veiculo: nc.veiculo,
+                naoConformidade: nc.naoConformidade
+              });
             }
             
           } catch (error) {
-            console.warn(`Erro na linha ${i + 1}:`, error);
+            console.error(`❌ Erro na linha ${i + 1}:`, error, 'Dados:', row);
           }
         }
         
+        console.log(`✅ Processamento concluído: ${processados.length} NCs válidas de ${data.length} linhas`);
         return processados;
       },
       
-      // 💾 SALVAR NO FIREBASE
-      async salvarNoFirebase(dados, fileName) {
+      formatarDataOcorrencia(dataString) {
+        if (!dataString || dataString.trim() === '') return '';
+        
+        const str = dataString.trim();
+        
+        if (str.includes('/')) {
+          try {
+            const partes = str.split(' ');
+            const dataParte = partes[0];
+            const horaParte = partes[1] || '';
+            
+            if (dataParte.includes('/')) {
+              const [dia, mes, ano] = dataParte.split('/');
+              const horaFormatada = horaParte ? ` ${horaParte}` : '';
+              return `${ano}-${mes.padStart(2, '0')}-${dia.padStart(2, '0')}${horaFormatada}`.trim();
+            }
+          } catch (e) {
+            console.warn('⚠️ Erro ao formatar data:', e);
+          }
+        }
+        
+        return str;
+      },
+      
+      classificarTipoNC(descricao) {
+        if (!descricao) return 'outros';
+        
+        const desc = descricao.toLowerCase();
+        
+        const tipos = [
+          { padrao: ['inicio de viagem sem aguardar', 'sem aguardar a mensagem ok gs'], tipo: 'inicio_sem_ok' },
+          { padrao: ['inicio de viagem não informado', 'inicio não informado'], tipo: 'nao_informado' },
+          { padrao: ['sm com dados incorretos', 'dados incorretos'], tipo: 'dados_incorretos' },
+          { padrao: ['movimento indevido'], tipo: 'movimento_indevido' },
+          { padrao: ['isca com problema', 'isca problema'], tipo: 'isca_problema' },
+          { padrao: ['detectado interação', 'interação do cliente'], tipo: 'interacao_cliente' },
+          { padrao: ['fim de viagem não informado'], tipo: 'fim_nao_informado' },
+          { padrao: ['sm enviada após', 'sm atrasada'], tipo: 'sm_atrasada' },
+          { padrao: ['liberado fora do romaneio', 'fora do romaneio'], tipo: 'fora_romaneio' },
+          { padrao: ['perda de sinal'], tipo: 'perda_sinal' },
+          { padrao: ['chegada não informada'], tipo: 'chegada_nao_info' }
+        ];
+        
+        for (const tipo of tipos) {
+          for (const padrao of tipo.padrao) {
+            if (desc.includes(padrao)) {
+              return tipo.tipo;
+            }
+          }
+        }
+        
+        return 'outros';
+      },
+      
+      async salvarNCFirebase(dados, fileName) {
         try {
+          showNotification('💾 Salvando no Firebase...', 'info');
+          
           const updates = {};
+          const usuario = authService.getCurrentUser()?.username || 'Sistema';
+          const timestamp = new Date().toISOString();
           
           dados.forEach((nc, index) => {
-            const key = `nc_${Date.now()}_${index}`;
+            const key = nc.id || `nc_${Date.now()}_${index}`;
+            
             updates[`nc_dados/registros/${key}`] = {
               ...nc,
               id: key,
-              salvoEm: new Date().toISOString(),
-              salvoPor: authService.getCurrentUser()?.username || 'Sistema'
+              salvoEm: timestamp,
+              salvoPor: usuario,
+              syncStatus: 'synced'
             };
           });
           
-          // Atualizar estatísticas
-          updates['nc_stats/total'] = (this.stats.total || 0) + dados.length;
-          updates['nc_stats/ultima_importacao'] = new Date().toISOString();
-          updates['nc_stats/importacoes_hoje'] = (this.stats.importacoes_hoje || 0) + 1;
+          updates['nc_stats/total'] = dados.length;
+          updates['nc_stats/ultima_importacao'] = timestamp;
+          updates['nc_stats/arquivo_ultima_importacao'] = fileName;
+          updates['nc_stats/importado_por'] = usuario;
           
-          // Enviar para Firebase
-          await fetch(
+          const response = await fetch(
             'https://rondolog-frotas-default-rtdb.firebaseio.com/.json',
             {
               method: 'PATCH',
@@ -2528,17 +3090,24 @@
             }
           );
           
+          if (!response.ok) {
+            throw new Error(`Erro HTTP: ${response.status}`);
+          }
+          
           syncLog.add('nc_import', `${dados.length} NCs importadas`, {
             arquivo: fileName,
-            usuario: authService.getCurrentUser()?.username
+            usuario: usuario,
+            count: dados.length
           });
           
+          return true;
+          
         } catch (error) {
+          console.error('❌ Erro ao salvar no Firebase:', error);
           throw new Error(`Erro ao salvar no Firebase: ${error.message}`);
         }
       },
       
-      // 📊 ATUALIZAR ESTATÍSTICAS
       atualizarEstatisticas() {
         this.stats = {
           total: this.dados.length,
@@ -2551,49 +3120,60 @@
         const hoje = new Date().toISOString().split('T')[0];
         
         this.dados.forEach(nc => {
-          // Contar NCs de hoje
           if (nc.dataOcorrencia && nc.dataOcorrencia.includes(hoje)) {
             this.stats.hoje++;
           }
           
-          // Adicionar veículos únicos
           if (nc.veiculo) this.stats.veiculos.add(nc.veiculo);
           
-          // Adicionar motoristas únicos
           if (nc.nomeCondutor) this.stats.motoristas.add(nc.nomeCondutor);
           
-          // Contar por tipo
-          const tipo = this.classificarTipo(nc.naoConformidade);
+          const tipo = this.classificarTipoNC(nc.naoConformidade);
           this.stats.tipos[tipo] = (this.stats.tipos[tipo] || 0) + 1;
         });
         
-        // Atualizar cards
         document.getElementById('ncTotal').textContent = this.stats.total;
         document.getElementById('ncHoje').textContent = this.stats.hoje;
         document.getElementById('ncVeiculos').textContent = this.stats.veiculos.size;
         document.getElementById('ncMotoristas').textContent = this.stats.motoristas.size;
+        
+        this.atualizarPeriodo();
       },
       
-      // 🏷️ CLASSIFICAR TIPO DE NC
-      classificarTipo(descricao) {
-        const desc = descricao.toLowerCase();
+      atualizarPeriodo() {
+        if (this.dados.length === 0) {
+          document.getElementById('ncPeriodo').textContent = 'Sem dados';
+          return;
+        }
         
-        if (desc.includes('inicio de viagem sem aguardar')) return 'inicio_sem_ok';
-        if (desc.includes('inicio de viagem não informado')) return 'nao_informado';
-        if (desc.includes('sm com dados incorretos')) return 'dados_incorretos';
-        if (desc.includes('movimento indevido')) return 'movimento_indevido';
-        if (desc.includes('isca com problema')) return 'isca_problema';
-        if (desc.includes('detectado interação')) return 'interacao_cliente';
-        if (desc.includes('fim de viagem')) return 'fim_nao_informado';
-        if (desc.includes('sm enviada após')) return 'sm_atrasada';
-        if (desc.includes('liberado fora')) return 'fora_romaneio';
-        if (desc.includes('perda de sinal')) return 'perda_sinal';
-        if (desc.includes('chegada não informada')) return 'chegada_nao_info';
+        const datas = this.dados
+          .map(nc => nc.dataOcorrencia)
+          .filter(data => data)
+          .map(data => {
+            try {
+              return new Date(data.split(' ')[0]);
+            } catch {
+              return null;
+            }
+          })
+          .filter(data => data && !isNaN(data.getTime()));
         
-        return 'outros';
+        if (datas.length === 0) {
+          document.getElementById('ncPeriodo').textContent = 'Datas indisponíveis';
+          return;
+        }
+        
+        const minData = new Date(Math.min(...datas));
+        const maxData = new Date(Math.max(...datas));
+        
+        const formatarDataBR = (data) => {
+          return data.toLocaleDateString('pt-BR');
+        };
+        
+        document.getElementById('ncPeriodo').textContent = 
+          `${formatarDataBR(minData)} à ${formatarDataBR(maxData)}`;
       },
       
-      // 🔍 APLICAR FILTROS
       aplicarFiltros() {
         const tipo = document.getElementById('ncTipoFilter').value;
         const veiculo = document.getElementById('ncVeiculoFilter').value.toLowerCase();
@@ -2604,7 +3184,7 @@
           let match = true;
           
           if (tipo !== 'all') {
-            const ncTipo = this.classificarTipo(nc.naoConformidade);
+            const ncTipo = this.classificarTipoNC(nc.naoConformidade);
             match = match && ncTipo === tipo;
           }
           
@@ -2624,17 +3204,14 @@
           return match;
         });
         
-        // Ordenar se necessário
         if (this.currentSort.column) {
           this.ordenarDados(this.currentSort.column, this.currentSort.direction);
         }
         
-        // Atualizar contadores
         document.getElementById('ncTotalCount').textContent = this.dados.length;
         document.getElementById('ncFilteredCount').textContent = this.filteredData.length;
       },
       
-      // 📊 ORDENAR DADOS
       ordenarDados(coluna, direcao) {
         this.filteredData.sort((a, b) => {
           let aVal = a[coluna] || '';
@@ -2656,7 +3233,6 @@
         });
       },
       
-      // 🎨 RENDERIZAR TABELA
       renderizarTabela() {
         const tbody = document.getElementById('ncTableBody');
         
@@ -2680,8 +3256,12 @@
               <span style="font-size: 11px; color: var(--text-secondary);">
                 ${nc.naoConformidade.substring(0, 60)}${nc.naoConformidade.length > 60 ? '...' : ''}
               </span>
+              <br>
+              <small style="color: var(--primary-red); font-size: 10px;">
+                ${this.obterTipoNC(nc.tipoNC)}
+              </small>
             </td>
-            <td>${formatNcDate(nc.dataOcorrencia)}</td>
+            <td>${this.formatarDataParaExibicao(nc.dataOcorrencia)}</td>
             <td>
               <div class="action-buttons">
                 <button class="btn-edit" onclick="ncVerDetalhes('${nc.id}')" title="Ver detalhes">
@@ -2696,9 +3276,46 @@
             </td>
           </tr>
         `).join('');
+        
+        document.getElementById('ncLastUpdateTime').textContent = 
+          new Date().toLocaleString('pt-BR');
       },
       
-      // 👁️ VER DETALHES DA NC
+      formatarDataParaExibicao(dataString) {
+        if (!dataString) return '-';
+        
+        try {
+          const [data, hora] = dataString.split(' ');
+          const [ano, mes, dia] = data.split('-');
+          
+          if (hora) {
+            return `${dia}/${mes}/${ano} ${hora}`;
+          }
+          return `${dia}/${mes}/${ano}`;
+        } catch {
+          return dataString;
+        }
+      },
+      
+      obterTipoNC(tipo) {
+        const tipos = {
+          'inicio_sem_ok': 'Início sem OK GS',
+          'nao_informado': 'Início Não Informado',
+          'dados_incorretos': 'SM Dados Incorretos',
+          'movimento_indevido': 'Movimento Indevido',
+          'isca_problema': 'Isca com Problema',
+          'interacao_cliente': 'Interação do Cliente',
+          'fim_nao_informado': 'Fim Não Informado',
+          'sm_atrasada': 'SM Enviada Atrasada',
+          'fora_romaneio': 'Fora do Romaneio',
+          'perda_sinal': 'Perda de Sinal',
+          'chegada_nao_info': 'Chegada Não Informada',
+          'outros': 'Outros'
+        };
+        
+        return tipos[tipo] || tipo;
+      },
+      
       verDetalhes(id) {
         const nc = this.dados.find(item => item.id === id);
         if (!nc) return;
@@ -2729,6 +3346,9 @@
           <div style="background: var(--bg-secondary); padding: 15px; border-radius: var(--radius-sm); margin-bottom: 15px;">
             <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 5px;">Não Conformidade</div>
             <div style="font-weight: 600; color: var(--primary-red);">${nc.naoConformidade || '-'}</div>
+            <div style="font-size: 11px; color: var(--gray-text); margin-top: 5px;">
+              Tipo: <strong>${this.obterTipoNC(nc.tipoNC)}</strong>
+            </div>
           </div>
           
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
@@ -2744,7 +3364,7 @@
           
           <div style="margin-bottom: 15px;">
             <div style="font-size: 12px; color: var(--text-secondary);">Data da Ocorrência</div>
-            <div>${formatNcDate(nc.dataOcorrencia)}</div>
+            <div>${this.formatarDataParaExibicao(nc.dataOcorrencia)}</div>
           </div>
           
           <div style="background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 15px;">
@@ -2769,7 +3389,6 @@
         modal.style.display = 'flex';
       },
       
-      // 🗑️ EXCLUIR NC
       async excluir(id) {
         if (!authService.hasPermission('nc_admin')) {
           showNotification('⚠️ Sem permissão para excluir NCs', 'warning');
@@ -2781,13 +3400,11 @@
         }
         
         try {
-          // Remover do Firebase
           await fetch(
             `https://rondolog-frotas-default-rtdb.firebaseio.com/nc_dados/registros/${id}.json`,
             { method: 'DELETE' }
           );
           
-          // Remover localmente
           this.dados = this.dados.filter(item => item.id !== id);
           this.atualizarEstatisticas();
           this.aplicarFiltros();
@@ -2799,32 +3416,556 @@
             usuario: authService.getCurrentUser()?.username
           });
           
+          // Atualizar dashboard
+          if (document.getElementById('tabDashboard').classList.contains('active')) {
+            atualizarDashboard();
+          }
+          
         } catch (error) {
           console.error('❌ Erro ao excluir NC:', error);
           showNotification('❌ Erro ao excluir NC', 'error');
         }
       }
     };
-    
+
     // ============================================
-    // FUNÇÕES AUXILIARES PARA NC
+    // 📊 MÓDULO DASHBOARD DE ANÁLISE (NOVO)
     // ============================================
-    
-    function formatNcDate(dateString) {
-      if (!dateString) return '-';
-      try {
-        // Formato: "17/12/2025 12:41" ou "2025-12-17 12:41:00"
-        if (dateString.includes('/')) {
-          const [datePart, timePart] = dateString.split(' ');
-          const [day, month, year] = datePart.split('/');
-          const time = timePart || '';
-          return `${day}/${month}/${year} ${time}`;
+    const dashboardModule = {
+      periodo: '7d',
+      charts: {},
+      
+      inicializar() {
+        console.log('📊 Inicializando dashboard...');
+        
+        // Inicializar gráficos
+        this.inicializarGraficos();
+        
+        // Configurar eventos
+        document.getElementById('dashboardChartType').addEventListener('change', () => {
+          this.atualizarTodosGraficos();
+        });
+        
+        // Carregar dados iniciais
+        this.atualizarDashboard();
+      },
+      
+      inicializarGraficos() {
+        // Gráfico 1: Distribuição por Tipo
+        const ctxTipoNC = document.getElementById('chartTipoNC').getContext('2d');
+        this.charts.chartTipoNC = new Chart(ctxTipoNC, {
+          type: 'bar',
+          data: {
+            labels: ['Carregando...'],
+            datasets: [{
+              label: 'NCs por Tipo',
+              data: [0],
+              backgroundColor: '#ff0000'
+            }]
+          },
+          options: this.getChartOptions('Distribuição por Tipo de NC')
+        });
+        
+        // Gráfico 2: Evolução Temporal
+        const ctxEvolucao = document.getElementById('chartEvolucao').getContext('2d');
+        this.charts.chartEvolucao = new Chart(ctxEvolucao, {
+          type: 'line',
+          data: {
+            labels: ['Carregando...'],
+            datasets: [{
+              label: 'NCs por Dia',
+              data: [0],
+              borderColor: '#2196f3',
+              backgroundColor: 'rgba(33, 150, 243, 0.1)',
+              fill: true
+            }]
+          },
+          options: this.getChartOptions('Evolução Temporal')
+        });
+        
+        // Gráfico 3: Top Veículos
+        const ctxTopVeiculos = document.getElementById('chartTopVeiculos').getContext('2d');
+        this.charts.chartTopVeiculos = new Chart(ctxTopVeiculos, {
+          type: 'bar',
+          data: {
+            labels: ['Carregando...'],
+            datasets: [{
+              label: 'NCs por Veículo',
+              data: [0],
+              backgroundColor: '#ff9800'
+            }]
+          },
+          options: this.getChartOptions('Top Veículos')
+        });
+        
+        // Gráfico 4: Top Motoristas
+        const ctxTopMotoristas = document.getElementById('chartTopMotoristas').getContext('2d');
+        this.charts.chartTopMotoristas = new Chart(ctxTopMotoristas, {
+          type: 'bar',
+          data: {
+            labels: ['Carregando...'],
+            datasets: [{
+              label: 'NCs por Motorista',
+              data: [0],
+              backgroundColor: '#9c27b0'
+            }]
+          },
+          options: this.getChartOptions('Top Motoristas')
+        });
+        
+        // Gráfico 5: Dia da Semana
+        const ctxDiaSemana = document.getElementById('chartDiaSemana').getContext('2d');
+        this.charts.chartDiaSemana = new Chart(ctxDiaSemana, {
+          type: 'pie',
+          data: {
+            labels: ['Carregando...'],
+            datasets: [{
+              label: 'NCs por Dia da Semana',
+              data: [0],
+              backgroundColor: [
+                '#ff0000', '#ff9800', '#2196f3', '#4caf50',
+                '#9c27b0', '#00bcd4', '#ffc107'
+              ]
+            }]
+          },
+          options: this.getChartOptions('NCs por Dia da Semana')
+        });
+        
+        // Gráfico 6: Comparativo
+        const ctxComparativo = document.getElementById('chartComparativo').getContext('2d');
+        this.charts.chartComparativo = new Chart(ctxComparativo, {
+          type: 'bar',
+          data: {
+            labels: ['Período Atual', 'Período Anterior'],
+            datasets: [{
+              label: 'Total de NCs',
+              data: [0, 0],
+              backgroundColor: ['#ff0000', '#ff9800']
+            }]
+          },
+          options: this.getChartOptions('Comparativo Períodos')
+        });
+      },
+      
+      getChartOptions(title) {
+        return {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'top',
+            },
+            title: {
+              display: false,
+              text: title
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                stepSize: 1
+              }
+            }
+          }
+        };
+      },
+      
+      atualizarDashboard() {
+        if (ncModule.dados.length === 0) {
+          this.mostrarMensagemSemDados();
+          return;
         }
-        return dateString;
-      } catch {
-        return dateString;
+        
+        console.log('📊 Atualizando dashboard com', ncModule.dados.length, 'NCs');
+        
+        // Atualizar métricas principais
+        this.atualizarMetricas();
+        
+        // Atualizar gráficos
+        this.atualizarGraficoDistribuicaoTipo();
+        this.atualizarGraficoEvolucaoTemporal();
+        this.atualizarGraficoTopVeiculos();
+        this.atualizarGraficoTopMotoristas();
+        this.atualizarGraficoDiaSemana();
+        this.atualizarGraficoComparativo();
+        
+        // Atualizar lista top
+        this.atualizarListasTop();
+        
+        // Atualizar timestamp
+        document.getElementById('dashboardLastUpdateTime').textContent = 
+          new Date().toLocaleString('pt-BR');
+      },
+      
+      mostrarMensagemSemDados() {
+        Object.values(this.charts).forEach(chart => {
+          chart.data.labels = ['Sem dados'];
+          chart.data.datasets[0].data = [0];
+          chart.update();
+        });
+        
+        document.getElementById('dashboardTotalNCs').textContent = '0';
+        document.getElementById('dashboardMediaDiaria').textContent = '0';
+        document.getElementById('dashboardTopVeiculo').textContent = '-';
+        document.getElementById('dashboardTopMotorista').textContent = '-';
+        
+        const containers = document.querySelectorAll('.top-list');
+        containers.forEach(container => {
+          container.innerHTML = '<div class="top-item"><span class="top-name">Sem dados disponíveis</span></div>';
+        });
+      },
+      
+      atualizarMetricas() {
+        const dados = this.filtrarPorPeriodo(ncModule.dados);
+        const total = dados.length;
+        
+        // Calcular média diária
+        const dias = this.getDiasNoPeriodo();
+        const mediaDiaria = dias > 0 ? (total / dias).toFixed(1) : '0';
+        
+        // Encontrar veículo com mais NCs
+        const veiculoCounts = {};
+        const motoristaCounts = {};
+        
+        dados.forEach(nc => {
+          if (nc.veiculo) {
+            veiculoCounts[nc.veiculo] = (veiculoCounts[nc.veiculo] || 0) + 1;
+          }
+          if (nc.nomeCondutor) {
+            motoristaCounts[nc.nomeCondutor] = (motoristaCounts[nc.nomeCondutor] || 0) + 1;
+          }
+        });
+        
+        const topVeiculo = Object.entries(veiculoCounts).sort((a, b) => b[1] - a[1])[0];
+        const topMotorista = Object.entries(motoristaCounts).sort((a, b) => b[1] - a[1])[0];
+        
+        // Atualizar elementos DOM
+        document.getElementById('dashboardTotalNCs').textContent = total;
+        document.getElementById('dashboardMediaDiaria').textContent = mediaDiaria;
+        document.getElementById('dashboardTopVeiculo').textContent = topVeiculo ? `${topVeiculo[0]} (${topVeiculo[1]})` : '-';
+        document.getElementById('dashboardTopMotorista').textContent = topMotorista ? `${topMotorista[0].substring(0, 15)}... (${topMotorista[1]})` : '-';
+        
+        // Atualizar período exibido
+        const periodoText = this.getPeriodoTexto();
+        document.getElementById('dashboardPeriodo').textContent = periodoText;
+      },
+      
+      filtrarPorPeriodo(dados) {
+        const agora = new Date();
+        let dataLimite = new Date();
+        
+        switch(this.periodo) {
+          case '7d':
+            dataLimite.setDate(agora.getDate() - 7);
+            break;
+          case '30d':
+            dataLimite.setDate(agora.getDate() - 30);
+            break;
+          case '90d':
+            dataLimite.setDate(agora.getDate() - 90);
+            break;
+          case 'all':
+            return dados; // Retorna todos os dados
+        }
+        
+        return dados.filter(nc => {
+          if (!nc.dataOcorrencia) return false;
+          try {
+            const dataNC = new Date(nc.dataOcorrencia.split(' ')[0]);
+            return dataNC >= dataLimite;
+          } catch {
+            return false;
+          }
+        });
+      },
+      
+      getDiasNoPeriodo() {
+        switch(this.periodo) {
+          case '7d': return 7;
+          case '30d': return 30;
+          case '90d': return 90;
+          case 'all': 
+            // Calcular diferença entre primeira e última data
+            if (ncModule.dados.length === 0) return 1;
+            const datas = ncModule.dados
+              .map(nc => nc.dataOcorrencia)
+              .filter(d => d)
+              .map(d => new Date(d.split(' ')[0]))
+              .filter(d => !isNaN(d.getTime()));
+            
+            if (datas.length === 0) return 1;
+            
+            const minData = new Date(Math.min(...datas));
+            const maxData = new Date(Math.max(...datas));
+            const diffTime = Math.abs(maxData - minData);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            return Math.max(diffDays, 1);
+        }
+      },
+      
+      getPeriodoTexto() {
+        switch(this.periodo) {
+          case '7d': return 'Últimos 7 dias';
+          case '30d': return 'Últimos 30 dias';
+          case '90d': return 'Últimos 90 dias';
+          case 'all': return 'Todo período disponível';
+        }
+      },
+      
+      atualizarGraficoDistribuicaoTipo() {
+        const dados = this.filtrarPorPeriodo(ncModule.dados);
+        
+        // Agrupar por tipo
+        const tiposCount = {};
+        dados.forEach(nc => {
+          const tipo = nc.tipoNC || 'outros';
+          tiposCount[tipo] = (tiposCount[tipo] || 0) + 1;
+        });
+        
+        // Ordenar por quantidade
+        const tiposOrdenados = Object.entries(tiposCount)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 10); // Top 10
+        
+        const labels = tiposOrdenados.map(([tipo, _]) => ncModule.obterTipoNC(tipo));
+        const data = tiposOrdenados.map(([_, count]) => count);
+        
+        // Cores dinâmicas
+        const colors = this.generateColors(labels.length);
+        
+        const chart = this.charts.chartTipoNC;
+        chart.data.labels = labels;
+        chart.data.datasets[0].data = data;
+        chart.data.datasets[0].backgroundColor = colors;
+        chart.update();
+      },
+      
+      atualizarGraficoEvolucaoTemporal() {
+        const dados = this.filtrarPorPeriodo(ncModule.dados);
+        
+        // Agrupar por dia
+        const diasMap = new Map();
+        dados.forEach(nc => {
+          if (!nc.dataOcorrencia) return;
+          
+          try {
+            const dataStr = nc.dataOcorrencia.split(' ')[0]; // Pega apenas a data
+            const date = new Date(dataStr);
+            const key = date.toISOString().split('T')[0];
+            
+            diasMap.set(key, (diasMap.get(key) || 0) + 1);
+          } catch {
+            // Ignora datas inválidas
+          }
+        });
+        
+        // Ordenar por data
+        const diasOrdenados = Array.from(diasMap.entries())
+          .sort((a, b) => a[0].localeCompare(b[0]))
+          .slice(-30); // Últimos 30 dias
+        
+        const labels = diasOrdenados.map(([data, _]) => {
+          const date = new Date(data);
+          return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+        });
+        const data = diasOrdenados.map(([_, count]) => count);
+        
+        const chart = this.charts.chartEvolucao;
+        chart.data.labels = labels;
+        chart.data.datasets[0].data = data;
+        chart.update();
+      },
+      
+      atualizarGraficoTopVeiculos() {
+        const dados = this.filtrarPorPeriodo(ncModule.dados);
+        
+        // Contar por veículo
+        const veiculoCounts = {};
+        dados.forEach(nc => {
+          if (nc.veiculo) {
+            veiculoCounts[nc.veiculo] = (veiculoCounts[nc.veiculo] || 0) + 1;
+          }
+        });
+        
+        // Top 10 veículos
+        const topVeiculos = Object.entries(veiculoCounts)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 10);
+        
+        const labels = topVeiculos.map(([veiculo, _]) => veiculo);
+        const data = topVeiculos.map(([_, count]) => count);
+        
+        const chart = this.charts.chartTopVeiculos;
+        chart.data.labels = labels;
+        chart.data.datasets[0].data = data;
+        chart.update();
+      },
+      
+      atualizarGraficoTopMotoristas() {
+        const dados = this.filtrarPorPeriodo(ncModule.dados);
+        
+        // Contar por motorista
+        const motoristaCounts = {};
+        dados.forEach(nc => {
+          if (nc.nomeCondutor) {
+            motoristaCounts[nc.nomeCondutor] = (motoristaCounts[nc.nomeCondutor] || 0) + 1;
+          }
+        });
+        
+        // Top 10 motoristas
+        const topMotoristas = Object.entries(motoristaCounts)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 10);
+        
+        const labels = topMotoristas.map(([motorista, _]) => 
+          motorista.length > 15 ? motorista.substring(0, 15) + '...' : motorista
+        );
+        const data = topMotoristas.map(([_, count]) => count);
+        
+        const chart = this.charts.chartTopMotoristas;
+        chart.data.labels = labels;
+        chart.data.datasets[0].data = data;
+        chart.update();
+      },
+      
+      atualizarGraficoDiaSemana() {
+        const dados = this.filtrarPorPeriodo(ncModule.dados);
+        
+        // Contar por dia da semana
+        const diasSemana = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+        const counts = [0, 0, 0, 0, 0, 0, 0];
+        
+        dados.forEach(nc => {
+          if (!nc.dataOcorrencia) return;
+          
+          try {
+            const date = new Date(nc.dataOcorrencia.split(' ')[0]);
+            const diaSemana = date.getDay(); // 0 = Domingo, 1 = Segunda, etc.
+            counts[diaSemana]++;
+          } catch {
+            // Ignora datas inválidas
+          }
+        });
+        
+        const chart = this.charts.chartDiaSemana;
+        chart.data.labels = diasSemana;
+        chart.data.datasets[0].data = counts;
+        chart.update();
+      },
+      
+      atualizarGraficoComparativo() {
+        const dadosAtuais = this.filtrarPorPeriodo(ncModule.dados);
+        const totalAtual = dadosAtuais.length;
+        
+        // Calcular período anterior
+        let totalAnterior = 0;
+        if (this.periodo !== 'all') {
+          const dias = this.periodo === '7d' ? 7 : this.periodo === '30d' ? 30 : 90;
+          const dataInicioAnterior = new Date();
+          dataInicioAnterior.setDate(dataInicioAnterior.getDate() - (dias * 2));
+          const dataFimAnterior = new Date();
+          dataFimAnterior.setDate(dataFimAnterior.getDate() - dias);
+          
+          totalAnterior = ncModule.dados.filter(nc => {
+            if (!nc.dataOcorrencia) return false;
+            try {
+              const dataNC = new Date(nc.dataOcorrencia.split(' ')[0]);
+              return dataNC >= dataInicioAnterior && dataNC < dataFimAnterior;
+            } catch {
+              return false;
+            }
+          }).length;
+        }
+        
+        const chart = this.charts.chartComparativo;
+        chart.data.datasets[0].data = [totalAtual, totalAnterior];
+        chart.update();
+      },
+      
+      atualizarListasTop() {
+        const dados = this.filtrarPorPeriodo(ncModule.dados);
+        
+        // Top Tipos
+        const tiposCount = {};
+        dados.forEach(nc => {
+          const tipo = nc.tipoNC || 'outros';
+          tiposCount[tipo] = (tiposCount[tipo] || 0) + 1;
+        });
+        
+        const topTipos = Object.entries(tiposCount)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 5);
+        
+        document.getElementById('topTiposNC').innerHTML = topTipos.map(([tipo, count]) => `
+          <div class="top-item">
+            <span class="top-name">${ncModule.obterTipoNC(tipo)}</span>
+            <span class="top-count">${count}</span>
+          </div>
+        `).join('');
+        
+        // Top Veículos
+        const veiculoCounts = {};
+        dados.forEach(nc => {
+          if (nc.veiculo) {
+            veiculoCounts[nc.veiculo] = (veiculoCounts[nc.veiculo] || 0) + 1;
+          }
+        });
+        
+        const topVeiculos = Object.entries(veiculoCounts)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 5);
+        
+        document.getElementById('topVeiculosList').innerHTML = topVeiculos.map(([veiculo, count]) => `
+          <div class="top-item">
+            <span class="top-name">${veiculo}</span>
+            <span class="top-count">${count}</span>
+          </div>
+        `).join('');
+        
+        // Top Motoristas
+        const motoristaCounts = {};
+        dados.forEach(nc => {
+          if (nc.nomeCondutor) {
+            motoristaCounts[nc.nomeCondutor] = (motoristaCounts[nc.nomeCondutor] || 0) + 1;
+          }
+        });
+        
+        const topMotoristas = Object.entries(motoristaCounts)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 5);
+        
+        document.getElementById('topMotoristasList').innerHTML = topMotoristas.map(([motorista, count]) => `
+          <div class="top-item">
+            <span class="top-name">${motorista.length > 20 ? motorista.substring(0, 20) + '...' : motorista}</span>
+            <span class="top-count">${count}</span>
+          </div>
+        `).join('');
+      },
+      
+      atualizarTodosGraficos() {
+        const tipo = document.getElementById('dashboardChartType').value;
+        
+        // Atualizar tipo de gráfico para todos
+        Object.values(this.charts).forEach(chart => {
+          chart.config.type = tipo;
+          chart.update();
+        });
+      },
+      
+      generateColors(count) {
+        const colors = [];
+        for (let i = 0; i < count; i++) {
+          const hue = (i * 360) / count;
+          colors.push(`hsl(${hue}, 70%, 60%)`);
+        }
+        return colors;
       }
-    }
+    };
+
+    // ============================================
+    // FUNÇÕES AUXILIARES
+    // ============================================
     
     function updateNcStatus(message) {
       const statusEl = document.getElementById('ncStatus');
@@ -2832,9 +3973,9 @@
         statusEl.innerHTML = `📝 ${message}`;
       }
     }
-    
+
     // ============================================
-    // FUNÇÕES GLOBAIS DO SISTEMA (EXISTENTES + NOVAS)
+    // FUNÇÕES GLOBAIS DO SISTEMA
     // ============================================
     
     // 📊 ESTATÍSTICAS
@@ -2896,7 +4037,7 @@
     const btnDarkMode = document.getElementById('btnDarkMode');
     
     // ============================================
-    // 🔥 FIREBASE SERVICE (EXISTENTE)
+    // 🔥 FIREBASE SERVICE
     // ============================================
     class FirebaseService {
       constructor() {
@@ -3210,13 +4351,23 @@
     }
 
     // ============================================
-    // 🔐 SISTEMA DE AUTENTICAÇÃO
+    // 🔐 SISTEMA DE AUTENTICAÇÃO - CORRIGIDO
     // ============================================
 
     function initAuthentication() {
+      console.log('🔐 Inicializando autenticação...');
+      
+      // Verificar se já está autenticado
       if (authService.checkAuth()) {
+        console.log('✅ Usuário já autenticado:', authService.getCurrentUser().username);
         hideLoginShowApp();
+        return;
       }
+      
+      // Se não autenticado, mostrar modal de login
+      loginModal.style.display = 'flex';
+      mainContainer.style.display = 'none';
+      settingsIcon.style.display = 'none';
       
       loginForm.addEventListener('submit', handleLoginSubmit);
       btnLogout.addEventListener('click', handleLogout);
@@ -3239,11 +4390,15 @@
     }
 
     function hideLoginShowApp() {
+      console.log('🎯 Mostrando aplicação para usuário autenticado');
+      
       loginModal.style.display = 'none';
       mainContainer.style.display = 'block';
       settingsIcon.style.display = 'flex';
       
       const user = authService.getCurrentUser();
+      console.log('👤 Usuário logado:', user.username);
+      
       loggedUser.textContent = user.username;
       currentUserInfo.textContent = user.username;
       
@@ -3265,7 +4420,7 @@
     }
 
     // ============================================
-    // 👥 GERENCIAMENTO DE USUÁRIOS (EXISTENTE)
+    // 👥 GERENCIAMENTO DE USUÁRIOS
     // ============================================
 
     function openUserManager() {
@@ -3518,7 +4673,7 @@
         const file = files[0];
         
         // Verificar se é planilha de NC
-        if (file.name.includes('NaoConformidade') || file.name.includes('Não Conformidade')) {
+        if (file.name.includes('NaoConformidade') || file.name.includes('Não Conformidade') || file.name.includes('nc')) {
           // Processar como NC
           ncImportarPlanilha(file);
         } else {
@@ -3756,7 +4911,7 @@
     function exportBackupJSON() {
       const backupData = {
         timestamp: new Date().toISOString(),
-        version: 'RONDOLOG v15.1',
+        version: 'RONDOLOG v15.2',
         user: authService.getCurrentUser()?.username || 'Não autenticado',
         vehicleCount: vehicleData.length,
         vehicles: vehicleData,
@@ -3814,12 +4969,20 @@
     }
 
     // ============================================
-    // 🚨 FUNÇÕES DE NÃO CONFORMIDADES (NOVAS)
+    // 🚨 FUNÇÕES DE NÃO CONFORMIDADES
     // ============================================
 
     function ncImportarPlanilha(file = null) {
+      const temPermissao = authService.hasPermission('nc_admin') || 
+                         authService.hasPermission('nc_import') ||
+                         authService.isAdmin();
+      
+      if (!temPermissao) {
+        showNotification('⚠️ Sem permissão para importar NCs', 'warning');
+        return;
+      }
+      
       if (!file) {
-        // Criar input de arquivo
         const input = document.createElement('input');
         input.type = 'file';
         input.accept = '.xlsx,.xls,.csv';
@@ -3851,8 +5014,14 @@
         return;
       }
       
-      // Implementar limpeza do Firebase
       showNotification('🔄 Limpando histórico...', 'info');
+      
+      ncModule.dados = [];
+      ncModule.atualizarEstatisticas();
+      ncModule.aplicarFiltros();
+      ncModule.renderizarTabela();
+      
+      showNotification('✅ Histórico de NCs limpo localmente', 'success');
       closeSettingsMenu();
     }
 
@@ -3868,7 +5037,7 @@
 • Motoristas envolvidos: ${stats.motoristas.size}
 
 📈 DISTRIBUIÇÃO POR TIPO:
-${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${tipo}: ${count}`).join('\n')}
+${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${ncModule.obterTipoNC(tipo)}: ${count}`).join('\n')}
       `;
       
       alert(mensagem);
@@ -3897,12 +5066,118 @@ ${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${tipo}: ${count}`).
       doc.setFontSize(10);
       doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, 105, 25, { align: 'center' });
       
-      // Implementar exportação dos detalhes atuais
       showNotification('📋 Exportação de detalhes em desenvolvimento', 'info');
     }
 
     // ============================================
-    // 🎪 CONTROLE DE ABAS (NOVO)
+    // 📊 FUNÇÕES DO DASHBOARD (NOVAS)
+    // ============================================
+
+    function atualizarDashboard() {
+      console.log('🔄 Atualizando dashboard...');
+      
+      if (ncModule.dados.length === 0) {
+        showNotification('📭 Carregue dados de NCs primeiro', 'warning');
+        return;
+      }
+      
+      dashboardModule.atualizarDashboard();
+      showNotification('✅ Dashboard atualizado com sucesso', 'success');
+    }
+
+    function setDashboardPeriod(periodo) {
+      // Remover active de todos os botões
+      document.querySelectorAll('.time-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      
+      // Ativar botão clicado
+      event.target.classList.add('active');
+      
+      // Definir período
+      dashboardModule.periodo = periodo;
+      
+      // Atualizar dashboard
+      dashboardModule.atualizarDashboard();
+    }
+
+    function exportChart(chartId, filename) {
+      const chart = dashboardModule.charts[chartId];
+      if (!chart) return;
+      
+      const link = document.createElement('a');
+      link.download = `${filename}_${new Date().toISOString().split('T')[0]}.png`;
+      link.href = chart.toBase64Image();
+      link.click();
+      
+      showNotification('📥 Gráfico exportado com sucesso', 'success');
+    }
+
+    function toggleChartType(chartId) {
+      const chart = dashboardModule.charts[chartId];
+      if (!chart) return;
+      
+      const types = ['bar', 'line', 'pie', 'doughnut'];
+      const currentIndex = types.indexOf(chart.config.type);
+      const nextIndex = (currentIndex + 1) % types.length;
+      
+      chart.config.type = types[nextIndex];
+      chart.update();
+      
+      showNotification(`🔄 Gráfico alterado para ${types[nextIndex]}`, 'info');
+    }
+
+    function exportDashboardPDF() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      
+      doc.setFontSize(20);
+      doc.text('RONDOLOG - RELATÓRIO DE ANÁLISE DE NCs', 105, 15, { align: 'center' });
+      
+      doc.setFontSize(10);
+      doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, 105, 22, { align: 'center' });
+      doc.text(`Usuário: ${authService.getCurrentUser()?.username || 'Não autenticado'}`, 105, 28, { align: 'center' });
+      doc.text(`Período: ${dashboardModule.getPeriodoTexto()}`, 105, 34, { align: 'center' });
+      
+      // Adicionar métricas
+      doc.setFontSize(14);
+      doc.text('📊 MÉTRICAS PRINCIPAIS', 20, 45);
+      
+      const metrics = [
+        [`Total de NCs:`, document.getElementById('dashboardTotalNCs').textContent],
+        [`Média Diária:`, document.getElementById('dashboardMediaDiaria').textContent],
+        [`Veículo com + NCs:`, document.getElementById('dashboardTopVeiculo').textContent],
+        [`Motorista com + NCs:`, document.getElementById('dashboardTopMotorista').textContent]
+      ];
+      
+      let yPos = 55;
+      metrics.forEach(([label, value]) => {
+        doc.text(`${label} ${value}`, 20, yPos);
+        yPos += 8;
+      });
+      
+      // Adicionar resumo
+      doc.setFontSize(14);
+      doc.text('📈 RESUMO ESTATÍSTICO', 20, yPos + 10);
+      yPos += 20;
+      
+      doc.setFontSize(10);
+      doc.text(`• Período analisado: ${dashboardModule.getPeriodoTexto()}`, 20, yPos);
+      yPos += 7;
+      doc.text(`• Última atualização: ${new Date().toLocaleString('pt-BR')}`, 20, yPos);
+      yPos += 7;
+      doc.text(`• Total de registros analisados: ${ncModule.dados.length}`, 20, yPos);
+      
+      doc.save(`rondolog_dashboard_${new Date().toISOString().split('T')[0]}.pdf`);
+      
+      showNotification('📋 Relatório do dashboard exportado com sucesso', 'success');
+      syncLog.add('export', 'Relatório do dashboard exportado em PDF', {
+        user: authService.getCurrentUser()?.username
+      });
+    }
+
+    // ============================================
+    // 🎪 CONTROLE DE ABAS
     // ============================================
 
     function showTab(tabName) {
@@ -3925,15 +5200,20 @@ ${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${tipo}: ${count}`).
       
       // Se for a aba de não conformidades, carregar dados
       if (tabName === 'naoConformidades') {
-        // Configurar ordenação da tabela NC
         setupNcTableSorting();
-        
-        // Configurar filtros NC
         setupNcFilters();
         
-        // Carregar dados se ainda não carregou
         if (ncModule.dados.length === 0) {
           ncModule.carregarDoFirebase();
+        }
+      }
+      
+      // Se for a aba de dashboard, inicializar
+      if (tabName === 'dashboard') {
+        if (ncModule.dados.length === 0) {
+          showNotification('📭 Carregue dados de NCs primeiro para ver o dashboard', 'warning');
+        } else {
+          dashboardModule.atualizarDashboard();
         }
       }
     }
@@ -3991,9 +5271,9 @@ ${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${tipo}: ${count}`).
     // ============================================
 
     function initializeApp() {
-      console.log('🚀 RONDOLOG v15.1 - Inicializando aplicação...');
+      console.log('🚀 RONDOLOG v15.2 - Inicializando aplicação...');
       
-      syncLog.add('system', 'Sistema RONDOLOG v15.1 inicializando...', {
+      syncLog.add('system', 'Sistema RONDOLOG v15.2 inicializando...', {
         user: authService.getCurrentUser()?.username
       });
       
@@ -4004,8 +5284,11 @@ ${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${tipo}: ${count}`).
       updateDetailedStats();
       initSettings();
       
-      // Mostrar menu de abas (remover display: none)
+      // Mostrar menu de abas
       document.getElementById('tabMenu').style.display = 'flex';
+      
+      // Inicializar dashboard
+      dashboardModule.inicializar();
       
       // Conectar ao Firebase
       connectToFirebase();
@@ -4744,7 +6027,7 @@ ${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${tipo}: ${count}`).
     // ============================================
     
     document.addEventListener('DOMContentLoaded', function() {
-      console.log('🚀 RONDOLOG v15.1 - Sistema de Gestão de Frotas');
+      console.log('🚀 RONDOLOG v15.2 - Sistema de Gestão de Frotas');
       console.log('🔐 Iniciando sistema de autenticação...');
       
       initAuthentication();
@@ -4790,7 +6073,7 @@ ${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${tipo}: ${count}`).
     window.viewAuditLogs = viewAuditLogs;
     window.systemDiagnostics = systemDiagnostics;
     
-    // Funções de Não Conformidades (NOVAS)
+    // Funções de Não Conformidades
     window.ncImportarPlanilha = ncImportarPlanilha;
     window.ncConfigurarAlertas = ncConfigurarAlertas;
     window.ncLimparHistorico = ncLimparHistorico;
@@ -4800,8 +6083,13 @@ ${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${tipo}: ${count}`).
     window.closeNcViewModal = closeNcViewModal;
     window.ncExportarPDF = ncExportarPDF;
     
-    // Função de controle de abas
+    // Funções do Dashboard
     window.showTab = showTab;
+    window.atualizarDashboard = atualizarDashboard;
+    window.setDashboardPeriod = setDashboardPeriod;
+    window.exportChart = exportChart;
+    window.toggleChartType = toggleChartType;
+    window.exportDashboardPDF = exportDashboardPDF;
   </script>
 </body>
 </html>
