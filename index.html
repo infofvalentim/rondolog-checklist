@@ -2403,35 +2403,62 @@
         }
       },
       
-      // 📤 IMPORTAR DE PLANILHA
-      async importarPlanilha(arquivo) {
-        if (!authService.hasPermission('nc_import')) {
-          showNotification('⚠️ Sem permissão para importar NCs', 'warning');
-          return;
-        }
-        
-        try {
-          showNotification(`📁 Processando ${arquivo.name}...`, 'info');
-          
-          // Ler arquivo Excel
-          const data = await this.lerExcel(arquivo);
-          
-          // Processar dados
-          const processados = await this.processarPlanilha(data, arquivo.name);
-          
-          // Salvar no Firebase
-          await this.salvarNoFirebase(processados, arquivo.name);
-          
-          // Recarregar dados
-          await this.carregarDoFirebase();
-          
-          showNotification(`✅ ${processados.length} NCs importadas com sucesso!`, 'success');
-          
-        } catch (error) {
-          console.error('❌ Erro na importação:', error);
-          showNotification(`❌ Erro: ${error.message}`, 'error');
-        }
-      },
+    // 📤 IMPORTAR DE PLANILHA - COM DEBUG
+async importarPlanilha(arquivo) {
+  if (!authService.hasPermission('nc_import')) {
+    showNotification('⚠️ Sem permissão para importar NCs', 'warning');
+    return;
+  }
+  
+  try {
+    showNotification(`📁 Processando ${arquivo.name}...`, 'info');
+    
+    // 1. Primeiro, debug da estrutura
+    const data = await this.lerExcel(arquivo);
+    
+    // DEBUG: Mostrar estrutura CRUA
+    console.log('🔍 🔍 🔍 ESTRUTURA DA PLANILHA NC:');
+    console.log('📄 Nome do arquivo:', arquivo.name);
+    console.log('📊 Total de linhas:', data.length);
+    
+    if (data.length > 0) {
+      console.log('📝 Cabeçalhos encontrados:', Object.keys(data[0]));
+      console.log('📝 Dados da primeira linha (CRUA):', data[0]);
+      // Mostrar todos os campos disponíveis
+      console.log('🔑 TODAS AS CHAVES DISPONÍVEIS:', Object.keys(data[0]));
+    }
+    
+    // 2. Processar dados
+    const processados = await this.processarPlanilha(data, arquivo.name);
+    
+    if (processados.length === 0) {
+      showNotification('⚠️ Nenhuma NC válida encontrada na planilha', 'warning');
+      
+      // Mostrar ajuda no console
+      console.error('❌ NENHUMA NC VÁLIDA ENCONTRADA!');
+      console.error('Verifique se a planilha tem as colunas corretas.');
+      if (data.length > 0) {
+        console.error('Cabeçalhos encontrados:', Object.keys(data[0]));
+      }
+      
+      alert(`❌ NENHUMA NC VÁLIDA ENCONTRADA!\n\nVerifique se a planilha contém as colunas:\n• Veículo\n• Não Conformidade\n\nArquivo: ${arquivo.name}\nLinhas na planilha: ${data.length}`);
+      return;
+    }
+    
+    // 3. Salvar no Firebase
+    await this.salvarNoFirebase(processados, arquivo.name);
+    
+    // 4. Recarregar dados
+    await this.carregarDoFirebase();
+    
+    showNotification(`✅ ${processados.length} NCs importadas com sucesso!`, 'success');
+    
+  } catch (error) {
+    console.error('❌ Erro na importação:', error);
+    showNotification(`❌ Erro: ${error.message}`, 'error');
+    alert(`ERRO NA IMPORTACAO:\n\n${error.message}\n\nVerifique o console (F12) para mais detalhes.`);
+  }
+},
       
       // 📖 LER ARQUIVO EXCEL
       lerExcel(file) {
@@ -2453,49 +2480,110 @@
         });
       },
       
-      // 🔄 PROCESSAR PLANILHA DE NC
-      async processarPlanilha(data, fileName) {
-        const processados = [];
-        const hoje = new Date().toISOString().split('T')[0];
+      // 🔄 PROCESSAR PLANILHA DE NC - VERSÃO CORRIGIDA
+async processarPlanilha(data, fileName) {
+  const processados = [];
+  const hoje = new Date().toISOString().split('T')[0];
+  
+  console.log('📊 Processando planilha NC:', data.length, 'linhas');
+  
+  for (let i = 0; i < data.length; i++) {
+    const row = data[i];
+    
+    try {
+      // EXTRAIR DADOS COM MÚLTIPLAS POSSIBILIDADES DE NOME DE COLUNA
+      const extrairCampo = (possiveisNomes) => {
+        for (const nome of possiveisNomes) {
+          if (row[nome] !== undefined && row[nome] !== null && row[nome] !== '') {
+            return row[nome];
+          }
+        }
+        return '';
+      };
+      
+      // Mapear possíveis nomes de coluna
+      const nc = {
+        id: `nc_${Date.now()}_${i}`,
+        viagem: extrairCampo(['Viagem', 'viagem', 'VIAGEM', 'Número da Viagem', 'Nº Viagem']),
+        cliente: extrairCampo(['Cliente', 'cliente', 'CLIENTE', 'Nome do Cliente']),
+        embarcador: extrairCampo(['Embarcador', 'embarcador', 'EMBARCADOR']),
+        veiculo: extrairCampo(['Veículo', 'Veiculo', 'veículo', 'veiculo', 'VEÍCULO', 'VEICULO', 'Placa', 'placa', 'PLACA'])
+          .toString()
+          .toUpperCase()
+          .trim(),
+        cpfCondutor: extrairCampo(['CPF Condutor', 'CPF', 'cpf', 'Cpf Condutor', 'CPF do Condutor']),
+        nomeCondutor: extrairCampo(['Nome Condutor', 'Motorista', 'motorista', 'Condutor', 'condutor', 'Nome do Condutor']),
+        origem: extrairCampo(['Origem', 'origem', 'ORIGEM', 'Local de Origem']),
+        destino: extrairCampo(['Destino', 'destino', 'DESTINO', 'Local de Destino']),
+        naoConformidade: extrairCampo([
+          'Não Conformidade', 
+          'Não conformidade', 
+          'naoConformidade', 
+          'NãoConformidade',
+          'Descrição NC',
+          'NC',
+          'Tipo de NC'
+        ]),
+        dataOcorrencia: extrairCampo([
+          'Data Ocorrencia', 
+          'Data Ocorrência', 
+          'Data', 
+          'Data da Ocorrência',
+          'DataOcorrencia',
+          'data_ocorrencia'
+        ]),
+        penalidade: extrairCampo(['Penalidade', 'penalidade', 'PENALIDADE']),
+        infracao: extrairCampo(['Infração', 'infracao', 'INFRACAO', 'INFRACÃO']),
+        pontos: extrairCampo(['Pontos', 'pontos', 'PONTOS']),
+        importadoEm: hoje,
+        arquivoOrigem: fileName,
+        linhaOrigem: i + 1,
+        importadoPor: authService.getCurrentUser()?.username || 'Sistema'
+      };
+      
+      // DEBUG: Mostrar primeira linha processada
+      if (i === 0) {
+        console.log('📝 Primeira linha processada:', nc);
+        console.log('📝 Linha original:', row);
+      }
+      
+      // VALIDAÇÃO MAIS FLEXÍVEL
+      // Aceita se tiver pelo menos veículo E não conformidade
+      if (nc.veiculo && nc.veiculo !== '' && nc.naoConformidade && nc.naoConformidade !== '') {
         
-        for (let i = 0; i < data.length; i++) {
-          const row = data[i];
-          
+        // Formatar data se estiver no formato brasileiro (dd/mm/aaaa)
+        if (nc.dataOcorrencia && nc.dataOcorrencia.includes('/')) {
           try {
-            // Extrair dados da linha
-            const nc = {
-              id: `nc_${Date.now()}_${i}`,
-              viagem: row['Viagem'] || row['viagem'] || '',
-              cliente: row['Cliente'] || row['cliente'] || '',
-              embarcador: row['Embarcador'] || row['embarcador'] || '',
-              veiculo: (row['Veículo'] || row['veiculo'] || '').toString().toUpperCase(),
-              cpfCondutor: row['CPF Condutor'] || row['cpf_condutor'] || '',
-              nomeCondutor: row['Nome Condutor'] || row['nome_condutor'] || '',
-              origem: row['Origem'] || row['origem'] || '',
-              destino: row['Destino'] || row['destino'] || '',
-              naoConformidade: row['Não Conformidade'] || row['nao_conformidade'] || '',
-              dataOcorrencia: row['Data Ocorrencia'] || row['data_ocorrencia'] || '',
-              penalidade: row['Penalidade'] || row['penalidade'] || '',
-              infracao: row['Infração'] || row['infracao'] || '',
-              pontos: row['Pontos'] || row['pontos'] || '',
-              importadoEm: hoje,
-              arquivoOrigem: fileName,
-              linhaOrigem: i + 1,
-              importadoPor: authService.getCurrentUser()?.username || 'Sistema'
-            };
+            const partes = nc.dataOcorrencia.split(' ');
+            const dataParte = partes[0];
+            const horaParte = partes[1] || '';
             
-            // Validar dados mínimos
-            if (nc.viagem && nc.veiculo && nc.naoConformidade) {
-              processados.push(nc);
+            if (dataParte.includes('/')) {
+              const [dia, mes, ano] = dataParte.split('/');
+              nc.dataOcorrencia = `${ano}-${mes.padStart(2, '0')}-${dia.padStart(2, '0')} ${horaParte}`.trim();
             }
-            
-          } catch (error) {
-            console.warn(`Erro na linha ${i + 1}:`, error);
+          } catch (e) {
+            console.warn('Erro ao formatar data:', e);
           }
         }
         
-        return processados;
-      },
+        processados.push(nc);
+        
+      } else {
+        console.warn(`Linha ${i + 1} ignorada:`, {
+          veiculo: nc.veiculo,
+          naoConformidade: nc.naoConformidade
+        });
+      }
+      
+    } catch (error) {
+      console.error(`❌ Erro na linha ${i + 1}:`, error, 'Dados:', row);
+    }
+  }
+  
+  console.log(`✅ Processamento concluído: ${processados.length} NCs válidas de ${data.length} linhas`);
+  return processados;
+},
       
       // 💾 SALVAR NO FIREBASE
       async salvarNoFirebase(dados, fileName) {
