@@ -11,6 +11,8 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <!-- 📊 CHART.JS PARA GRÁFICOS -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -1869,13 +1871,165 @@
     <!-- ============================================ -->
     <div class="tab-menu" id="tabMenu" style="display: none;">
       <button class="tab-btn active" onclick="showTab('frota')">
-        <span>✅</span> Checklist Frota
+        <span>tab
       </button>
       <button class="tab-btn" onclick="showTab('naoConformidades')">
         <span>🚨</span> Não Conformidades
       </button>
     </div>
+    
     <!-- ============================================ -->
+<!-- 📊 ABA 3: DASHBOARD NC (NOVA) -->
+<!-- ============================================ -->
+<div id="tabDashboard" class="tab-content">
+  <!-- 🎯 CABEÇALHO DO DASHBOARD -->
+  <div style="padding: 25px 30px; background: var(--bg-secondary); border-bottom: 1px solid var(--border-color);">
+    <h2 style="margin: 0 0 10px 0; color: var(--text-primary);">📊 Dashboard de Não Conformidades</h2>
+    <p style="margin: 0; color: var(--text-secondary); font-size: 14px;">
+      Análise quantitativa e estatísticas detalhadas das NCs
+    </p>
+  </div>
+
+  <!-- 📈 RESUMO GERAL -->
+  <div class="summary-cards" style="grid-template-columns: repeat(5, 1fr);">
+    <div class="summary-card total">
+      <div class="card-number" id="dashTotal">0</div>
+      <div class="card-label">Total NCs</div>
+      <div class="card-subtitle" id="dashPeriodo">Período</div>
+    </div>
+    <div class="summary-card expired">
+      <div class="card-number" id="dashHoje">0</div>
+      <div class="card-label">NCs Hoje</div>
+      <div class="card-subtitle" id="dashDataHoje">-</div>
+    </div>
+    <div class="summary-card warning">
+      <div class="card-number" id="dashTopVeiculo">0</div>
+      <div class="card-label">Top Veículo</div>
+      <div class="card-subtitle" id="dashTopVeiculoNome">-</div>
+    </div>
+    <div class="summary-card valid">
+      <div class="card-number" id="dashTopMotorista">0</div>
+      <div class="card-label">Top Motorista</div>
+      <div class="card-subtitle" id="dashTopMotoristaNome">-</div>
+    </div>
+    <div class="summary-card" style="border-left-color: #9c27b0;">
+      <div class="card-number" id="dashTopTipo">0</div>
+      <div class="card-label">Tipo Mais Comum</div>
+      <div class="card-subtitle" id="dashTopTipoNome">-</div>
+    </div>
+  </div>
+
+  <!-- 📊 GRÁFICOS E ESTATÍSTICAS -->
+  <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; padding: 20px;">
+    
+    <!-- 📈 GRÁFICO 1: DISTRIBUIÇÃO POR TIPO -->
+    <div class="chart-container">
+      <div style="background: var(--bg-secondary); padding: 15px; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+        <h3 style="margin: 0 0 15px 0; color: var(--text-primary); font-size: 16px;">📋 Distribuição por Tipo de NC</h3>
+        <canvas id="chartTipoNC" style="width: 100%; height: 250px;"></canvas>
+      </div>
+    </div>
+
+    <!-- 📊 GRÁFICO 2: EVOLUÇÃO TEMPORAL -->
+    <div class="chart-container">
+      <div style="background: var(--bg-secondary); padding: 15px; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+        <h3 style="margin: 0 0 15px 0; color: var(--text-primary); font-size: 16px;">📅 Evolução por Data</h3>
+        <canvas id="chartEvolucao" style="width: 100%; height: 250px;"></canvas>
+      </div>
+    </div>
+
+    <!-- 📋 TOP 10 VEÍCULOS -->
+    <div class="chart-container">
+      <div style="background: var(--bg-secondary); padding: 15px; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+        <h3 style="margin: 0 0 15px 0; color: var(--text-primary); font-size: 16px;">🚛 Top 10 Veículos com Mais NCs</h3>
+        <div id="topVeiculos" style="max-height: 250px; overflow-y: auto;">
+          <!-- Lista será preenchida por JavaScript -->
+        </div>
+      </div>
+    </div>
+
+    <!-- 👥 TOP 10 MOTORISTAS -->
+    <div class="chart-container">
+      <div style="background: var(--bg-secondary); padding: 15px; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+        <h3 style="margin: 0 0 15px 0; color: var(--text-primary); font-size: 16px;">👤 Top 10 Motoristas com Mais NCs</h3>
+        <div id="topMotoristas" style="max-height: 250px; overflow-y: auto;">
+          <!-- Lista será preenchida por JavaScript -->
+        </div>
+      </div>
+    </div>
+
+    <!-- 📅 DISTRIBUIÇÃO POR DIA DA SEMANA -->
+    <div class="chart-container">
+      <div style="background: var(--bg-secondary); padding: 15px; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+        <h3 style="margin: 0 0 15px 0; color: var(--text-primary); font-size: 16px;">📆 NCs por Dia da Semana</h3>
+        <canvas id="chartDiasSemana" style="width: 100%; height: 200px;"></canvas>
+      </div>
+    </div>
+
+    <!-- ⏰ DISTRIBUIÇÃO POR HORÁRIO -->
+    <div class="chart-container">
+      <div style="background: var(--bg-secondary); padding: 15px; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+        <h3 style="margin: 0 0 15px 0; color: var(--text-primary); font-size: 16px;">⏰ NCs por Horário do Dia</h3>
+        <canvas id="chartHorarios" style="width: 100%; height: 200px;"></canvas>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 📋 TABELA DE DADOS DETALHADOS -->
+  <div style="padding: 0 20px 20px 20px;">
+    <div style="background: var(--bg-secondary); padding: 20px; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+      <h3 style="margin: 0 0 15px 0; color: var(--text-primary); font-size: 16px;">📋 Estatísticas Detalhadas</h3>
+      
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
+        
+        <!-- ESTATÍSTICAS POR TIPO -->
+        <div>
+          <h4 style="margin: 0 0 10px 0; color: var(--text-secondary); font-size: 14px;">📊 Por Tipo de NC</h4>
+          <div id="estatisticasTipo" style="font-size: 13px;">
+            <!-- Preenchido por JS -->
+          </div>
+        </div>
+
+        <!-- ESTATÍSTICAS TEMPORAIS -->
+        <div>
+          <h4 style="margin: 0 0 10px 0; color: var(--text-secondary); font-size: 14px;">📅 Temporais</h4>
+          <div id="estatisticasTemporais" style="font-size: 13px;">
+            <!-- Preenchido por JS -->
+          </div>
+        </div>
+
+        <!-- INFORMAÇÕES GERAIS -->
+        <div>
+          <h4 style="margin: 0 0 10px 0; color: var(--text-secondary); font-size: 14px;">ℹ️ Informações Gerais</h4>
+          <div id="informacoesGerais" style="font-size: 13px;">
+            <!-- Preenchido por JS -->
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- 🎭 FOOTER DASHBOARD -->
+  <div class="footer">
+    <div class="footer-info">
+      <div>RONDOLOG - DASHBOARD DE NÃO CONFORMIDADES</div>
+      <div id="dashLastUpdate">Última atualização: <span id="dashLastUpdateTime">Nunca</span></div>
+      <div>Período analisado: <span id="dashPeriodoAnalisado">-</span></div>
+    </div>
+    <div class="stats">
+      <div class="stat-item">
+        <span id="dashTotalRegistros">0</span> registros analisados
+      </div>
+      <div class="stat-item">
+        <button class="btn-edit" onclick="exportDashboardPDF()" style="font-size: 12px; padding: 5px 10px;">
+          📋 Exportar Relatório
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
     
     <!-- 🔗 SEÇÃO DE SINCRONIZAÇÃO FIREBASE - LAYOUT MELHORADO -->
     <div class="sync-section">
@@ -2074,6 +2228,58 @@
       </div>
     </div>
     <!-- ============================================ -->
+<!-- 📊 ABA 3: DASHBOARD NC (NOVA) -->
+<!-- ============================================ -->
+<div id="tabDashboard" class="tab-content">
+  <!-- CABEÇALHO -->
+  <div style="padding: 25px 30px; background: var(--bg-secondary); border-bottom: 1px solid var(--border-color);">
+    <h2 style="margin: 0 0 10px 0; color: var(--text-primary);">📊 Dashboard de Não Conformidades</h2>
+    <p style="margin: 0; color: var(--text-secondary); font-size: 14px;">Análise quantitativa e estatísticas detalhadas das NCs</p>
+  </div>
+
+  <!-- RESUMO GERAL -->
+  <div class="summary-cards" style="grid-template-columns: repeat(5, 1fr);">
+    <div class="summary-card total"><div class="card-number" id="dashTotal">0</div><div class="card-label">Total NCs</div><div class="card-subtitle" id="dashPeriodo">Período</div></div>
+    <div class="summary-card expired"><div class="card-number" id="dashHoje">0</div><div class="card-label">NCs Hoje</div><div class="card-subtitle" id="dashDataHoje">-</div></div>
+    <div class="summary-card warning"><div class="card-number" id="dashTopVeiculo">0</div><div class="card-label">Top Veículo</div><div class="card-subtitle" id="dashTopVeiculoNome">-</div></div>
+    <div class="summary-card valid"><div class="card-number" id="dashTopMotorista">0</div><div class="card-label">Top Motorista</div><div class="card-subtitle" id="dashTopMotoristaNome">-</div></div>
+    <div class="summary-card" style="border-left-color: #9c27b0;"><div class="card-number" id="dashTopTipo">0</div><div class="card-label">Tipo Mais Comum</div><div class="card-subtitle" id="dashTopTipoNome">-</div></div>
+  </div>
+
+  <!-- GRÁFICOS -->
+  <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; padding: 20px;">
+    <div><div style="background: var(--bg-secondary); padding: 15px; border-radius: var(--radius-md); border: 1px solid var(--border-color);"><h3 style="margin: 0 0 15px 0; color: var(--text-primary); font-size: 16px;">📋 Distribuição por Tipo</h3><canvas id="chartTipoNC" style="width: 100%; height: 250px;"></canvas></div></div>
+    <div><div style="background: var(--bg-secondary); padding: 15px; border-radius: var(--radius-md); border: 1px solid var(--border-color);"><h3 style="margin: 0 0 15px 0; color: var(--text-primary); font-size: 16px;">📅 Evolução por Data</h3><canvas id="chartEvolucao" style="width: 100%; height: 250px;"></canvas></div></div>
+    <div><div style="background: var(--bg-secondary); padding: 15px; border-radius: var(--radius-md); border: 1px solid var(--border-color);"><h3 style="margin: 0 0 15px 0; color: var(--text-primary); font-size: 16px;">🚛 Top 10 Veículos</h3><div id="topVeiculos" style="max-height: 250px; overflow-y: auto;"></div></div></div>
+    <div><div style="background: var(--bg-secondary); padding: 15px; border-radius: var(--radius-md); border: 1px solid var(--border-color);"><h3 style="margin: 0 0 15px 0; color: var(--text-primary); font-size: 16px;">👤 Top 10 Motoristas</h3><div id="topMotoristas" style="max-height: 250px; overflow-y: auto;"></div></div></div>
+    <div><div style="background: var(--bg-secondary); padding: 15px; border-radius: var(--radius-md); border: 1px solid var(--border-color);"><h3 style="margin: 0 0 15px 0; color: var(--text-primary); font-size: 16px;">📆 Por Dia da Semana</h3><canvas id="chartDiasSemana" style="width: 100%; height: 200px;"></canvas></div></div>
+    <div><div style="background: var(--bg-secondary); padding: 15px; border-radius: var(--radius-md); border: 1px solid var(--border-color);"><h3 style="margin: 0 0 15px 0; color: var(--text-primary); font-size: 16px;">⏰ Por Horário</h3><canvas id="chartHorarios" style="width: 100%; height: 200px;"></canvas></div></div>
+  </div>
+
+  <!-- ESTATÍSTICAS -->
+  <div style="padding: 0 20px 20px 20px;"><div style="background: var(--bg-secondary); padding: 20px; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+    <h3 style="margin: 0 0 15px 0; color: var(--text-primary); font-size: 16px;">📋 Estatísticas Detalhadas</h3>
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
+      <div><h4 style="margin: 0 0 10px 0; color: var(--text-secondary); font-size: 14px;">📊 Por Tipo</h4><div id="estatisticasTipo" style="font-size: 13px;"></div></div>
+      <div><h4 style="margin: 0 0 10px 0; color: var(--text-secondary); font-size: 14px;">📅 Temporais</h4><div id="estatisticasTemporais" style="font-size: 13px;"></div></div>
+      <div><h4 style="margin: 0 0 10px 0; color: var(--text-secondary); font-size: 14px;">ℹ️ Gerais</h4><div id="informacoesGerais" style="font-size: 13px;"></div></div>
+    </div>
+  </div></div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <div class="footer-info">
+      <div>RONDOLOG - DASHBOARD DE NÃO CONFORMIDADES</div>
+      <div id="dashLastUpdate">Última atualização: <span id="dashLastUpdateTime">Nunca</span></div>
+      <div>Período analisado: <span id="dashPeriodoAnalisado">-</span></div>
+    </div>
+    <div class="stats">
+      <div class="stat-item"><span id="dashTotalRegistros">0</span> registros analisados</div>
+      <div class="stat-item"><button class="btn-edit" onclick="exportDashboardPDF()" style="font-size: 12px; padding: 5px 10px;">📋 Exportar Relatório</button></div>
+    </div>
+  </div>
+</div>
+<!-- ============================================ -->
   </div>
 
   <!-- 🎭 MODAL DE EDIÇÃO/ADIÇÃO DE VEÍCULO -->
@@ -4836,7 +5042,583 @@ ${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${tipo}: ${count}`).
         }
       }, 4000);
     }
+// ============================================
+// 📊 MÓDULO DO DASHBOARD NC
+// ============================================
+const dashboardNC = {
+  charts: {},
+  data: [],
+  
+  init() {
+    this.setupChartContainers();
+  },
+  
+  setupChartContainers() {
+    // Os gráficos serão criados dinamicamente
+  },
+  
+  update(dados) {
+    if (!dados || dados.length === 0) {
+      this.showEmptyDashboard();
+      return;
+    }
+    
+    this.data = dados;
+    this.updateSummaryCards();
+    this.updateCharts();
+    this.updateTopLists();
+    this.updateDetailedStats();
+    this.updateLastUpdate();
+  },
+  
+  updateSummaryCards() {
+    const stats = this.calculateBasicStats();
+    
+    document.getElementById('dashTotal').textContent = stats.total;
+    document.getElementById('dashHoje').textContent = stats.hoje;
+    document.getElementById('dashTopVeiculo').textContent = stats.topVeiculo.count;
+    document.getElementById('dashTopVeiculoNome').textContent = stats.topVeiculo.name;
+    document.getElementById('dashTopMotorista').textContent = stats.topMotorista.count;
+    document.getElementById('dashTopMotoristaNome').textContent = stats.topMotorista.name;
+    document.getElementById('dashTopTipo').textContent = stats.topTipo.count;
+    document.getElementById('dashTopTipoNome').textContent = this.formatTipoNome(stats.topTipo.name);
+    
+    const periodo = this.getPeriodoAnalise();
+    document.getElementById('dashPeriodo').textContent = periodo;
+    document.getElementById('dashPeriodoAnalisado').textContent = periodo;
+    document.getElementById('dashDataHoje').textContent = new Date().toLocaleDateString('pt-BR');
+  },
+  
+  calculateBasicStats() {
+    const stats = {
+      total: this.data.length,
+      hoje: 0,
+      veiculos: {},
+      motoristas: {},
+      tipos: {},
+      topVeiculo: { name: '-', count: 0 },
+      topMotorista: { name: '-', count: 0 },
+      topTipo: { name: '-', count: 0 }
+    };
+    
+    const hoje = new Date().toISOString().split('T')[0];
+    
+    this.data.forEach(nc => {
+      if (nc.dataOcorrencia && nc.dataOcorrencia.includes(hoje)) {
+        stats.hoje++;
+      }
+      
+      if (nc.veiculo) {
+        stats.veiculos[nc.veiculo] = (stats.veiculos[nc.veiculo] || 0) + 1;
+      }
+      
+      if (nc.nomeCondutor) {
+        stats.motoristas[nc.nomeCondutor] = (stats.motoristas[nc.nomeCondutor] || 0) + 1;
+      }
+      
+      const tipo = ncModule.classificarTipo(nc.naoConformidade);
+      stats.tipos[tipo] = (stats.tipos[tipo] || 0) + 1;
+    });
+    
+    Object.entries(stats.veiculos).forEach(([veiculo, count]) => {
+      if (count > stats.topVeiculo.count) {
+        stats.topVeiculo = { name: veiculo, count };
+      }
+    });
+    
+    Object.entries(stats.motoristas).forEach(([motorista, count]) => {
+      if (count > stats.topMotorista.count) {
+        stats.topMotorista = { name: motorista, count };
+      }
+    });
+    
+    Object.entries(stats.tipos).forEach(([tipo, count]) => {
+      if (count > stats.topTipo.count) {
+        stats.topTipo = { name: tipo, count };
+      }
+    });
+    
+    return stats;
+  },
+  
+  getPeriodoAnalise() {
+    if (this.data.length === 0) return '-';
+    
+    const datas = this.data
+      .map(nc => nc.dataOcorrencia)
+      .filter(d => d)
+      .sort();
+    
+    if (datas.length === 0) return '-';
+    
+    const primeira = datas[0].split(' ')[0];
+    const ultima = datas[datas.length - 1].split(' ')[0];
+    
+    return `${this.formatarDataBR(primeira)} à ${this.formatarDataBR(ultima)}`;
+  },
+  
+  updateCharts() {
+    this.createTipoChart();
+    this.createEvolucaoChart();
+    this.createDiasSemanaChart();
+    this.createHorariosChart();
+  },
+  
+  createTipoChart() {
+    const tipos = {};
+    
+    this.data.forEach(nc => {
+      const tipo = ncModule.classificarTipo(nc.naoConformidade);
+      tipos[tipo] = (tipos[tipo] || 0) + 1;
+    });
+    
+    const canvas = document.getElementById('chartTipoNC');
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    
+    if (this.charts.tipo) {
+      this.charts.tipo.destroy();
+    }
+    
+    const labels = Object.keys(tipos).map(t => this.formatTipoNome(t));
+    const data = Object.values(tipos);
+    const cores = this.getCoresPorTipo(Object.keys(tipos));
+    
+    this.charts.tipo = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: labels,
+        datasets: [{
+          data: data,
+          backgroundColor: cores,
+          borderColor: 'var(--border-color)',
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'right',
+            labels: { color: 'var(--text-primary)', font: { size: 11 } }
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const label = context.label || '';
+                const value = context.raw || 0;
+                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                const percentage = Math.round((value / total) * 100);
+                return `${label}: ${value} (${percentage}%)`;
+              }
+            }
+          }
+        }
+      }
+    });
+  },
+  
+  createEvolucaoChart() {
+    const evolucao = {};
+    
+    this.data.forEach(nc => {
+      if (nc.dataOcorrencia) {
+        const data = nc.dataOcorrencia.split(' ')[0];
+        evolucao[data] = (evolucao[data] || 0) + 1;
+      }
+    });
+    
+    const datasOrdenadas = Object.keys(evolucao).sort();
+    const valores = datasOrdenadas.map(data => evolucao[data]);
+    const labels = datasOrdenadas.map(data => this.formatarDataBR(data));
+    
+    const canvas = document.getElementById('chartEvolucao');
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    
+    if (this.charts.evolucao) {
+      this.charts.evolucao.destroy();
+    }
+    
+    this.charts.evolucao = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'NCs por Dia',
+          data: valores,
+          backgroundColor: 'rgba(255, 0, 0, 0.1)',
+          borderColor: 'var(--primary-red)',
+          borderWidth: 2,
+          tension: 0.1,
+          fill: true
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { labels: { color: 'var(--text-primary)' } }
+        },
+        scales: {
+          x: { ticks: { color: 'var(--text-secondary)', maxRotation: 45 } },
+          y: { beginAtZero: true, ticks: { color: 'var(--text-secondary)' } }
+        }
+      }
+    });
+  },
+  
+  createDiasSemanaChart() {
+    const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+    const contagem = [0, 0, 0, 0, 0, 0, 0];
+    
+    this.data.forEach(nc => {
+      if (nc.dataOcorrencia) {
+        const dataStr = nc.dataOcorrencia.split(' ')[0];
+        const data = new Date(dataStr);
+        if (!isNaN(data.getDay())) {
+          contagem[data.getDay()]++;
+        }
+      }
+    });
+    
+    const canvas = document.getElementById('chartDiasSemana');
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    
+    if (this.charts.diasSemana) {
+      this.charts.diasSemana.destroy();
+    }
+    
+    this.charts.diasSemana = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: diasSemana,
+        datasets: [{
+          label: 'NCs',
+          data: contagem,
+          backgroundColor: 'rgba(255, 107, 107, 0.7)',
+          borderColor: 'var(--primary-red)',
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: { beginAtZero: true, ticks: { color: 'var(--text-secondary)' } },
+          x: { ticks: { color: 'var(--text-secondary)' } }
+        }
+      }
+    });
+  },
+  
+  createHorariosChart() {
+    const periodos = ['00-04', '04-08', '08-12', '12-16', '16-20', '20-24'];
+    const contagem = [0, 0, 0, 0, 0, 0];
+    
+    this.data.forEach(nc => {
+      if (nc.dataOcorrencia && nc.dataOcorrencia.includes(':')) {
+        const horaParte = nc.dataOcorrencia.split(' ')[1];
+        if (horaParte) {
+          const hora = parseInt(horaParte.split(':')[0]);
+          if (!isNaN(hora)) {
+            if (hora < 4) contagem[0]++;
+            else if (hora < 8) contagem[1]++;
+            else if (hora < 12) contagem[2]++;
+            else if (hora < 16) contagem[3]++;
+            else if (hora < 20) contagem[4]++;
+            else contagem[5]++;
+          }
+        }
+      }
+    });
+    
+    const canvas = document.getElementById('chartHorarios');
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    
+    if (this.charts.horarios) {
+      this.charts.horarios.destroy();
+    }
+    
+    this.charts.horarios = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: periodos,
+        datasets: [{
+          label: 'NCs',
+          data: contagem,
+          backgroundColor: 'rgba(255, 193, 7, 0.7)',
+          borderColor: 'var(--yellow)',
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: { beginAtZero: true, ticks: { color: 'var(--text-secondary)' } },
+          x: { ticks: { color: 'var(--text-secondary)' } }
+        }
+      }
+    });
+  },
+  
+  updateTopLists() {
+    const veiculos = {};
+    this.data.forEach(nc => {
+      if (nc.veiculo) {
+        veiculos[nc.veiculo] = (veiculos[nc.veiculo] || 0) + 1;
+      }
+    });
+    
+    const topVeiculos = Object.entries(veiculos)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10);
+    
+    const veiculosHTML = topVeiculos.map(([veiculo, count], index) => `
+      <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border-color);">
+        <div>
+          <span style="color: var(--text-secondary); font-size: 12px;">${index + 1}.</span>
+          <span style="margin-left: 8px; font-weight: 600; color: var(--text-primary);">${veiculo}</span>
+        </div>
+        <span class="status-badge" style="background: var(--primary-red); color: white; font-size: 11px;">${count}</span>
+      </div>
+    `).join('');
+    
+    document.getElementById('topVeiculos').innerHTML = veiculosHTML || '<div style="text-align: center; padding: 20px; color: var(--text-secondary);">Sem dados</div>';
+    
+    const motoristas = {};
+    this.data.forEach(nc => {
+      if (nc.nomeCondutor) {
+        motoristas[nc.nomeCondutor] = (motoristas[nc.nomeCondutor] || 0) + 1;
+      }
+    });
+    
+    const topMotoristas = Object.entries(motoristas)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10);
+    
+    const motoristasHTML = topMotoristas.map(([motorista, count], index) => `
+      <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border-color);">
+        <div>
+          <span style="color: var(--text-secondary); font-size: 12px;">${index + 1}.</span>
+          <span style="margin-left: 8px; color: var(--text-primary);">${motorista}</span>
+        </div>
+        <span class="status-badge" style="background: var(--yellow); color: black; font-size: 11px;">${count}</span>
+      </div>
+    `).join('');
+    
+    document.getElementById('topMotoristas').innerHTML = motoristasHTML || '<div style="text-align: center; padding: 20px; color: var(--text-secondary);">Sem dados</div>';
+  },
+  
+  updateDetailedStats() {
+    const tipos = {};
+    this.data.forEach(nc => {
+      const tipo = ncModule.classificarTipo(nc.naoConformidade);
+      tipos[tipo] = (tipos[tipo] || 0) + 1;
+    });
+    
+    const tiposHTML = Object.entries(tipos)
+      .sort((a, b) => b[1] - a[1])
+      .map(([tipo, count]) => `
+        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+          <span>${this.formatTipoNome(tipo)}:</span>
+          <span style="font-weight: 600;">${count}</span>
+        </div>
+      `).join('');
+    
+    document.getElementById('estatisticasTipo').innerHTML = tiposHTML || '<div style="color: var(--text-secondary);">Sem dados</div>';
+    
+    const total = this.data.length;
+    const hoje = new Date().toISOString().split('T')[0];
+    const hojeCount = this.data.filter(nc => nc.dataOcorrencia && nc.dataOcorrencia.includes(hoje)).length;
+    const datas = this.data.map(nc => nc.dataOcorrencia?.split(' ')[0]).filter(d => d);
+    const datasUnicas = [...new Set(datas)];
+    const mediaDiaria = total / (datasUnicas.length || 1);
+    
+    const temporaisHTML = `
+      <div style="margin-bottom: 5px;"><strong>Total:</strong> ${total}</div>
+      <div style="margin-bottom: 5px;"><strong>Hoje:</strong> ${hojeCount}</div>
+      <div style="margin-bottom: 5px;"><strong>Média diária:</strong> ${mediaDiaria.toFixed(1)}</div>
+      <div style="margin-bottom: 5px;"><strong>Dias com NC:</strong> ${datasUnicas.length}</div>
+      <div><strong>Período:</strong> ${this.getPeriodoAnalise()}</div>
+    `;
+    
+    document.getElementById('estatisticasTemporais').innerHTML = temporaisHTML;
+    
+    const veiculosUnicos = [...new Set(this.data.map(nc => nc.veiculo).filter(v => v))];
+    const motoristasUnicos = [...new Set(this.data.map(nc => nc.nomeCondutor).filter(m => m))];
+    
+    const geraisHTML = `
+      <div style="margin-bottom: 5px;"><strong>Veículos únicos:</strong> ${veiculosUnicos.length}</div>
+      <div style="margin-bottom: 5px;"><strong>Motoristas únicos:</strong> ${motoristasUnicos.length}</div>
+      <div style="margin-bottom: 5px;"><strong>Viagens únicas:</strong> ${[...new Set(this.data.map(nc => nc.viagem).filter(v => v))].length}</div>
+      <div><strong>Última atualização:</strong> ${new Date().toLocaleTimeString('pt-BR')}</div>
+    `;
+    
+    document.getElementById('informacoesGerais').innerHTML = geraisHTML;
+  },
+  
+  updateLastUpdate() {
+    document.getElementById('dashLastUpdateTime').textContent = new Date().toLocaleString('pt-BR');
+    document.getElementById('dashTotalRegistros').textContent = this.data.length;
+  },
+  
+  showEmptyDashboard() {
+    document.getElementById('dashTotal').textContent = '0';
+    document.getElementById('dashHoje').textContent = '0';
+    document.getElementById('dashTopVeiculo').textContent = '0';
+    document.getElementById('dashTopVeiculoNome').textContent = '-';
+    document.getElementById('dashTopMotorista').textContent = '0';
+    document.getElementById('dashTopMotoristaNome').textContent = '-';
+    document.getElementById('dashTopTipo').textContent = '0';
+    document.getElementById('dashTopTipoNome').textContent = '-';
+    
+    document.getElementById('topVeiculos').innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-secondary);">Sem dados para exibir</div>';
+    document.getElementById('topMotoristas').innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-secondary);">Sem dados para exibir</div>';
+    
+    Object.values(this.charts).forEach(chart => {
+      if (chart && typeof chart.destroy === 'function') {
+        chart.destroy();
+      }
+    });
+    this.charts = {};
+  },
+  
+  formatTipoNome(tipo) {
+    const nomes = {
+      'inicio_sem_ok': 'Início sem OK GS',
+      'nao_informado': 'Início Não Informado',
+      'dados_incorretos': 'SM Dados Incorretos',
+      'movimento_indevido': 'Movimento Indevido',
+      'isca_problema': 'Isca com Problema',
+      'interacao_cliente': 'Interação do Cliente',
+      'fim_nao_informado': 'Fim Não Informado',
+      'sm_atrasada': 'SM Atrasada',
+      'fora_romaneio': 'Fora do Romaneio',
+      'perda_sinal': 'Perda de Sinal',
+      'chegada_nao_info': 'Chegada Não Informada',
+      'outros': 'Outros'
+    };
+    
+    return nomes[tipo] || tipo;
+  },
+  
+  getCoresPorTipo(tipos) {
+    const cores = {
+      'inicio_sem_ok': '#ff0000',
+      'nao_informado': '#ff6b6b',
+      'dados_incorretos': '#ff9800',
+      'movimento_indevido': '#ffc107',
+      'isca_problema': '#9c27b0',
+      'interacao_cliente': '#2196f3',
+      'fim_nao_informado': '#00bcd4',
+      'sm_atrasada': '#009688',
+      'fora_romaneio': '#4caf50',
+      'perda_sinal': '#8bc34a',
+      'chegada_nao_info': '#cddc39',
+      'outros': '#9e9e9e'
+    };
+    
+    return tipos.map(tipo => cores[tipo] || '#9e9e9e');
+  },
+  
+  formatarDataBR(dataStr) {
+    if (!dataStr) return '-';
+    try {
+      const [ano, mes, dia] = dataStr.split('-');
+      return `${dia}/${mes}`;
+    } catch {
+      return dataStr;
+    }
+  }
+};
 
+// ============================================
+// 🎯 FUNÇÕES GLOBAIS PARA O DASHBOARD
+// ============================================
+
+// SUBSTITUA a função showTab existente por esta versão:
+function showTab(tabName) {
+  // Esconder todas as abas
+  document.querySelectorAll('.tab-content').forEach(tab => {
+    tab.classList.remove('active');
+  });
+  
+  // Remover active de todos os botões
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.classList.remove('active');
+  });
+  
+  // Mostrar aba selecionada
+  const tabId = `tab${tabName.charAt(0).toUpperCase() + tabName.slice(1)}`;
+  document.getElementById(tabId).classList.add('active');
+  
+  // Ativar botão
+  event.target.classList.add('active');
+  
+  // Ações específicas para cada aba
+  switch(tabName) {
+    case 'frota':
+      // Ações para frota
+      break;
+      
+    case 'naoConformidades':
+      setupNcTableSorting();
+      setupNcFilters();
+      if (ncModule.dados.length === 0) {
+        ncModule.carregarDoFirebase();
+      }
+      break;
+      
+    case 'dashboard':
+      dashboardNC.init();
+      if (ncModule.dados.length > 0) {
+        dashboardNC.update(ncModule.dados);
+      } else {
+        dashboardNC.showEmptyDashboard();
+      }
+      break;
+  }
+}
+
+function exportDashboardPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  
+  doc.setFontSize(20);
+  doc.setTextColor(40, 40, 40);
+  doc.text('RONDOLOG - RELATÓRIO DE NÃO CONFORMIDADES', 105, 15, { align: 'center' });
+  
+  doc.setFontSize(10);
+  doc.setTextColor(100, 100, 100);
+  doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, 105, 22, { align: 'center' });
+  doc.text(`Usuário: ${authService.getCurrentUser()?.username || 'Não autenticado'}`, 105, 28, { align: 'center' });
+  
+  const stats = dashboardNC.calculateBasicStats();
+  doc.setFontSize(14);
+  doc.setTextColor(0, 0, 0);
+  doc.text('📊 ESTATÍSTICAS GERAIS', 20, 40);
+  
+  doc.setFontSize(10);
+  doc.text(`Total de NCs: ${stats.total}`, 20, 50);
+  doc.text(`NCs hoje: ${stats.hoje}`, 20, 56);
+  doc.text(`Top veículo: ${stats.topVeiculo.name} (${stats.topVeiculo.count})`, 20, 62);
+  doc.text(`Top motorista: ${stats.topMotorista.name} (${stats.topMotorista.count})`, 20, 68);
+  doc.text(`Tipo mais comum: ${dashboardNC.formatTipoNome(stats.topTipo.name)} (${stats.topTipo.count})`, 20, 74);
+  doc.text(`Período: ${dashboardNC.getPeriodoAnalise()}`, 20, 80);
+  
+  doc.save(`rondolog_dashboard_${new Date().toISOString().split('T')[0]}.pdf`);
+  
+  showNotification('📋 Relatório do dashboard exportado com sucesso!', 'success');
+}
     // ============================================
     // 🎯 INICIALIZAÇÃO DO SISTEMA
     // ============================================
