@@ -2135,11 +2135,11 @@
     // 🔐 SISTEMA DE AUTENTICAÇÃO AVANÇADO
     const authService = {
       user: null,
-      userRoles: {
-        ADMIN: {
-          level: 100,
-          permissions: ['create_users', 'edit_all', 'delete_all', 'system_config', 'nc_admin']
-        },
+     userRoles: {
+  ADMIN: {
+    level: 100,
+    permissions: ['create_users', 'edit_all', 'delete_all', 'system_config', 'nc_admin', 'nc_import']
+  },
         MANAGER: {
           level: 50,
           permissions: ['edit_all', 'view_reports', 'export_data', 'nc_import']
@@ -2405,7 +2405,12 @@
       
     // 📤 IMPORTAR DE PLANILHA - COM DEBUG
 async importarPlanilha(arquivo) {
-  if (!authService.hasPermission('nc_import')) {
+  // Verificar múltiplas permissões possíveis
+  const temPermissao = authService.hasPermission('nc_admin') || 
+                       authService.hasPermission('nc_import') ||
+                       authService.isAdmin();
+  
+  if (!temPermissao) {
     showNotification('⚠️ Sem permissão para importar NCs', 'warning');
     return;
   }
