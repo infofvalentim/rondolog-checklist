@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -2135,11 +2136,11 @@
     // 🔐 SISTEMA DE AUTENTICAÇÃO AVANÇADO
     const authService = {
       user: null,
-     userRoles: {
-  ADMIN: {
-    level: 100,
-    permissions: ['create_users', 'edit_all', 'delete_all', 'system_config', 'nc_admin', 'nc_import']
-  },
+      userRoles: {
+        ADMIN: {
+          level: 100,
+          permissions: ['create_users', 'edit_all', 'delete_all', 'system_config', 'nc_admin']
+        },
         MANAGER: {
           level: 50,
           permissions: ['edit_all', 'view_reports', 'export_data', 'nc_import']
@@ -2403,60 +2404,35 @@
         }
       },
       
-    // 📤 IMPORTAR DE PLANILHA - FUNÇÃO RECRIADA E MELHORADA
-async importarPlanilha(arquivo) {
-  // Verificar múltiplas permissões possíveis
-  const temPermissao = authService.hasPermission('nc_admin') || 
-                       authService.hasPermission('nc_import') ||
-                       authService.isAdmin();
-  
-  if (!temPermissao) {
-    showNotification('⚠️ Sem permissão para importar NCs', 'warning');
-    return;
-  }
-  
-  try {
-    showNotification(`📁 Processando ${arquivo.name}...`, 'info');
-    
-    // 1. Ler o arquivo Excel
-    const data = await this.lerExcel(arquivo);
-    
-    console.log('🔍 ESTRUTURA DA PLANILHA NC:', {
-      nomeArquivo: arquivo.name,
-      totalLinhas: data.length,
-      cabecalhos: data.length > 0 ? Object.keys(data[0]) : [],
-      primeiraLinha: data.length > 0 ? data[0] : null
-    });
-    
-    // 2. Processar dados da planilha
-    const processados = await this.processarPlanilha(data, arquivo.name);
-    
-    if (processados.length === 0) {
-      const erroMsg = `❌ NENHUMA NC VÁLIDA ENCONTRADA!\n\nArquivo: ${arquivo.name}\nLinhas na planilha: ${data.length}\n\nVerifique se a planilha contém as colunas obrigatórias:\n• Veículo\n• Não Conformidade\n• Data Ocorrencia`;
-      console.error(erroMsg);
-      alert(erroMsg);
-      showNotification('⚠️ Nenhuma NC válida encontrada', 'warning');
-      return;
-    }
-    
-    // 3. Salvar no Firebase
-    await this.salvarNoFirebase(processados, arquivo.name);
-    
-    // 4. Recarregar dados localmente
-    this.dados = processados;
-    this.atualizarEstatisticas();
-    this.aplicarFiltros();
-    this.renderizarTabela();
-    
-    showNotification(`✅ ${processados.length} NCs importadas com sucesso!`, 'success');
-    updateNcStatus(`✅ ${processados.length} NCs carregadas`);
-    
-  } catch (error) {
-    console.error('❌ Erro na importação:', error);
-    showNotification(`❌ Erro: ${error.message}`, 'error');
-    alert(`ERRO NA IMPORTAÇÃO:\n\n${error.message}\n\nVerifique o console (F12) para mais detalhes.`);
-  }
-},
+      // 📤 IMPORTAR DE PLANILHA
+      async importarPlanilha(arquivo) {
+        if (!authService.hasPermission('nc_import')) {
+          showNotification('⚠️ Sem permissão para importar NCs', 'warning');
+          return;
+        }
+        
+        try {
+          showNotification(`📁 Processando ${arquivo.name}...`, 'info');
+          
+          // Ler arquivo Excel
+          const data = await this.lerExcel(arquivo);
+          
+          // Processar dados
+          const processados = await this.processarPlanilha(data, arquivo.name);
+          
+          // Salvar no Firebase
+          await this.salvarNoFirebase(processados, arquivo.name);
+          
+          // Recarregar dados
+          await this.carregarDoFirebase();
+          
+          showNotification(`✅ ${processados.length} NCs importadas com sucesso!`, 'success');
+          
+        } catch (error) {
+          console.error('❌ Erro na importação:', error);
+          showNotification(`❌ Erro: ${error.message}`, 'error');
+        }
+      },
       
       // 📖 LER ARQUIVO EXCEL
       lerExcel(file) {
@@ -2478,102 +2454,49 @@ async importarPlanilha(arquivo) {
         });
       },
       
-      // 🔄 PROCESSAR PLANILHA DE NC - VERSÃO CORRIGIDA E ROBUSTA
-async processarPlanilha(data, fileName) {
-  const processados = [];
-  const hoje = new Date().toISOString().split('T')[0];
-  
-  console.log('📊 Processando planilha NC:', data.length, 'linhas');
-  
-  for (let i = 0; i < data.length; i++) {
-    const row = data[i];
-    
-    try {
-      // Função para extrair campos com múltiplos nomes possíveis
-      const extrairCampo = (nomesPossiveis) => {
-        for (const nome of nomesPossiveis) {
-          if (row[nome] !== undefined && row[nome] !== null && row[nome] !== '') {
-            return String(row[nome]).trim();
-          }
-        }
-        return '';
-      };
-      
-      // Extrair dados da linha
-      const nc = {
-        id: `nc_${Date.now()}_${i}`,
-        viagem: extrairCampo(['Viagem', 'viagem', 'VIAGEM', 'Número da Viagem', 'Nº Viagem']),
-        cliente: extrairCampo(['Cliente', 'cliente', 'CLIENTE']),
-        embarcador: extrairCampo(['Embarcador', 'embarcador', 'EMBARCADOR']),
-        veiculo: extrairCampo([
-          'Veículo', 'Veiculo', 'veículo', 'veiculo', 
-          'VEÍCULO', 'VEICULO', 'Placa', 'placa', 'PLACA'
-        ]).toUpperCase().trim(),
-        cpfCondutor: extrairCampo(['CPF Condutor', 'CPF', 'cpf', 'Cpf Condutor']),
-        nomeCondutor: extrairCampo([
-          'Nome Condutor', 'Motorista', 'motorista', 
-          'Condutor', 'condutor', 'Nome do Condutor'
-        ]),
-        origem: extrairCampo(['Origem', 'origem', 'ORIGEM']),
-        destino: extrairCampo(['Destino', 'destino', 'DESTINO']),
-        naoConformidade: extrairCampo([
-          'Não Conformidade', 'Não conformidade', 
-          'naoConformidade', 'NãoConformidade',
-          'Descrição NC', 'NC', 'Tipo de NC'
-        ]),
-        dataOcorrencia: extrairCampo([
-          'Data Ocorrencia', 'Data Ocorrência', 'Data', 
-          'Data da Ocorrência', 'DataOcorrencia'
-        ]),
-        importadoEm: hoje,
-        arquivoOrigem: fileName,
-        linhaOrigem: i + 1,
-        importadoPor: authService.getCurrentUser()?.username || 'Sistema'
-      };
-      
-      // DEBUG: Mostrar primeira linha processada
-      if (i === 0) {
-        console.log('📝 Primeira linha processada:', nc);
-        console.log('📝 Linha original:', row);
-      }
-      
-      // VALIDAÇÃO: Veículo e Não Conformidade são obrigatórios
-      if (nc.veiculo && nc.veiculo !== '' && 
-          nc.naoConformidade && nc.naoConformidade !== '') {
+      // 🔄 PROCESSAR PLANILHA DE NC
+      async processarPlanilha(data, fileName) {
+        const processados = [];
+        const hoje = new Date().toISOString().split('T')[0];
         
-        // Formatar data se estiver no formato brasileiro (dd/mm/aaaa)
-        if (nc.dataOcorrencia && nc.dataOcorrencia.includes('/')) {
+        for (let i = 0; i < data.length; i++) {
+          const row = data[i];
+          
           try {
-            const partes = nc.dataOcorrencia.split(' ');
-            const dataParte = partes[0];
-            const horaParte = partes[1] || '';
+            // Extrair dados da linha
+            const nc = {
+              id: `nc_${Date.now()}_${i}`,
+              viagem: row['Viagem'] || row['viagem'] || '',
+              cliente: row['Cliente'] || row['cliente'] || '',
+              embarcador: row['Embarcador'] || row['embarcador'] || '',
+              veiculo: (row['Veículo'] || row['veiculo'] || '').toString().toUpperCase(),
+              cpfCondutor: row['CPF Condutor'] || row['cpf_condutor'] || '',
+              nomeCondutor: row['Nome Condutor'] || row['nome_condutor'] || '',
+              origem: row['Origem'] || row['origem'] || '',
+              destino: row['Destino'] || row['destino'] || '',
+              naoConformidade: row['Não Conformidade'] || row['nao_conformidade'] || '',
+              dataOcorrencia: row['Data Ocorrencia'] || row['data_ocorrencia'] || '',
+              penalidade: row['Penalidade'] || row['penalidade'] || '',
+              infracao: row['Infração'] || row['infracao'] || '',
+              pontos: row['Pontos'] || row['pontos'] || '',
+              importadoEm: hoje,
+              arquivoOrigem: fileName,
+              linhaOrigem: i + 1,
+              importadoPor: authService.getCurrentUser()?.username || 'Sistema'
+            };
             
-            if (dataParte.includes('/')) {
-              const [dia, mes, ano] = dataParte.split('/');
-              nc.dataOcorrencia = `${ano}-${mes.padStart(2, '0')}-${dia.padStart(2, '0')} ${horaParte}`.trim();
+            // Validar dados mínimos
+            if (nc.viagem && nc.veiculo && nc.naoConformidade) {
+              processados.push(nc);
             }
-          } catch (e) {
-            console.warn('⚠️ Erro ao formatar data:', e);
-            // Mantém a data original se houver erro
+            
+          } catch (error) {
+            console.warn(`Erro na linha ${i + 1}:`, error);
           }
         }
         
-        processados.push(nc);
-      } else {
-        console.warn(`⚠️ Linha ${i + 1} ignorada - Dados insuficientes:`, {
-          veiculo: nc.veiculo,
-          naoConformidade: nc.naoConformidade
-        });
-      }
-      
-    } catch (error) {
-      console.error(`❌ Erro na linha ${i + 1}:`, error, 'Dados:', row);
-    }
-  }
-  
-  console.log(`✅ Processamento concluído: ${processados.length} NCs válidas de ${data.length} linhas`);
-  return processados;
-},,
+        return processados;
+      },
       
       // 💾 SALVAR NO FIREBASE
       async salvarNoFirebase(dados, fileName) {
@@ -3895,44 +3818,23 @@ async processarPlanilha(data, fileName) {
     // ============================================
 
     function ncImportarPlanilha(file = null) {
-  // DEBUG: Verificar permissões do usuário atual
-  const user = authService.getCurrentUser();
-  console.log('🔐 DEBUG - Usuário atual:', user?.username);
-  console.log('🔐 DEBUG - Perfil:', user?.role);
-  console.log('🔐 DEBUG - Permissões do perfil:', authService.userRoles[user?.role]?.permissions);
-  console.log('🔐 DEBUG - Tem permissão nc_import?', authService.hasPermission('nc_import'));
-  console.log('🔐 DEBUG - Tem permissão nc_admin?', authService.hasPermission('nc_admin'));
-  console.log('🔐 DEBUG - É admin?', authService.isAdmin());
-  
-  // Calcular permissão
-  const temPermissao = authService.hasPermission('nc_admin') || 
-                       authService.hasPermission('nc_import') ||
-                       authService.isAdmin();
-  
-  console.log('🔐 DEBUG - Tem permissão total?', temPermissao);
-  
-  if (!temPermissao) {
-    showNotification('⚠️ Sem permissão para importar NCs', 'warning');
-    return;
-  }
-  
-  if (!file) {
-    // Criar input de arquivo
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.xlsx,.xls,.csv';
-    input.onchange = (e) => {
-      if (e.target.files.length) {
-        ncModule.importarPlanilha(e.target.files[0]);
+      if (!file) {
+        // Criar input de arquivo
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.xlsx,.xls,.csv';
+        input.onchange = (e) => {
+          if (e.target.files.length) {
+            ncModule.importarPlanilha(e.target.files[0]);
+          }
+        };
+        input.click();
+      } else {
+        ncModule.importarPlanilha(file);
       }
-    };
-    input.click();
-  } else {
-    ncModule.importarPlanilha(file);
-  }
-  
-  closeSettingsMenu();
-}
+      
+      closeSettingsMenu();
+    }
 
     function ncConfigurarAlertas() {
       showNotification('🔔 Configuração de alertas em desenvolvimento', 'info');
