@@ -3844,11 +3844,71 @@
         const periodoText = this.getPeriodoTexto();
         document.getElementById('dashboardPeriodo').textContent = periodoText;
       },
+
+      // Parse robusto para data de NC (aceita ISO, DD/MM/YYYY, número serial Excel, timestamp ms, Date)
+      parseNcDate(value) {
+        if (!value && value !== 0) return null;
+        try {
+          // Date object
+          if (Object.prototype.toString.call(value) === '[object Date]') {
+            return isNaN(value.getTime()) ? null : new Date(value.getTime());
+          }
+
+          // number -> could be ms timestamp or Excel serial
+          if (typeof value === 'number') {
+            if (value > 1e12) return new Date(value); // milliseconds
+            // Excel serial
+            const ms = (value - 25569) * 86400 * 1000;
+            const d = new Date(ms);
+            return isNaN(d.getTime()) ? null : d;
+          }
+
+          const s = String(value).trim();
+          if (!s) return null;
+
+          // numeric string
+          if (/^\d+(?:\.\d+)?$/.test(s)) {
+            const v = parseFloat(s);
+            if (v > 1e12) return new Date(v);
+            const ms = (v - 25569) * 86400 * 1000;
+            const d = new Date(ms);
+            if (!isNaN(d.getTime())) return d;
+          }
+
+          // DD/MM/YYYY or DD/MM/YYYY HH:MM
+          if (s.includes('/')) {
+            const parts = s.split(' ');
+            const datePart = parts[0];
+            const timePart = parts[1] || '';
+            const comps = datePart.split('/');
+            if (comps.length === 3) {
+              const dia = parseInt(comps[0],10);
+              const mes = parseInt(comps[1],10) - 1;
+              const ano = parseInt(comps[2],10);
+              const d = new Date(ano, mes, dia);
+              if (!isNaN(d.getTime())) {
+                if (timePart) {
+                  const [hh, mm] = timePart.split(':').map(x=>parseInt(x,10)||0);
+                  d.setHours(hh, mm);
+                }
+                return d;
+              }
+            }
+          }
+
+          // ISO / RFC parsable
+          const iso = new Date(s);
+          if (!isNaN(iso.getTime())) return iso;
+        } catch (e) {
+          console.warn('parseNcDate error', e, value);
+        }
+        return null;
+      },
       
       filtrarPorPeriodo(dados) {
         const agora = new Date();
         let dataLimite = new Date();
-        
+
         switch(this.periodo) {
           case '7d':
             dataLimite.setDate(agora.getDate() - 7);
@@ -3856,19 +3916,23 @@
           case '30d':
             dataLimite.setDate(agora.getDate() - 30);
             break;
+          case '60d':
+            dataLimite.setDate(agora.getDate() - 60);
+            break;
           case '90d':
             dataLimite.setDate(agora.getDate() - 90);
             break;
           case 'all':
             return dados; // Retorna todos os dados
         }
-        
+
         return dados.filter(nc => {
-          if (!nc.dataOcorrencia) return false;
           try {
-            const dataNC = new Date(nc.dataOcorrencia.split(' ')[0]);
-            return dataNC >= dataLimite;
-          } catch {
+            const d = this.parseNcDate(nc.dataOcorrencia);
+            if (!d) return false;
+            // compare dates (ignore time)
+            return d >= dataLimite;
+          } catch (e) {
             return false;
           }
         });
@@ -3878,20 +3942,19 @@
         switch(this.periodo) {
           case '7d': return 7;
           case '30d': return 30;
+          case '60d': return 60;
           case '90d': return 90;
           case 'all': 
             // Calcular diferença entre primeira e última data
             if (ncModule.dados.length === 0) return 1;
             const datas = ncModule.dados
-              .map(nc => nc.dataOcorrencia)
-              .filter(d => d)
-              .map(d => new Date(d.split(' ')[0]))
-              .filter(d => !isNaN(d.getTime()));
-            
+              .map(nc => this.parseNcDate(nc.dataOcorrencia))
+              .filter(d => d && !isNaN(d.getTime()));
+
             if (datas.length === 0) return 1;
-            
-            const minData = new Date(Math.min(...datas));
-            const maxData = new Date(Math.max(...datas));
+
+            const minData = new Date(Math.min(...datas.map(d=>d.getTime())));
+            const maxData = new Date(Math.max(...datas.map(d=>d.getTime())));
             const diffTime = Math.abs(maxData - minData);
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
             return Math.max(diffDays, 1);
@@ -3938,16 +4001,13 @@
       atualizarGraficoEvolucaoTemporal() {
         const dados = this.filtrarPorPeriodo(ncModule.dados);
         
-        // Agrupar por dia
+        // Agrupar por dia usando parseNcDate
         const diasMap = new Map();
         dados.forEach(nc => {
-          if (!nc.dataOcorrencia) return;
-          
           try {
-            const dataStr = nc.dataOcorrencia.split(' ')[0]; // Pega apenas a data
-            const date = new Date(dataStr);
+            const date = this.parseNcDate(nc.dataOcorrencia);
+            if (!date) return;
             const key = date.toISOString().split('T')[0];
-            
             diasMap.set(key, (diasMap.get(key) || 0) + 1);
           } catch {
             // Ignora datas inválidas
