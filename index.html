@@ -2366,6 +2366,7 @@
           <div class="time-filter">
             <button class="time-btn active" onclick="setDashboardPeriod('7d', this)">7 dias</button>
             <button class="time-btn" onclick="setDashboardPeriod('30d', this)">30 dias</button>
+            <button class="time-btn" onclick="setDashboardPeriod('60d', this)">60 dias</button>
             <button class="time-btn" onclick="setDashboardPeriod('90d', this)">90 dias</button>
             <button class="time-btn" onclick="setDashboardPeriod('all', this)">Todo período</button>
           </div>
@@ -3878,15 +3879,19 @@
         });
         
         // Ordenar por data
-        const diasOrdenados = Array.from(diasMap.entries())
-          .sort((a, b) => a[0].localeCompare(b[0]))
-          .slice(-30); // Últimos 30 dias
-        
-        const labels = diasOrdenados.map(([data, _]) => {
+        const diasOrdenados = Array.from(diasMap.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+
+        // Determinar quantos dias mostrar com base no período selecionado
+        const diasDisponiveis = diasOrdenados.length;
+        const diasSolicitados = (typeof this.getDiasNoPeriodo === 'function') ? Math.max(1, this.getDiasNoPeriodo()) : 30;
+        const diasParaMostrar = Math.min(diasSolicitados, diasDisponiveis);
+        const diasOrdenadosCortados = diasOrdenados.slice(-diasParaMostrar);
+
+        const labels = diasOrdenadosCortados.map(([data, _]) => {
           const date = new Date(data);
           return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
         });
-        const data = diasOrdenados.map(([_, count]) => count);
+        const data = diasOrdenadosCortados.map(([_, count]) => count);
         
         const chart = this.charts.chartEvolucao;
         chart.data.labels = labels;
@@ -5280,14 +5285,18 @@ ${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${ncModule.obterTipo
       // Remover active de todos os botões
       const buttons = document.querySelectorAll('.time-btn');
       buttons.forEach(btn => btn.classList.remove('active'));
-      
-      // Ativar botão clicado (se tivermos o evento, use-o; senão tente achar pelo período)
-      if (evt && evt.target) {
+
+      // Ativar botão clicado (evt pode ser o elemento 'this' ou um event)
+      if (evt && evt.classList && typeof evt.classList.add === 'function') {
+        evt.classList.add('active');
+      } else if (evt && evt.target && evt.target.classList) {
         evt.target.classList.add('active');
       } else {
-        // tentar encontrar botão pelo texto
+        // tentar encontrar botão pelo texto ou dataset (cuidar da precedência lógica)
         for (const btn of buttons) {
-          if (btn.textContent && btn.textContent.trim().startsWith(periodo.replace('d','')) || btn.dataset.period === periodo) {
+          const textMatches = btn.textContent && btn.textContent.trim().startsWith(periodo.replace('d',''));
+          const dataMatches = btn.dataset && btn.dataset.period === periodo;
+          if (textMatches || dataMatches) {
             btn.classList.add('active');
             break;
           }
