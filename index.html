@@ -3813,10 +3813,16 @@
       atualizarMetricas() {
         const dados = this.filtrarPorPeriodo(ncModule.dados);
         const total = dados.length;
-        
+
+        console.log(`📊 Métricas - Período: ${this.periodo}`);
+        console.log(`📊 Total de NCs no período: ${total}`);
+
         // Calcular média diária
         const dias = this.getDiasNoPeriodo();
         const mediaDiaria = dias > 0 ? (total / dias).toFixed(1) : '0';
+
+        console.log(`📊 Dias no período: ${dias}`);
+        console.log(`📊 Média diária: ${mediaDiaria}`);
         
         // Encontrar veículo com mais NCs
         const veiculoCounts = {};
@@ -3926,16 +3932,28 @@
             return dados; // Retorna todos os dados
         }
 
-        return dados.filter(nc => {
+        // Resetar horas para início do dia
+        dataLimite.setHours(0,0,0,0);
+
+        console.log(`📅 Filtrando ${dados.length} registros por período: ${this.periodo}`);
+        console.log(`📊 Data limite: ${dataLimite.toLocaleDateString('pt-BR')}`);
+
+        const dadosFiltrados = dados.filter(nc => {
           try {
             const d = this.parseNcDate(nc.dataOcorrencia);
             if (!d) return false;
-            // compare dates (ignore time)
-            return d >= dataLimite;
+            const filtroAtivo = d >= dataLimite;
+            if (this.periodo === '7d') {
+              console.log(`  - ${nc.veiculo}: ${d.toLocaleDateString('pt-BR')} >= ${dataLimite.toLocaleDateString('pt-BR')} ? ${filtroAtivo}`);
+            }
+            return filtroAtivo;
           } catch (e) {
             return false;
           }
         });
+
+        console.log(`✅ Filtrados: ${dadosFiltrados.length} de ${dados.length} registros`);
+        return dadosFiltrados;
       },
       
       getDiasNoPeriodo() {
