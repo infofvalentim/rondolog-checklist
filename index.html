@@ -5138,24 +5138,81 @@
       closeSettingsMenu();
     }
 
-    function ncLimparHistorico() {
+    async function ncLimparHistorico() {
       if (!authService.hasPermission('nc_admin')) {
         showNotification('⚠️ Apenas administradores podem limpar histórico', 'warning');
         return;
       }
-      
-      if (!confirm('🗑️ LIMPAR HISTÓRICO DE NÃO CONFORMIDADES\n\nEsta ação removerá TODOS os registros de NCs.\n\n⚠️ Esta ação não pode ser desfeita!\n\nDeseja continuar?')) {
+
+      if (!confirm('🗑️ LIMPAR HISTÓRICO DE NÃO CONFORMIDADES\n\nEsta ação removerá TODOS os registros de NCs localmente.\n\nDeseja continuar?')) {
         return;
       }
-      
-      showNotification('🔄 Limpando histórico...', 'info');
-      
-      ncModule.dados = [];
-      ncModule.atualizarEstatisticas();
-      ncModule.aplicarFiltros();
-      ncModule.renderizarTabela();
-      
-      showNotification('✅ Histórico de NCs limpo localmente', 'success');
+
+      showNotification('🔄 Limpando histórico localmente...', 'info');
+
+      // Backup local copy (download JSON & store in IndexedDB)
+      try{
+        const localCopy = Array.isArray(ncModule.dados) ? ncModule.dados.slice() : [];
+        if (localCopy.length > 0) {
+          const ts = new Date().toISOString().replace(/[:\.]/g,'-');
+          const filename = `nc_backup_local_${ts}.json`;
+          const blob = new Blob([JSON.stringify(localCopy, null, 2)], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+          try{ idb.set(`nc_backup_local_${ts}`, localCopy); }catch(e){ console.warn('IndexedDB backup failed', e); }
+        }
+      }catch(e){ console.warn('Backup local falhou', e); }
+
+      // Clear local data
+      try{
+        ncModule.dados = [];
+        ncModule.atualizarEstatisticas();
+        ncModule.aplicarFiltros();
+        ncModule.renderizarTabela();
+        showNotification('✅ Histórico de NCs limpo localmente', 'success');
+      }catch(e){ console.error('Erro limpando localmente', e); showNotification('❌ Erro limpando localmente', 'error'); }
+
+      // Ask about remote cleanup
+      if (!confirm('📡 Deseja também remover TODOS os registros de NCs no Firebase?\n\nIsto é irreversível — será gerado um backup remoto antes da remoção.')){
+        closeSettingsMenu();
+        return;
+      }
+
+      // Remote deletion: fetch remote data, backup, then delete node
+      showNotification('🔄 Gerando backup remoto e limpando Firebase...', 'info');
+      try{
+        const url = 'https://rondolog-frotas-default-rtdb.firebaseio.com/nc_dados/registros.json';
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const remoteData = await resp.json();
+
+        // Backup remote JSON download
+        const ts2 = new Date().toISOString().replace(/[:\.]/g,'-');
+        const backupFilename = `nc_backup_remote_${ts2}.json`;
+        const blob2 = new Blob([JSON.stringify(remoteData, null, 2)], { type: 'application/json' });
+        const backupUrl = URL.createObjectURL(blob2);
+        const a2 = document.createElement('a'); a2.href = backupUrl; a2.download = backupFilename; document.body.appendChild(a2); a2.click(); a2.remove();
+        try{ idb.set(`nc_backup_remote_${ts2}`, remoteData); }catch(e){ console.warn('IndexedDB remote backup failed', e); }
+
+        // Delete the whole node remotely (DELETE request)
+        const delResp = await fetch(url, { method: 'DELETE' });
+        if (!delResp.ok) throw new Error(`Delete failed HTTP ${delResp.status}`);
+
+        // also reset stats under nc_stats
+        try{
+          await fetch('https://rondolog-frotas-default-rtdb.firebaseio.com/nc_stats.json', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ total: 0, ultima_importacao: null })
+          });
+        }catch(e){ console.warn('Failed to reset nc_stats', e); }
+
+        showNotification('✅ Histórico de NCs removido do Firebase (backup criado)', 'success');
+      }catch(error){
+        console.error('Erro ao limpar Firebase:', error);
+        showNotification('❌ Erro ao limpar dados no Firebase. Veja console.', 'error');
+      }
+
       closeSettingsMenu();
     }
 
