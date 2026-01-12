@@ -7,6 +7,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+  <!-- Note: heavy libs will be lazy-loaded on demand -->
   <!-- Chart.js para gráficos do dashboard -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <!-- 🔥 SCRIPTS DO FIREBASE - VERSÃO 8.10.1 -->
@@ -2363,10 +2364,10 @@
         <div class="filter-group">
           <div class="filter-label">Período de Análise</div>
           <div class="time-filter">
-            <button class="time-btn active" onclick="setDashboardPeriod('7d')">7 dias</button>
-            <button class="time-btn" onclick="setDashboardPeriod('30d')">30 dias</button>
-            <button class="time-btn" onclick="setDashboardPeriod('90d')">90 dias</button>
-            <button class="time-btn" onclick="setDashboardPeriod('all')">Todo período</button>
+            <button class="time-btn active" onclick="setDashboardPeriod('7d', this)">7 dias</button>
+            <button class="time-btn" onclick="setDashboardPeriod('30d', this)">30 dias</button>
+            <button class="time-btn" onclick="setDashboardPeriod('90d', this)">90 dias</button>
+            <button class="time-btn" onclick="setDashboardPeriod('all', this)">Todo período</button>
           </div>
         </div>
         <div class="filter-group">
@@ -2565,6 +2566,86 @@
   <!-- ============================================ -->
 
   <script>
+    // =========================
+    // UTIL: escape text to avoid XSS
+    // =========================
+    function escapeHtml(str){
+      if(str === null || str === undefined) return '';
+      return String(str)
+        .replace(/&/g,'&amp;')
+        .replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;')
+        .replace(/"/g,'&quot;')
+        .replace(/'/g,'&#39;');
+    }
+
+    // =========================
+    // IndexedDB simple wrapper (promisified)
+    // =========================
+    const idb = (function(){
+      const DB_NAME = 'rondolog_db_v1';
+      const STORE = 'kv';
+      let dbp = null;
+      function open(){
+        if(dbp) return dbp;
+        dbp = new Promise((resolve, reject)=>{
+          const req = indexedDB.open(DB_NAME, 1);
+          req.onupgradeneeded = (e)=>{
+            const db = e.target.result;
+            if(!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE);
+          };
+          req.onsuccess = ()=> resolve(req.result);
+          req.onerror = ()=> reject(req.error);
+        });
+        return dbp;
+      }
+      async function get(key){
+        const db = await open();
+        return new Promise((res, rej)=>{
+          const tx = db.transaction(STORE,'readonly');
+          const st = tx.objectStore(STORE);
+          const r = st.get(key);
+          r.onsuccess = ()=> res(r.result);
+          r.onerror = ()=> rej(r.error);
+        });
+      }
+      async function set(key, val){
+        const db = await open();
+        return new Promise((res, rej)=>{
+          const tx = db.transaction(STORE,'readwrite');
+          const st = tx.objectStore(STORE);
+          const r = st.put(val, key);
+          r.onsuccess = ()=> res(true);
+          r.onerror = ()=> rej(r.error);
+        });
+      }
+      async function del(key){
+        const db = await open();
+        return new Promise((res, rej)=>{
+          const tx = db.transaction(STORE,'readwrite');
+          const st = tx.objectStore(STORE);
+          const r = st.delete(key);
+          r.onsuccess = ()=> res(true);
+          r.onerror = ()=> rej(r.error);
+        });
+      }
+      return { get, set, del };
+    })();
+
+    // =========================
+    // Lazy-load helper for heavy libs
+    // =========================
+    function loadScriptOnce(src){
+      return new Promise((resolve,reject)=>{
+        if(document.querySelector(`script[src="${src}"]`)) return resolve();
+        const s = document.createElement('script');
+        s.src = src;
+        s.onload = ()=> resolve();
+        s.onerror = (e)=> reject(e);
+        document.head.appendChild(s);
+      });
+    }
+
     // ============================================
     // RONDOLOG - SISTEMA DE GESTÃO DE FROTAS
     // Versão: 15.2 - COM DASHBOARD DE ANÁLISE
@@ -2592,36 +2673,47 @@
         }
       },
       
-      // Banco de dados de usuários
-      users: JSON.parse(localStorage.getItem('rondolog_users')) || [
-        {
-          id: 1,
-          username: 'Felipe',
-          password: '123456',
-          role: 'ADMIN',
-          createdAt: new Date().toISOString(),
-          lastLogin: null,
-          active: true
-        },
-        {
-          id: 2,
-          username: 'operador',
-          password: 'operador123',
-          role: 'OPERATOR',
-          createdAt: new Date().toISOString(),
-          lastLogin: null,
-          active: true
-        },
-        {
-          id: 3,
-          username: 'visualizador',
-          password: 'visual123',
-          role: 'VIEWER',
-          createdAt: new Date().toISOString(),
-          lastLogin: null,
-          active: true
+      // Banco de dados de usuários (parse seguro de localStorage)
+      users: (function(){
+        try{
+          const raw = localStorage.getItem('rondolog_users');
+          if(raw){
+            const parsed = JSON.parse(raw);
+            if(Array.isArray(parsed)) return parsed;
+          }
+        }catch(e){
+          console.warn('rondolog_users parse error', e);
         }
-      ],
+        return [
+          {
+            id: 1,
+            username: 'Felipe',
+            password: '123456',
+            role: 'ADMIN',
+            createdAt: new Date().toISOString(),
+            lastLogin: null,
+            active: true
+          },
+          {
+            id: 2,
+            username: 'operador',
+            password: 'operador123',
+            role: 'OPERATOR',
+            createdAt: new Date().toISOString(),
+            lastLogin: null,
+            active: true
+          },
+          {
+            id: 3,
+            username: 'visualizador',
+            password: 'visual123',
+            role: 'VIEWER',
+            createdAt: new Date().toISOString(),
+            lastLogin: null,
+            active: true
+          }
+        ];
+      })(),
       
       login(username, password) {
         const user = this.users.find(u => 
@@ -2783,7 +2875,28 @@
       }
     };
     
-    // 🎯 VARIÁVEIS GLOBAIS
+      // Garantir usuário padrão 'Felipe' existe (senha: 123456)
+      (function ensureFelipe(){
+        try{
+          if (!authService.getUser('Felipe')){
+            authService.users.unshift({
+              id: Date.now(),
+              username: 'Felipe',
+              password: '123456',
+              role: 'ADMIN',
+              createdAt: new Date().toISOString(),
+              lastLogin: null,
+              active: true
+            });
+            authService.saveUsers();
+            console.log('✔️ Usuário padrão Felipe criado');
+          }
+        }catch(e){
+          console.error('Erro ao garantir usuário Felipe:', e);
+        }
+      })();
+
+      // 🎯 VARIÁVEIS GLOBAIS
     let vehicleData = [];
     let filteredData = [];
     let currentSort = { column: null, direction: 'asc' };
@@ -2822,6 +2935,10 @@
           
           if (data) {
             this.dados = Object.values(data).filter(item => item !== null);
+            // Auto-dedupe on load: keep latest entries when duplicates found
+            try{
+              await removeDuplicatesKeepLatest();
+            }catch(e){ console.warn('Auto-dedupe failed', e); }
             this.atualizarEstatisticas();
             this.aplicarFiltros();
             this.renderizarTabela();
@@ -4035,6 +4152,23 @@
     const currentUserInfo = document.getElementById('currentUserInfo');
     const adminSection = document.getElementById('adminSection');
     const btnDarkMode = document.getElementById('btnDarkMode');
+    // Elementos adicionais referenciados globalmente - inicialização segura
+    try {
+      window.statusFilter = document.getElementById('statusFilter');
+      window.dateFilter = document.getElementById('dateFilter');
+      window.searchInput = document.getElementById('searchInput');
+      window.btnCloseSettings = document.getElementById('btnCloseSettings');
+      window.settingsMenu = document.getElementById('settingsMenu');
+      window.dropAreaSettings = document.getElementById('dropAreaSettings');
+      window.fileInputSettings = document.getElementById('fileInputSettings');
+      window.importProgress = document.getElementById('importProgress');
+      window.importProgressBar = document.getElementById('importProgressBar');
+      window.importProgressText = document.getElementById('importProgressText');
+      window.editModal = document.getElementById('editModal');
+      window.editForm = document.getElementById('editForm');
+    } catch (e) {
+      console.warn('Erro ao inicializar referências DOM adicionais', e);
+    }
     
     // ============================================
     // 🔥 FIREBASE SERVICE
@@ -5085,19 +5219,26 @@ ${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${ncModule.obterTipo
       showNotification('✅ Dashboard atualizado com sucesso', 'success');
     }
 
-    function setDashboardPeriod(periodo) {
+    function setDashboardPeriod(periodo, evt) {
       // Remover active de todos os botões
-      document.querySelectorAll('.time-btn').forEach(btn => {
-        btn.classList.remove('active');
-      });
+      const buttons = document.querySelectorAll('.time-btn');
+      buttons.forEach(btn => btn.classList.remove('active'));
       
-      // Ativar botão clicado
-      event.target.classList.add('active');
-      
-      // Definir período
+      // Ativar botão clicado (se tivermos o evento, use-o; senão tente achar pelo período)
+      if (evt && evt.target) {
+        evt.target.classList.add('active');
+      } else {
+        // tentar encontrar botão pelo texto
+        for (const btn of buttons) {
+          if (btn.textContent && btn.textContent.trim().startsWith(periodo.replace('d','')) || btn.dataset.period === periodo) {
+            btn.classList.add('active');
+            break;
+          }
+        }
+      }
+
+      // Definir período e atualizar
       dashboardModule.periodo = periodo;
-      
-      // Atualizar dashboard
       dashboardModule.atualizarDashboard();
     }
 
@@ -5182,32 +5323,28 @@ ${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${ncModule.obterTipo
 
     function showTab(tabName) {
       // Esconder todas as abas
-      document.querySelectorAll('.tab-content').forEach(tab => {
-        tab.classList.remove('active');
-      });
-      
+      document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
       // Remover active de todos os botões
-      document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.classList.remove('active');
-      });
-      
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+
       // Mostrar aba selecionada
       const tabId = `tab${tabName.charAt(0).toUpperCase() + tabName.slice(1)}`;
-      document.getElementById(tabId).classList.add('active');
-      
-      // Ativar botão
-      event.target.classList.add('active');
-      
+      const tabEl = document.getElementById(tabId);
+      if (tabEl) tabEl.classList.add('active');
+
+      // Ativar botão correspondente por ordem conhecida (frota=0, naoConformidades=1, dashboard=2)
+      const tabOrder = { frota: 0, naoConformidades: 1, dashboard: 2 };
+      const idx = tabOrder[tabName] !== undefined ? tabOrder[tabName] : null;
+      const btns = document.querySelectorAll('.tab-btn');
+      if (idx !== null && btns[idx]) btns[idx].classList.add('active');
+
       // Se for a aba de não conformidades, carregar dados
       if (tabName === 'naoConformidades') {
         setupNcTableSorting();
         setupNcFilters();
-        
-        if (ncModule.dados.length === 0) {
-          ncModule.carregarDoFirebase();
-        }
+        if (ncModule.dados.length === 0) ncModule.carregarDoFirebase();
       }
-      
+
       // Se for a aba de dashboard, inicializar
       if (tabName === 'dashboard') {
         if (ncModule.dados.length === 0) {
@@ -5894,7 +6031,7 @@ ${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${ncModule.obterTipo
       localStorage.setItem('rondolog_stats', JSON.stringify(appStats));
     }
 
-    function exportXLS() {
+    async function exportXLS() {
       let dataToExport = filteredData;
       let filename = `rondolog_frota_${new Date().toISOString().split('T')[0]}.xlsx`;
 
@@ -5910,6 +6047,10 @@ ${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${ncModule.obterTipo
         'STATUS GERAL': vehicle.statusGeral || ''
       }));
 
+      // lazy-load XLSX if not present
+      const xlsxSrc = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+      const ensureXLSX = window.XLSX ? Promise.resolve() : loadScriptOnce(xlsxSrc);
+      await ensureXLSX;
       const worksheet = XLSX.utils.json_to_sheet(excelData);
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, 'Checklist');
@@ -5927,64 +6068,102 @@ ${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${ncModule.obterTipo
       closeSettingsMenu();
     }
 
-    function exportPDF() {
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF();
-      
-      doc.setFontSize(20);
-      doc.setTextColor(40, 40, 40);
-      doc.text('RONDOLOG - RELATÓRIO DE CHECKLIST', 105, 15, { align: 'center' });
-      
-      doc.setFontSize(10);
-      doc.setTextColor(100, 100, 100);
-      doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, 105, 22, { align: 'center' });
-      doc.text(`Usuário: ${authService.getCurrentUser()?.username || 'Não autenticado'}`, 105, 28, { align: 'center' });
-      
-      let dataToExport = filteredData;
-      let title = 'RELATÓRIO DA FROTA';
+    async function exportPDF() {
+      const jsPDFsrc = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+      const autoTableSrc = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js';
 
-      if (dataToExport.length === 0) {
-        doc.text('Nenhum dado para exportar', 20, 40);
-      } else {
-        doc.setFontSize(14);
-        doc.setTextColor(0, 0, 0);
-        doc.text(title, 20, 35);
-        
-        const tableData = dataToExport.map(vehicle => [
-          vehicle.placa || '',
-          formatDate(vehicle.vigenciaChecklist),
-          vehicle.statusChecklist || '',
-          vehicle.statusGeral || ''
-        ]);
+      try {
+        if (!window.jspdf && !window.jsPDF) await loadScriptOnce(jsPDFsrc);
+        if (!window.jspdf || !window.jspdf.jsPDF) {
+          if (window.jsPDF && !window.jspdf) window.jspdf = { jsPDF: window.jsPDF };
+        }
+        if (!window.jspdf || !window.jspdf.jsPDF) {
+          // If still not present, attempt to use global jsPDF
+          if (!window.jsPDF) await loadScriptOnce(jsPDFsrc);
+          if (window.jsPDF && !window.jspdf) window.jspdf = { jsPDF: window.jsPDF };
+        }
 
-        doc.autoTable({
-          startY: 45,
-          head: [['PLACA', 'CHECKLIST VIGÊNCIA', 'CHECKLIST STATUS', 'STATUS GERAL']],
-          body: tableData,
-          styles: { fontSize: 8 },
-          headStyles: { fillColor: [0, 0, 0] },
-          columnStyles: {
-            0: { cellWidth: 25 },
-            1: { cellWidth: 30 },
-            2: { cellWidth: 30 },
-            3: { cellWidth: 25 }
-          }
-        });
-      }
+        // Load autotable plugin if needed
+        if (!('autoTable' in (window.jspdf || window))) await loadScriptOnce(autoTableSrc);
 
-      const pageCount = doc.internal.getNumberOfPages();
-      for(let i = 1; i <= pageCount; i++) {
-        doc.setPage(i);
-        doc.setFontSize(8);
+        const { jsPDF } = window.jspdf || window;
+        const doc = new jsPDF();
+
+        doc.setFontSize(20);
+        doc.setTextColor(40, 40, 40);
+        doc.text('RONDOLOG - RELATÓRIO DE CHECKLIST', 105, 15, { align: 'center' });
+
+        doc.setFontSize(10);
         doc.setTextColor(100, 100, 100);
-        doc.text(`Página ${i} de ${pageCount} - RONDOLOG Sistema de Gestão`, 105, 285, { align: 'center' });
-      }
+        doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, 105, 22, { align: 'center' });
+        doc.text(`Usuário: ${authService.getCurrentUser()?.username || 'Não autenticado'}`, 105, 28, { align: 'center' });
 
-      doc.save(`rondolog_relatorio_${new Date().toISOString().split('T')[0]}.pdf`);
-      syncLog.add('export', `Exportado para PDF: ${dataToExport.length} registros`, {
-        user: authService.getCurrentUser()?.username
-      });
-      closeSettingsMenu();
+        let dataToExport = filteredData;
+        let title = 'RELATÓRIO DA FROTA';
+
+        if (dataToExport.length === 0) {
+          doc.text('Nenhum dado para exportar', 20, 40);
+        } else {
+          doc.setFontSize(14);
+          doc.setTextColor(0, 0, 0);
+          doc.text(title, 20, 35);
+
+          const tableData = dataToExport.map(vehicle => [
+            vehicle.placa || '',
+            formatDate(vehicle.vigenciaChecklist),
+            vehicle.statusChecklist || '',
+            vehicle.statusGeral || ''
+          ]);
+
+          if (typeof doc.autoTable === 'function') {
+            doc.autoTable({
+              startY: 45,
+              head: [['PLACA', 'CHECKLIST VIGÊNCIA', 'CHECKLIST STATUS', 'STATUS GERAL']],
+              body: tableData,
+              styles: { fontSize: 8 },
+              headStyles: { fillColor: [0, 0, 0] },
+              columnStyles: {
+                0: { cellWidth: 25 },
+                1: { cellWidth: 30 },
+                2: { cellWidth: 30 },
+                3: { cellWidth: 25 }
+              }
+            });
+          } else if (window.jspdf && window.jspdf.autoTable) {
+            window.jspdf.autoTable(doc, {
+              startY: 45,
+              head: [['PLACA', 'CHECKLIST VIGÊNCIA', 'CHECKLIST STATUS', 'STATUS GERAL']],
+              body: tableData,
+              styles: { fontSize: 8 }
+            });
+          } else {
+            // Fallback: simple text table
+            let y = 45;
+            tableData.forEach(row => {
+              doc.text(row.join(' | '), 20, y);
+              y += 6;
+              if (y > 270) { doc.addPage(); y = 20; }
+            });
+          }
+        }
+
+        const pageCount = doc.internal.getNumberOfPages();
+        for(let i = 1; i <= pageCount; i++) {
+          doc.setPage(i);
+          doc.setFontSize(8);
+          doc.setTextColor(100, 100, 100);
+          doc.text(`Página ${i} de ${pageCount} - RONDOLOG Sistema de Gestão`, 105, 285, { align: 'center' });
+        }
+
+        doc.save(`rondolog_relatorio_${new Date().toISOString().split('T')[0]}.pdf`);
+        syncLog.add('export', `Exportado para PDF: ${dataToExport.length} registros`, {
+          user: authService.getCurrentUser()?.username
+        });
+        closeSettingsMenu();
+      } catch (e) {
+        console.error('Erro ao gerar PDF:', e);
+        showNotification('❌ Erro ao gerar PDF. Veja o console para detalhes.', 'error');
+      }
     }
 
     function showNotification(message, type = 'info') {
@@ -6023,9 +6202,147 @@ ${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${ncModule.obterTipo
     }
 
     // ============================================
+    // 🔎 DEDUPE: encontrar e remover duplicados de Não Conformidades
+    // ============================================
+
+    function _nc_normalize_key(nc){
+      const placa = (nc.veiculo || '').toString().toUpperCase().trim();
+      const data = (nc.dataOcorrencia || '').toString().split(' ')[0].trim();
+      const texto = (nc.naoConformidade || '').toString().replace(/\s+/g,' ').toLowerCase().trim();
+      return `${placa}|${data}|${texto}`;
+    }
+
+    function findDuplicates(){
+      const map = new Map();
+      (ncModule.dados || []).forEach(item => {
+        const key = _nc_normalize_key(item);
+        if (!map.has(key)) map.set(key, []);
+        map.get(key).push(item);
+      });
+
+      const groups = [];
+      for (const [key, arr] of map.entries()){
+        if (arr.length > 1) groups.push({ key, items: arr });
+      }
+
+      // Atualizar UI resumo de duplicados se existir
+      try{
+        const el = document.getElementById('duplicatesInfo');
+        if (el){
+          if (groups.length === 0) el.innerText = 'Nenhum duplicado encontrado.';
+          else el.innerText = `${groups.length} grupos de duplicados encontrados — total ${groups.reduce((s,g)=>s+g.items.length,0)} registros.`;
+        }
+      }catch(e){ console.warn('duplicatesInfo update failed', e); }
+
+      return groups;
+    }
+
+    async function removeDuplicates({ keepLatest = false, deleteRemote = false } = {}){
+      const groups = findDuplicates();
+      if (groups.length === 0){
+        showNotification('🔍 Nenhum duplicado encontrado', 'info');
+        return { removed: 0 };
+      }
+
+      let removedCount = 0;
+      const toRemoveIds = [];
+
+      // Build a set of items to keep
+      const keepSet = new Set();
+
+      groups.forEach(group => {
+        let keep = null;
+        if (keepLatest){
+          // Prefer by salvoEm, then importadoEm, then by id (timestamp in id)
+          keep = group.items.reduce((best, cur) => {
+            const bestTime = (best.salvoEm || best.importadoEm || best.id || '').toString();
+            const curTime = (cur.salvoEm || cur.importadoEm || cur.id || '').toString();
+            return (curTime > bestTime) ? cur : best;
+          }, group.items[0]);
+        } else {
+          keep = group.items[0];
+        }
+
+        // Mark keep and mark others for removal
+        keepSet.add(keep.id || JSON.stringify(keep));
+        group.items.forEach(it => {
+          const id = it.id || JSON.stringify(it);
+          if (!keepSet.has(id)) {
+            toRemoveIds.push(it.id);
+          }
+        });
+      });
+
+      if (toRemoveIds.length === 0){
+        showNotification('Nenhum registro removido (estrutura inesperada)', 'warning');
+        return { removed: 0 };
+      }
+
+      // Filter local dataset
+      const before = ncModule.dados.length;
+      ncModule.dados = (ncModule.dados || []).filter(item => !toRemoveIds.includes(item.id));
+      removedCount = before - ncModule.dados.length;
+
+      // Update UI and stats
+      ncModule.atualizarEstatisticas();
+      ncModule.aplicarFiltros();
+      ncModule.renderizarTabela();
+      atualizarDashboard();
+
+      showNotification(`🧹 Removidos ${removedCount} registros duplicados (local)`, 'success');
+
+      // Optionally delete from Firebase (destructive) — confirm and require admin
+      if (deleteRemote){
+        if (!authService.isAdmin()){
+          showNotification('🔒 Remoção remota requer privilégio ADMIN', 'warning');
+        } else if (confirm(`Deseja também remover ${toRemoveIds.length} registros duplicados do Firebase? Esta ação é irreversível.`)){
+          try{
+            for (const id of toRemoveIds){
+              if (!id) continue;
+              await fetch(`https://rondolog-frotas-default-rtdb.firebaseio.com/nc_dados/registros/${encodeURIComponent(id)}.json`, { method: 'DELETE' });
+            }
+            showNotification('✅ Remoção remota concluída', 'success');
+          }catch(e){
+            console.error('Erro removendo remotos', e);
+            showNotification('❌ Erro removendo registros remotos', 'error');
+          }
+        }
+      }
+
+      return { removed: removedCount, groupsFound: groups.length };
+    }
+
+    // Convenience wrapper to keep latest and offer remote delete
+    async function removeDuplicatesKeepLatest(){
+      return removeDuplicates({ keepLatest: true, deleteRemote: false });
+    }
+
+    // Expose global helpers
+    window.findDuplicates = findDuplicates;
+    window.removeDuplicates = () => removeDuplicates({ keepLatest: false, deleteRemote: false });
+    window.removeDuplicatesKeepLatest = removeDuplicatesKeepLatest;
+
+    // ============================================
     // 🎯 INICIALIZAÇÃO DO SISTEMA
     // ============================================
     
+    // Wrapper para testar conexão ao Firebase (exposta globalmente)
+    async function testFirebaseConnection() {
+      try {
+        if (!firebaseService) {
+          showNotification('⚠️ Serviço Firebase não inicializado', 'warning');
+          return false;
+        }
+        const ok = await firebaseService.testConnection();
+        showNotification(ok ? '✅ Firebase acessível' : '⚠️ Firebase não acessível', ok ? 'success' : 'warning');
+        return ok;
+      } catch (e) {
+        console.error('Erro testFirebaseConnection', e);
+        showNotification('❌ Erro ao testar Firebase', 'error');
+        return false;
+      }
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
       console.log('🚀 RONDOLOG v15.2 - Sistema de Gestão de Frotas');
       console.log('🔐 Iniciando sistema de autenticação...');
