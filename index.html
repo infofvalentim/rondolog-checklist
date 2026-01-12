@@ -3121,27 +3121,74 @@
       },
       
       formatarDataOcorrencia(dataString) {
-        if (!dataString || dataString.trim() === '') return '';
-        
-        const str = dataString.trim();
-        
+        if (dataString === null || dataString === undefined) return '';
+
+        // If it's already a Date object
+        if (Object.prototype.toString.call(dataString) === '[object Date]') {
+          const d = dataString;
+          if (isNaN(d.getTime())) return '';
+          const yyyy = d.getFullYear();
+          const mm = String(d.getMonth() + 1).padStart(2, '0');
+          const dd = String(d.getDate()).padStart(2, '0');
+          const hh = String(d.getHours()).padStart(2, '0');
+          const min = String(d.getMinutes()).padStart(2, '0');
+          return `${yyyy}-${mm}-${dd}${hh || min ? ` ${hh}:${min}` : ''}`.trim();
+        }
+
+        const str = String(dataString).trim();
+
+        // Numeric serial from Excel (e.g. 46031.9388)
+        if (/^\d+(?:\.\d+)?$/.test(str)) {
+          try {
+            const serial = parseFloat(str);
+            const ms = (serial - 25569) * 86400 * 1000; // Excel -> JS epoch
+            const d = new Date(ms);
+            if (!isNaN(d.getTime())) {
+              const yyyy = d.getFullYear();
+              const mm = String(d.getMonth() + 1).padStart(2, '0');
+              const dd = String(d.getDate()).padStart(2, '0');
+              const hh = String(d.getHours()).padStart(2, '0');
+              const min = String(d.getMinutes()).padStart(2, '0');
+              return `${yyyy}-${mm}-${dd}${hh || min ? ` ${hh}:${min}` : ''}`.trim();
+            }
+          } catch (e) {
+            console.warn('⚠️ Erro convertendo serial Excel:', e);
+          }
+        }
+
+        // Handle common Brazilian format DD/MM/YYYY
         if (str.includes('/')) {
           try {
             const partes = str.split(' ');
             const dataParte = partes[0];
             const horaParte = partes[1] || '';
-            
+
             if (dataParte.includes('/')) {
               const [dia, mes, ano] = dataParte.split('/');
               const horaFormatada = horaParte ? ` ${horaParte}` : '';
-              return `${ano}-${mes.padStart(2, '0')}-${dia.padStart(2, '0')}${horaFormatada}`.trim();
+              return `${ano}-${String(mes).padStart(2, '0')}-${String(dia).padStart(2, '0')}${horaFormatada}`.trim();
             }
           } catch (e) {
             console.warn('⚠️ Erro ao formatar data:', e);
           }
         }
-        
-        return str;
+
+        // If already ISO-like (YYYY-MM-DD or with time), validate and return
+        try {
+          const maybeDate = new Date(str);
+          if (!isNaN(maybeDate.getTime())) {
+            const yyyy = maybeDate.getFullYear();
+            const mm = String(maybeDate.getMonth() + 1).padStart(2, '0');
+            const dd = String(maybeDate.getDate()).padStart(2, '0');
+            const hh = String(maybeDate.getHours()).padStart(2, '0');
+            const min = String(maybeDate.getMinutes()).padStart(2, '0');
+            return `${yyyy}-${mm}-${dd}${hh || min ? ` ${hh}:${min}` : ''}`.trim();
+          }
+        } catch (e) {
+          // fallthrough
+        }
+
+        return '';
       },
       
       classificarTipoNC(descricao) {
@@ -3401,18 +3448,47 @@
       
       formatarDataParaExibicao(dataString) {
         if (!dataString) return '-';
-        
-        try {
-          const [data, hora] = dataString.split(' ');
-          const [ano, mes, dia] = data.split('-');
-          
-          if (hora) {
-            return `${dia}/${mes}/${ano} ${hora}`;
+
+        // If numeric serial
+        if (/^\d+(?:\.\d+)?$/.test(String(dataString).trim())) {
+          const serial = parseFloat(String(dataString).trim());
+          const ms = (serial - 25569) * 86400 * 1000;
+          const d = new Date(ms);
+          if (!isNaN(d.getTime())) {
+            const dia = String(d.getDate()).padStart(2, '0');
+            const mes = String(d.getMonth() + 1).padStart(2, '0');
+            const ano = d.getFullYear();
+            const hh = String(d.getHours()).padStart(2, '0');
+            const min = String(d.getMinutes()).padStart(2, '0');
+            return hh || min ? `${dia}/${mes}/${ano} ${hh}:${min}` : `${dia}/${mes}/${ano}`;
           }
-          return `${dia}/${mes}/${ano}`;
-        } catch {
-          return dataString;
         }
+
+        try {
+          const [data, hora] = String(dataString).split(' ');
+          if (!data) return String(dataString);
+          const parts = data.split('-');
+          if (parts.length === 3) {
+            const [ano, mes, dia] = parts;
+            if (hora) return `${dia}/${mes}/${ano} ${hora}`;
+            return `${dia}/${mes}/${ano}`;
+          }
+
+          // Fallback: try to parse with Date
+          const maybe = new Date(String(dataString));
+          if (!isNaN(maybe.getTime())) {
+            const dia = String(maybe.getDate()).padStart(2, '0');
+            const mes = String(maybe.getMonth() + 1).padStart(2, '0');
+            const ano = maybe.getFullYear();
+            const hh = String(maybe.getHours()).padStart(2, '0');
+            const min = String(maybe.getMinutes()).padStart(2, '0');
+            return hh || min ? `${dia}/${mes}/${ano} ${hh}:${min}` : `${dia}/${mes}/${ano}`;
+          }
+        } catch (e) {
+          // fallback to raw
+        }
+
+        return String(dataString);
       },
       
       obterTipoNC(tipo) {
