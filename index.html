@@ -1757,22 +1757,31 @@
       
       <form id="loginForm" class="login-form">
         <div class="form-group">
-          <label>Usuário</label>
-          <input type="text" class="form-control" id="loginUser" placeholder="Digite seu usuário" required>
+          <label>Email</label>
+          <input type="email" class="form-control" id="loginEmail" 
+                 placeholder="seu@email.com" required>
         </div>
         
         <div class="form-group">
           <label>Senha</label>
-          <input type="password" class="form-control" id="loginPassword" placeholder="Digite sua senha" required>
+          <input type="password" class="form-control" id="loginPassword" 
+                 placeholder="Digite sua senha" required>
         </div>
         
         <div class="login-error" id="loginError">
-          ❌ Usuário ou senha incorretos
+          ❌ Email ou senha incorretos
         </div>
         
         <button type="submit" class="btn btn-primary login-btn">
           🔑 Entrar no Sistema
         </button>
+        
+        <!-- Link para reset de senha -->
+        <div style="margin-top: 15px; text-align: center;">
+          <a href="#" onclick="resetPassword()" style="font-size: 12px; color: var(--blue);">
+            🔐 Esqueci minha senha
+          </a>
+        </div>
         
         <div style="margin-top: 20px; font-size: 11px; color: var(--text-secondary);">
           <p>⚠️ Dados sensíveis - Use com responsabilidade</p>
@@ -2023,7 +2032,8 @@
         <table class="user-manager-table">
           <thead>
             <tr>
-              <th>Usuário</th>
+              <th>Email</th>
+              <th>Nome</th>
               <th>Perfil</th>
               <th>Status</th>
               <th>Último Acesso</th>
@@ -2040,8 +2050,12 @@
       <div style="border-top: 1px solid var(--border-color); padding-top: 20px;">
         <h4>➕ Novo Usuário</h4>
         <div class="form-group">
-          <label>Nome de Usuário</label>
-          <input type="text" class="form-control" id="newUsername" placeholder="ex: maria.silva">
+          <label>Nome do Usuário</label>
+          <input type="text" class="form-control" id="newUserName" placeholder="ex: Maria Silva">
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" class="form-control" id="newUserEmail" placeholder="ex: maria.silva@empresa.com">
         </div>
         <div class="form-group">
           <label>Senha Temporária</label>
@@ -2652,252 +2666,187 @@
     // Versão: 15.2 - COM DASHBOARD DE ANÁLISE
     // ============================================
     
-    // 🔐 SISTEMA DE AUTENTICAÇÃO AVANÇADO - CORRIGIDO
-    const authService = {
-      user: null,
-      userRoles: {
-        ADMIN: {
-          level: 100,
-          permissions: ['create_users', 'edit_all', 'delete_all', 'system_config', 'nc_admin', 'nc_import']
-        },
-        MANAGER: {
-          level: 50,
-          permissions: ['edit_all', 'view_reports', 'export_data', 'nc_import']
-        },
-        OPERATOR: {
-          level: 10,
-          permissions: ['view_only', 'add_vehicles', 'edit_own', 'nc_view']
-        },
-        VIEWER: {
-          level: 1,
-          permissions: ['view_only', 'nc_view']
-        }
-      },
+    // ============================================
+    // 🔥 FIREBASE AUTHENTICATION SERVICE
+    // ============================================
+    const firebaseAuth = {
+      currentUser: null,
       
-      // Banco de dados de usuários (parse seguro de localStorage)
-      users: (function(){
-        try{
-          const raw = localStorage.getItem('rondolog_users');
-          if(raw){
-            const parsed = JSON.parse(raw);
-            if(Array.isArray(parsed)) return parsed;
-          }
-        }catch(e){
-          console.warn('rondolog_users parse error', e);
-        }
-        return [
-          {
-            id: 1,
-            username: 'Felipe',
-            password: '123456',
-            role: 'ADMIN',
-            createdAt: new Date().toISOString(),
-            lastLogin: null,
-            active: true
-          },
-          {
-            id: 2,
-            username: 'operador',
-            password: 'operador123',
-            role: 'OPERATOR',
-            createdAt: new Date().toISOString(),
-            lastLogin: null,
-            active: true
-          },
-          {
-            id: 3,
-            username: 'visualizador',
-            password: 'visual123',
-            role: 'VIEWER',
-            createdAt: new Date().toISOString(),
-            lastLogin: null,
-            active: true
-          }
-        ];
-      })(),
-      
-      login(username, password) {
-        const user = this.users.find(u => 
-          u.username === username && 
-          u.password === password && 
-          u.active === true
-        );
-        
-        if (user) {
-          this.user = {
-            ...user,
-            loginTime: new Date().toISOString(),
-            sessionId: 'session_' + Math.random().toString(36).substr(2, 9)
-          };
+      // Inicializar auth
+      async init() {
+        try {
+          // Já está inicializado no firebaseService
+          this.auth = firebase.auth();
           
-          user.lastLogin = new Date().toISOString();
-          this.saveUsers();
-          
-          localStorage.setItem('rondolog_current_user', JSON.stringify(this.user));
-          localStorage.setItem('rondolog_authenticated', 'true');
-          
-          syncLog.add('auth', `Usuário ${username} autenticado com sucesso`, {
-            role: user.role
+          // Observar mudanças de estado
+          this.auth.onAuthStateChanged((user) => {
+            if (user) {
+              this.handleUserSignedIn(user);
+            } else {
+              this.handleUserSignedOut();
+            }
           });
           
-          return true;
+        } catch (error) {
+          console.error('Erro ao inicializar Firebase Auth:', error);
         }
-        return false;
       },
       
-      logout() {
-        if (this.user) {
-          syncLog.add('auth', `Usuário ${this.user.username} fez logout`);
+      // Login com email/senha
+      async login(email, password) {
+        try {
+          const userCredential = await this.auth.signInWithEmailAndPassword(email, password);
+          this.currentUser = userCredential.user;
+          
+          // Buscar role customizada do Database
+          await this.fetchUserRole();
+          
+          return { success: true, user: this.currentUser };
+        } catch (error) {
+          return { success: false, error: error.message };
         }
-        this.user = null;
-        localStorage.removeItem('rondolog_current_user');
-        localStorage.removeItem('rondolog_authenticated');
       },
       
-      // 🔧 FUNÇÃO checkAuth CORRIGIDA
-      checkAuth() {
-        const storedUser = localStorage.getItem('rondolog_current_user');
-        if (storedUser) {
-          try {
-            this.user = JSON.parse(storedUser);
-            return true;
-          } catch (e) {
-            console.error('❌ Erro ao parsear usuário do localStorage:', e);
-            return false;
+      // Buscar role do usuário no Database
+      async fetchUserRole() {
+        if (!this.currentUser) return;
+        
+        try {
+          const userData = await firebaseService.database.ref(`users/${this.currentUser.uid}`).once('value');
+          const customData = userData.val() || {};
+          
+          // Atualizar currentUser com role
+          this.currentUser = {
+            ...this.currentUser,
+            role: customData.role || 'VIEWER',
+            displayName: customData.displayName || this.currentUser.email.split('@')[0],
+            permissions: this.getPermissions(customData.role || 'VIEWER')
+          };
+          
+          return this.currentUser;
+        } catch (error) {
+          console.error('Erro ao buscar role do usuário:', error);
+          // Se não encontrar, definir como VIEWER
+          this.currentUser = {
+            ...this.currentUser,
+            role: 'VIEWER',
+            displayName: this.currentUser.email.split('@')[0],
+            permissions: this.getPermissions('VIEWER')
+          };
+          return this.currentUser;
+        }
+      },
+      
+      // Criar usuário (somente admin)
+      async createUser(email, password, role = 'VIEWER', displayName = '') {
+        try {
+          if (!this.currentUser || this.currentUser.role !== 'ADMIN') {
+            throw new Error('Apenas administradores podem criar usuários');
           }
+          
+          // 1. Criar usuário no Firebase Auth
+          const userCredential = await this.auth.createUserWithEmailAndPassword(email, password);
+          const user = userCredential.user;
+          
+          // 2. Adicionar nome (opcional)
+          if (displayName) {
+            await user.updateProfile({ displayName });
+          }
+          
+          // 3. Salvar role personalizada no Database
+          await firebaseService.database.ref(`users/${user.uid}`).set({
+            email: user.email,
+            role: role,
+            displayName: displayName || user.email.split('@')[0],
+            createdAt: firebase.database.ServerValue.TIMESTAMP,
+            createdBy: this.currentUser.uid,
+            active: true
+          });
+          
+          return { success: true, user };
+        } catch (error) {
+          return { success: false, error: error.message };
         }
-        return false;
       },
       
-      getCurrentUser() {
-        return this.user;
+      // Logout
+      async logout() {
+        await this.auth.signOut();
+        this.currentUser = null;
       },
       
-      isAdmin() {
-        return this.user && this.user.role === 'ADMIN';
+      // Handler quando usuário faz login
+      async handleUserSignedIn(user) {
+        console.log('👤 Usuário autenticado:', user.email);
+        
+        // Buscar role customizada do Database
+        await this.fetchUserRole();
+        
+        // Atualizar UI
+        this.updateUIAfterLogin();
       },
       
+      // Handler quando usuário faz logout
+      handleUserSignedOut() {
+        console.log('👋 Usuário deslogado');
+        this.currentUser = null;
+        // Redirecionar para login
+        document.getElementById('loginModal').style.display = 'flex';
+        document.getElementById('mainContainer').style.display = 'none';
+        document.getElementById('settingsIcon').style.display = 'none';
+      },
+      
+      // Mapear roles para permissões
+      getPermissions(role) {
+        const permissions = {
+          'ADMIN': ['create_users', 'edit_all', 'delete_all', 'system_config', 'nc_admin', 'nc_import'],
+          'MANAGER': ['edit_all', 'view_reports', 'export_data', 'nc_import'],
+          'OPERATOR': ['view_only', 'add_vehicles', 'edit_own', 'nc_view'],
+          'VIEWER': ['view_only', 'nc_view']
+        };
+        return permissions[role] || permissions['VIEWER'];
+      },
+      
+      // Atualizar interface após login
+      updateUIAfterLogin() {
+        // Esconder modal de login
+        document.getElementById('loginModal').style.display = 'none';
+        
+        // Mostrar aplicação principal
+        document.getElementById('mainContainer').style.display = 'block';
+        document.getElementById('settingsIcon').style.display = 'flex';
+        
+        // Mostrar menu de abas
+        document.getElementById('tabMenu').style.display = 'flex';
+        
+        // Atualizar nome do usuário
+        const userDisplay = this.currentUser.displayName || this.currentUser.email;
+        document.getElementById('loggedUser').textContent = userDisplay;
+        document.getElementById('currentUserInfo').textContent = userDisplay;
+        
+        // Mostrar/ocultar seção admin baseado na role
+        const adminSection = document.getElementById('adminSection');
+        if (adminSection) {
+          adminSection.style.display = this.currentUser.role === 'ADMIN' ? 'block' : 'none';
+        }
+        
+        // Carregar dados do sistema
+        initializeApp();
+      },
+      
+      // Verificar permissões
       hasPermission(permission) {
-        if (!this.user) return false;
-        const role = this.userRoles[this.user.role];
-        return role && role.permissions.includes(permission);
+        if (!this.currentUser) return false;
+        return this.currentUser.permissions.includes(permission);
       },
       
-      // Gerenciamento de usuários
-      getUser(username) {
-        return this.users.find(u => u.username === username);
-      },
-      
-      createUser(username, password, role = 'VIEWER') {
-        if (!this.isAdmin()) {
-          throw new Error('Apenas administradores podem criar usuários');
-        }
-        
-        if (this.getUser(username)) {
-          throw new Error('Usuário já existe');
-        }
-        
-        const newUser = {
-          id: Date.now(),
-          username,
-          password,
-          role,
-          createdAt: new Date().toISOString(),
-          lastLogin: null,
-          active: true,
-          createdBy: this.user.username
-        };
-        
-        this.users.push(newUser);
-        this.saveUsers();
-        
-        syncLog.add('admin', `Novo usuário criado: ${username} (${role})`);
-        
-        return newUser;
-      },
-      
-      updateUser(username, updates) {
-        if (!this.isAdmin()) {
-          throw new Error('Apenas administradores podem atualizar usuários');
-        }
-        
-        const userIndex = this.users.findIndex(u => u.username === username);
-        if (userIndex === -1) {
-          throw new Error('Usuário não encontrado');
-        }
-        
-        this.users[userIndex] = {
-          ...this.users[userIndex],
-          ...updates,
-          updatedAt: new Date().toISOString(),
-          updatedBy: this.user.username
-        };
-        
-        this.saveUsers();
-        
-        syncLog.add('admin', `Usuário atualizado: ${username}`);
-        
-        return true;
-      },
-      
-      deleteUser(username) {
-        if (!this.isAdmin()) {
-          throw new Error('Apenas administradores podem excluir usuários');
-        }
-        
-        if (username === this.user.username) {
-          throw new Error('Não é possível excluir seu próprio usuário');
-        }
-        
-        const userIndex = this.users.findIndex(u => u.username === username);
-        if (userIndex === -1) {
-          throw new Error('Usuário não encontrado');
-        }
-        
-        this.users.splice(userIndex, 1);
-        this.saveUsers();
-        
-        syncLog.add('admin', `Usuário excluído: ${username}`);
-        
-        return true;
-      },
-      
-      saveUsers() {
-        localStorage.setItem('rondolog_users', JSON.stringify(this.users));
-      },
-      
-      generateRandomPassword(length = 10) {
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%&';
-        let password = '';
-        for (let i = 0; i < length; i++) {
-          password += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        return password;
+      // Verificar se é admin
+      isAdmin() {
+        return this.currentUser && this.currentUser.role === 'ADMIN';
       }
     };
-    
-      // Garantir usuário padrão 'Felipe' existe (senha: 123456)
-      (function ensureFelipe(){
-        try{
-          if (!authService.getUser('Felipe')){
-            authService.users.unshift({
-              id: Date.now(),
-              username: 'Felipe',
-              password: '123456',
-              role: 'ADMIN',
-              createdAt: new Date().toISOString(),
-              lastLogin: null,
-              active: true
-            });
-            authService.saveUsers();
-            console.log('✔️ Usuário padrão Felipe criado');
-          }
-        }catch(e){
-          console.error('Erro ao garantir usuário Felipe:', e);
-        }
-      })();
 
-      // 🎯 VARIÁVEIS GLOBAIS
+    // 🎯 VARIÁVEIS GLOBAIS
     let vehicleData = [];
     let filteredData = [];
     let currentSort = { column: null, direction: 'asc' };
@@ -2967,9 +2916,9 @@
       },
       
       async importarPlanilha(file = null) {
-        const temPermissao = authService.hasPermission('nc_admin') || 
-                           authService.hasPermission('nc_import') ||
-                           authService.isAdmin();
+        const temPermissao = firebaseAuth.hasPermission('nc_admin') || 
+                           firebaseAuth.hasPermission('nc_import') ||
+                           firebaseAuth.isAdmin();
         
         if (!temPermissao) {
           showNotification('⚠️ Sem permissão para importar NCs', 'warning');
@@ -3089,7 +3038,7 @@
               importadoEm: hoje,
               arquivoOrigem: fileName,
               linhaOrigem: i + 1,
-              importadoPor: authService.getCurrentUser()?.username || 'Sistema'
+              importadoPor: firebaseAuth.currentUser?.email || 'Sistema'
             };
             
             if (i === 0) {
@@ -3226,7 +3175,7 @@
           showNotification('💾 Salvando no Firebase...', 'info');
           
           const updates = {};
-          const usuario = authService.getCurrentUser()?.username || 'Sistema';
+          const usuario = firebaseAuth.currentUser?.email || 'Sistema';
           const timestamp = new Date().toISOString();
           
           dados.forEach((nc, index) => {
@@ -3432,7 +3381,7 @@
                 <button class="btn-edit" onclick="ncVerDetalhes('${nc.id}')" title="Ver detalhes">
                   👁️ Ver
                 </button>
-                ${authService.hasPermission('nc_admin') ? `
+                ${firebaseAuth.hasPermission('nc_admin') ? `
                 <button class="btn-delete" onclick="ncExcluir('${nc.id}')" title="Excluir">
                   🗑️ Excluir
                 </button>
@@ -3584,7 +3533,7 @@
       },
       
       async excluir(id) {
-        if (!authService.hasPermission('nc_admin')) {
+        if (!firebaseAuth.hasPermission('nc_admin')) {
           showNotification('⚠️ Sem permissão para excluir NCs', 'warning');
           return;
         }
@@ -3607,7 +3556,7 @@
           showNotification('✅ NC excluída com sucesso', 'success');
           
           syncLog.add('nc_delete', `NC ${id} excluída`, {
-            usuario: authService.getCurrentUser()?.username
+            usuario: firebaseAuth.currentUser?.email
           });
           
           // Atualizar dashboard
@@ -4277,7 +4226,7 @@
           type,
           message,
           details,
-          user: authService.getCurrentUser()?.username || 'Sistema'
+          user: firebaseAuth.currentUser?.email || 'Sistema'
         };
         
         this.entries.push(entry);
@@ -4362,9 +4311,7 @@
           console.log('🔌 Conectando ao Firebase...');
           syncLog.add('connection', 'Conectando ao Firebase...');
           
-          const userCredential = await this.auth.signInAnonymously();
-          this.userId = userCredential.user.uid;
-          
+          // Não mais fazer login anônimo - usar Firebase Auth
           const connectedRef = this.database.ref('.info/connected');
           connectedRef.on('value', (snap) => {
             this.isConnected = snap.val() === true;
@@ -4373,8 +4320,6 @@
             updateOnlineStatus(this.isConnected);
           });
           
-          console.log('👤 Usuário anônimo conectado:', this.userId);
-          syncLog.add('connection', `Usuário anônimo conectado: ${this.userId.substring(0, 8)}...`);
           return true;
           
         } catch (error) {
@@ -4396,8 +4341,8 @@
             updates[`vehicles/${safeKey}`] = {
               ...vehicle,
               updatedAt: firebase.database.ServerValue.TIMESTAMP,
-              updatedBy: this.userId || 'anonymous',
-              lastUpdatedBy: authService.getCurrentUser()?.username || 'Sistema'
+              updatedBy: firebaseAuth.currentUser?.uid || 'anonymous',
+              lastUpdatedBy: firebaseAuth.currentUser?.email || 'Sistema'
             };
           });
           
@@ -4644,80 +4589,53 @@
     }
 
     // ============================================
-    // 🔐 SISTEMA DE AUTENTICAÇÃO - CORRIGIDO
+    // 🔐 SISTEMA DE AUTENTICAÇÃO - FIREBASE AUTH
     // ============================================
 
-    function initAuthentication() {
-      console.log('🔐 Inicializando autenticação...');
+    async function initAuthentication() {
+      console.log('🔐 Inicializando autenticação Firebase...');
       
-      // Verificar se já está autenticado
-      if (authService.checkAuth()) {
-        console.log('✅ Usuário já autenticado:', authService.getCurrentUser().username);
-        hideLoginShowApp();
-        return;
-      }
+      // Inicializar Firebase Auth
+      await firebaseAuth.init();
       
-      // Se não autenticado, mostrar modal de login
-      loginModal.style.display = 'flex';
-      mainContainer.style.display = 'none';
-      settingsIcon.style.display = 'none';
-      
+      // Configurar evento de login
       loginForm.addEventListener('submit', handleLoginSubmit);
       btnLogout.addEventListener('click', handleLogout);
     }
 
-    function handleLoginSubmit(e) {
+    async function handleLoginSubmit(e) {
       e.preventDefault();
       
-      const username = document.getElementById('loginUser').value.trim();
+      const email = document.getElementById('loginEmail').value.trim();
       const password = document.getElementById('loginPassword').value;
       
-      if (authService.login(username, password)) {
-        hideLoginShowApp();
+      const result = await firebaseAuth.login(email, password);
+      
+      if (result.success) {
+        showNotification('✅ Login realizado com sucesso', 'success');
       } else {
-        loginError.style.display = 'block';
+        document.getElementById('loginError').style.display = 'block';
+        document.getElementById('loginError').textContent = `❌ ${result.error}`;
+        
         setTimeout(() => {
-          loginError.style.display = 'none';
+          document.getElementById('loginError').style.display = 'none';
         }, 3000);
       }
     }
 
-    function hideLoginShowApp() {
-      console.log('🎯 Mostrando aplicação para usuário autenticado');
-      
-      loginModal.style.display = 'none';
-      mainContainer.style.display = 'block';
-      settingsIcon.style.display = 'flex';
-      
-      const user = authService.getCurrentUser();
-      console.log('👤 Usuário logado:', user.username);
-      
-      loggedUser.textContent = user.username;
-      currentUserInfo.textContent = user.username;
-      
-      toggleAdminSection();
-      initializeApp();
-    }
-
-    function handleLogout() {
+    async function handleLogout() {
       if (confirm('🚪 Deseja realmente sair do sistema?')) {
-        authService.logout();
+        await firebaseAuth.logout();
         location.reload();
       }
     }
 
-    function toggleAdminSection() {
-      if (adminSection) {
-        adminSection.style.display = authService.isAdmin() ? 'block' : 'none';
-      }
-    }
-
     // ============================================
-    // 👥 GERENCIAMENTO DE USUÁRIOS
+    // 👥 GERENCIAMENTO DE USUÁRIOS - FIREBASE
     // ============================================
 
-    function openUserManager() {
-      if (!authService.isAdmin()) {
+    async function openUserManager() {
+      if (!firebaseAuth.isAdmin()) {
         showNotification('⚠️ Acesso restrito a administradores', 'warning');
         return;
       }
@@ -4725,7 +4643,7 @@
       const modal = document.getElementById('userManagerModal');
       if (modal) {
         modal.style.display = 'flex';
-        loadUserList();
+        await loadUserList();
       }
     }
 
@@ -4736,117 +4654,119 @@
       }
     }
 
-    function loadUserList() {
+    async function loadUserList() {
       const tbody = document.getElementById('userListBody');
       if (!tbody) return;
       
-      tbody.innerHTML = authService.users.map(user => `
-        <tr>
-          <td><strong>${user.username}</strong></td>
-          <td>
-            <select class="role-select" data-user="${user.username}" 
-                    onchange="changeUserRole('${user.username}', this.value)"
-                    ${user.username === 'Felipe' ? 'disabled' : ''}>
-              <option value="VIEWER" ${user.role === 'VIEWER' ? 'selected' : ''}>Visualizador</option>
-              <option value="OPERATOR" ${user.role === 'OPERATOR' ? 'selected' : ''}>Operador</option>
-              <option value="MANAGER" ${user.role === 'MANAGER' ? 'selected' : ''}>Gerente</option>
-              <option value="ADMIN" ${user.role === 'ADMIN' ? 'selected' : ''}>Administrador</option>
-            </select>
-          </td>
-          <td>
-            <span class="status-badge ${user.active ? 'status-valid' : 'status-expired'}" 
-                  style="font-size: 10px; padding: 3px 8px;">
-              ${user.active ? 'ATIVO' : 'INATIVO'}
-            </span>
-          </td>
-          <td>${user.lastLogin ? new Date(user.lastLogin).toLocaleDateString('pt-BR') : 'Nunca'}</td>
-          <td>
-            <button class="btn-edit" onclick="resetUserPassword('${user.username}')" 
-                    style="font-size: 11px; padding: 3px 8px;">
-              🔐 Resetar
-            </button>
-            <button class="btn-delete" onclick="toggleUserStatus('${user.username}')" 
-                    style="font-size: 11px; padding: 3px 8px;">
-              ${user.active ? '❌ Desativar' : '✅ Ativar'}
-            </button>
-          </td>
-        </tr>
-      `).join('');
+      try {
+        const usersRef = firebaseService.database.ref('users');
+        const snapshot = await usersRef.once('value');
+        const users = snapshot.val() || {};
+        
+        tbody.innerHTML = Object.entries(users).map(([uid, userData]) => `
+          <tr>
+            <td><strong>${userData.email}</strong></td>
+            <td>${userData.displayName || '-'}</td>
+            <td>
+              <select class="role-select" data-uid="${uid}" 
+                      onchange="changeUserRole('${uid}', this.value)"
+                      ${userData.email === firebaseAuth.currentUser?.email ? 'disabled' : ''}>
+                <option value="VIEWER" ${userData.role === 'VIEWER' ? 'selected' : ''}>Visualizador</option>
+                <option value="OPERATOR" ${userData.role === 'OPERATOR' ? 'selected' : ''}>Operador</option>
+                <option value="MANAGER" ${userData.role === 'MANAGER' ? 'selected' : ''}>Gerente</option>
+                <option value="ADMIN" ${userData.role === 'ADMIN' ? 'selected' : ''}>Administrador</option>
+              </select>
+            </td>
+            <td>
+              <span class="status-badge ${userData.active !== false ? 'status-valid' : 'status-expired'}" 
+                    style="font-size: 10px; padding: 3px 8px;">
+                ${userData.active !== false ? 'ATIVO' : 'INATIVO'}
+              </span>
+            </td>
+            <td>${userData.lastLogin ? new Date(userData.lastLogin).toLocaleDateString('pt-BR') : 'Nunca'}</td>
+            <td>
+              <button class="btn-edit" onclick="resetUserPasswordPrompt('${userData.email}')" 
+                      style="font-size: 11px; padding: 3px 8px;">
+                🔐 Resetar
+              </button>
+              <button class="btn-delete" onclick="toggleUserStatus('${uid}', ${userData.active !== false})" 
+                      style="font-size: 11px; padding: 3px 8px;">
+                ${userData.active !== false ? '❌ Desativar' : '✅ Ativar'}
+              </button>
+            </td>
+          </tr>
+        `).join('');
+        
+      } catch (error) {
+        console.error('❌ Erro ao carregar lista de usuários:', error);
+        showNotification('❌ Erro ao carregar usuários', 'error');
+      }
     }
 
-    function changeUserRole(username, newRole) {
-      if (!authService.isAdmin()) {
+    async function changeUserRole(uid, newRole) {
+      if (!firebaseAuth.isAdmin()) {
         showNotification('⚠️ Apenas administradores podem alterar perfis', 'warning');
         return;
       }
       
       try {
-        authService.updateUser(username, { role: newRole });
-        showNotification(`✅ Perfil de ${username} alterado para ${newRole}`, 'success');
+        await firebaseService.database.ref(`users/${uid}/role`).set(newRole);
+        showNotification(`✅ Perfil alterado com sucesso`, 'success');
         loadUserList();
       } catch (error) {
         showNotification(`❌ Erro: ${error.message}`, 'error');
       }
     }
 
-    function toggleUserStatus(username) {
-      if (!authService.isAdmin()) {
+    async function toggleUserStatus(uid, currentStatus) {
+      if (!firebaseAuth.isAdmin()) {
         showNotification('⚠️ Apenas administradores podem alterar status', 'warning');
         return;
       }
       
-      const user = authService.getUser(username);
-      if (!user) return;
-      
-      const newStatus = !user.active;
+      const newStatus = !currentStatus;
       
       try {
-        authService.updateUser(username, { active: newStatus });
-        showNotification(`✅ Usuário ${username} ${newStatus ? 'ativado' : 'desativado'}`, 'success');
+        await firebaseService.database.ref(`users/${uid}/active`).set(newStatus);
+        showNotification(`✅ Usuário ${newStatus ? 'ativado' : 'desativado'}`, 'success');
         loadUserList();
       } catch (error) {
         showNotification(`❌ Erro: ${error.message}`, 'error');
       }
     }
 
-    function resetUserPassword(username) {
-      if (!authService.isAdmin()) {
+    function resetUserPasswordPrompt(email) {
+      if (!firebaseAuth.isAdmin()) {
         showNotification('⚠️ Apenas administradores podem resetar senhas', 'warning');
         return;
       }
       
-      const newPassword = authService.generateRandomPassword(10);
-      
-      try {
-        authService.updateUser(username, { password: newPassword });
-        
-        alert(`🔐 SENHA RESETADA PARA ${username}\n\nNova senha: ${newPassword}\n\n⚠️ Esta senha será mostrada apenas uma vez. Anote-a em local seguro.`);
-        
-        showNotification(`✅ Senha de ${username} resetada com sucesso`, 'success');
-        loadUserList();
-      } catch (error) {
-        showNotification(`❌ Erro: ${error.message}`, 'error');
-      }
+      alert(`🔐 RESET DE SENHA\n\nPara resetar a senha do usuário ${email}, use o link "Esqueci minha senha" no login.\n\nO usuário receberá um email para criar uma nova senha.`);
     }
 
     function generatePassword() {
-      const newPassword = authService.generateRandomPassword(10);
-      document.getElementById('newPassword').value = newPassword;
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%&';
+      let password = '';
+      for (let i = 0; i < 10; i++) {
+        password += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      document.getElementById('newPassword').value = password;
       showNotification('🔐 Senha gerada automaticamente', 'info');
     }
 
-    function createNewUser() {
-      if (!authService.isAdmin()) {
+    async function createNewUser() {
+      if (!firebaseAuth.isAdmin()) {
         showNotification('⚠️ Apenas administradores podem criar usuários', 'warning');
         return;
       }
       
-      const username = document.getElementById('newUsername').value.trim();
+      const displayName = document.getElementById('newUserName').value.trim();
+      const email = document.getElementById('newUserEmail').value.trim();
       const password = document.getElementById('newPassword').value;
       const role = document.getElementById('newUserRole').value;
       
-      if (!username) {
-        showNotification('⚠️ Digite um nome de usuário', 'warning');
+      if (!email) {
+        showNotification('⚠️ Digite um email válido', 'warning');
         return;
       }
       
@@ -4856,13 +4776,18 @@
       }
       
       try {
-        authService.createUser(username, password, role);
+        const result = await firebaseAuth.createUser(email, password, role, displayName);
         
-        document.getElementById('newUsername').value = '';
-        document.getElementById('newPassword').value = '';
-        
-        showNotification(`✅ Usuário ${username} criado com sucesso!`, 'success');
-        loadUserList();
+        if (result.success) {
+          document.getElementById('newUserName').value = '';
+          document.getElementById('newUserEmail').value = '';
+          document.getElementById('newPassword').value = '';
+          
+          showNotification(`✅ Usuário ${email} criado com sucesso!`, 'success');
+          loadUserList();
+        } else {
+          showNotification(`❌ Erro: ${result.error}`, 'error');
+        }
       } catch (error) {
         showNotification(`❌ Erro: ${error.message}`, 'error');
       }
@@ -5105,7 +5030,7 @@
             importedAt: Date.now(),
             sourceFile: fileName,
             sourceRow: i + 1,
-            importedBy: authService.getCurrentUser()?.username || 'Sistema'
+            importedBy: firebaseAuth.currentUser?.email || 'Sistema'
           });
           
         } catch (error) {
@@ -5150,8 +5075,8 @@
           updates[`vehicles/${safeKey}`] = {
             ...vehicle,
             updatedAt: firebase.database.ServerValue.TIMESTAMP,
-            updatedBy: firebaseService.userId || 'import_tool',
-            lastUpdatedBy: authService.getCurrentUser()?.username || 'Sistema'
+            updatedBy: firebaseAuth.currentUser?.uid || 'import_tool',
+            lastUpdatedBy: firebaseAuth.currentUser?.email || 'Sistema'
           };
         });
         
@@ -5167,7 +5092,7 @@
         syncLog.add('import', `Importação via Settings: ${data.length} veículos`, {
           fileName: fileName,
           count: data.length,
-          importedBy: authService.getCurrentUser()?.username
+          importedBy: firebaseAuth.currentUser?.email
         });
         
       } catch (error) {
@@ -5175,7 +5100,7 @@
         showNotification(`❌ Erro na importação: ${error.message}`, 'error');
         syncLog.add('error', 'Erro na importação via Settings', { 
           error: error.message,
-          user: authService.getCurrentUser()?.username
+          user: firebaseAuth.currentUser?.email
         });
       }
     }
@@ -5205,7 +5130,7 @@
       const backupData = {
         timestamp: new Date().toISOString(),
         version: 'RONDOLOG v15.2',
-        user: authService.getCurrentUser()?.username || 'Não autenticado',
+        user: firebaseAuth.currentUser?.email || 'Não autenticado',
         vehicleCount: vehicleData.length,
         vehicles: vehicleData,
         ncCount: ncModule.dados.length,
@@ -5228,7 +5153,7 @@
       showNotification('💾 Backup JSON gerado com sucesso!', 'success');
       syncLog.add('export', 'Backup JSON exportado', { 
         count: vehicleData.length,
-        user: authService.getCurrentUser()?.username
+        user: firebaseAuth.currentUser?.email
       });
     }
 
@@ -5266,9 +5191,9 @@
     // ============================================
 
     function ncImportarPlanilha(file = null) {
-      const temPermissao = authService.hasPermission('nc_admin') || 
-                         authService.hasPermission('nc_import') ||
-                         authService.isAdmin();
+      const temPermissao = firebaseAuth.hasPermission('nc_admin') || 
+                         firebaseAuth.hasPermission('nc_import') ||
+                         firebaseAuth.isAdmin();
       
       if (!temPermissao) {
         showNotification('⚠️ Sem permissão para importar NCs', 'warning');
@@ -5298,7 +5223,7 @@
     }
 
     async function ncLimparHistorico() {
-      if (!authService.hasPermission('nc_admin')) {
+      if (!firebaseAuth.hasPermission('nc_admin')) {
         showNotification('⚠️ Apenas administradores podem limpar histórico', 'warning');
         return;
       }
@@ -5497,7 +5422,7 @@ ${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${ncModule.obterTipo
       
       doc.setFontSize(10);
       doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, 105, 22, { align: 'center' });
-      doc.text(`Usuário: ${authService.getCurrentUser()?.username || 'Não autenticado'}`, 105, 28, { align: 'center' });
+      doc.text(`Usuário: ${firebaseAuth.currentUser?.email || 'Não autenticado'}`, 105, 28, { align: 'center' });
       doc.text(`Período: ${dashboardModule.getPeriodoTexto()}`, 105, 34, { align: 'center' });
       
       // Adicionar métricas
@@ -5533,7 +5458,7 @@ ${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${ncModule.obterTipo
       
       showNotification('📋 Relatório do dashboard exportado com sucesso', 'success');
       syncLog.add('export', 'Relatório do dashboard exportado em PDF', {
-        user: authService.getCurrentUser()?.username
+        user: firebaseAuth.currentUser?.email
       });
     }
 
@@ -5631,7 +5556,7 @@ ${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${ncModule.obterTipo
       console.log('🚀 RONDOLOG v15.2 - Inicializando aplicação...');
       
       syncLog.add('system', 'Sistema RONDOLOG v15.2 inicializando...', {
-        user: authService.getCurrentUser()?.username
+        user: firebaseAuth.currentUser?.email
       });
       
       loadConfig();
@@ -5678,7 +5603,7 @@ ${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${ncModule.obterTipo
       
       console.log('✅ Sistema inicializado');
       syncLog.add('system', 'Sistema inicializado com sucesso', {
-        user: authService.getCurrentUser()?.username
+        user: firebaseAuth.currentUser?.email
       });
     }
 
@@ -5738,7 +5663,7 @@ ${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${ncModule.obterTipo
       showNotification('💾 Salvando no Firebase...', 'info');
       updateSyncInfo('Salvando dados...');
       syncLog.add('save', `Iniciando salvamento de ${vehicleData.length} veículos`, {
-        user: authService.getCurrentUser()?.username
+        user: firebaseAuth.currentUser?.email
       });
       
       try {
@@ -5761,7 +5686,7 @@ ${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${ncModule.obterTipo
         
         syncLog.add('save', `Salvamento concluído`, { 
           count: vehicleData.length,
-          user: authService.getCurrentUser()?.username
+          user: firebaseAuth.currentUser?.email
         });
         
         return true;
@@ -5777,7 +5702,7 @@ ${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${ncModule.obterTipo
         syncLog.add('error', 'Erro no salvamento', { 
           error: error.message, 
           count: vehicleData.length,
-          user: authService.getCurrentUser()?.username
+          user: firebaseAuth.currentUser?.email
         });
         return false;
         
@@ -5791,7 +5716,7 @@ ${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${ncModule.obterTipo
     // ============================================
 
     function openAddModal() {
-      if (!authService.hasPermission('add_vehicles')) {
+      if (!firebaseAuth.hasPermission('add_vehicles')) {
         showNotification('⚠️ Você não tem permissão para adicionar veículos', 'warning');
         return;
       }
@@ -5804,7 +5729,7 @@ ${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${ncModule.obterTipo
     }
 
     function openEditModal(index) {
-      if (!authService.hasPermission('edit_own') && !authService.hasPermission('edit_all')) {
+      if (!firebaseAuth.hasPermission('edit_own') && !firebaseAuth.hasPermission('edit_all')) {
         showNotification('⚠️ Você não tem permissão para editar veículos', 'warning');
         return;
       }
@@ -5840,12 +5765,12 @@ ${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${ncModule.obterTipo
     async function handleFormSubmit(e) {
       e.preventDefault();
       
-      if (!authService.hasPermission('add_vehicles') && currentEditIndex === -1) {
+      if (!firebaseAuth.hasPermission('add_vehicles') && currentEditIndex === -1) {
         showNotification('⚠️ Você não tem permissão para adicionar veículos', 'warning');
         return;
       }
       
-      if (!authService.hasPermission('edit_own') && !authService.hasPermission('edit_all') && currentEditIndex !== -1) {
+      if (!firebaseAuth.hasPermission('edit_own') && !firebaseAuth.hasPermission('edit_all') && currentEditIndex !== -1) {
         showNotification('⚠️ Você não tem permissão para editar veículos', 'warning');
         return;
       }
@@ -5884,7 +5809,7 @@ ${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${ncModule.obterTipo
         vigenciaChecklist: vigenciaChecklist,
         statusChecklist: statusChecklist,
         statusGeral: calculateStatusGeral(vigenciaChecklist, statusChecklist),
-        updatedBy: authService.getCurrentUser()?.username || 'Sistema',
+        updatedBy: firebaseAuth.currentUser?.email || 'Sistema',
         createdAt: currentEditIndex === -1 ? new Date().toISOString() : vehicleData[currentEditIndex].createdAt
       };
 
@@ -5893,7 +5818,7 @@ ${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${ncModule.obterTipo
         showNotification('✅ Veículo adicionado localmente', 'success');
         syncLog.add('edit', 'Novo veículo adicionado', { 
           placa: newVehicle.placa,
-          user: authService.getCurrentUser()?.username
+          user: firebaseAuth.currentUser?.email
         });
       } else {
         vehicleData[currentEditIndex] = newVehicle;
@@ -5901,7 +5826,7 @@ ${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${ncModule.obterTipo
         syncLog.add('edit', 'Veículo editado', { 
           placa: newVehicle.placa, 
           index: currentEditIndex,
-          user: authService.getCurrentUser()?.username
+          user: firebaseAuth.currentUser?.email
         });
       }
 
@@ -5920,13 +5845,13 @@ ${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${ncModule.obterTipo
             console.log('✅ Alterações sincronizadas com Firebase');
             syncLog.add('sync', 'Alterações sincronizadas com Firebase em background', { 
               count: vehicleData.length,
-              user: authService.getCurrentUser()?.username
+              user: firebaseAuth.currentUser?.email
             });
           } catch (error) {
             console.error('❌ Erro na sincronização:', error);
             syncLog.add('error', 'Erro na sincronização em background', { 
               error: error.message,
-              user: authService.getCurrentUser()?.username
+              user: firebaseAuth.currentUser?.email
             });
           }
         }, 500);
@@ -5936,7 +5861,7 @@ ${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${ncModule.obterTipo
     }
 
     async function deleteVehicle(index) {
-      if (!authService.hasPermission('delete_all')) {
+      if (!firebaseAuth.hasPermission('delete_all')) {
         showNotification('⚠️ Você não tem permissão para excluir veículos', 'warning');
         return;
       }
@@ -5960,7 +5885,7 @@ ${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${ncModule.obterTipo
       syncLog.add('delete', `Veículo excluído localmente`, { 
         placa: vehicle.placa, 
         index,
-        user: authService.getCurrentUser()?.username
+        user: firebaseAuth.currentUser?.email
       });
       
       if (isOnlineMode) {
@@ -5971,7 +5896,7 @@ ${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${ncModule.obterTipo
           showNotification('✅ Veículo excluído do servidor', 'success');
           syncLog.add('delete', `Veículo excluído do Firebase`, { 
             placa: vehicle.placa,
-            user: authService.getCurrentUser()?.username
+            user: firebaseAuth.currentUser?.email
           });
         } catch (error) {
           console.error('❌ Erro ao excluir do Firebase:', error);
@@ -5979,7 +5904,7 @@ ${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${ncModule.obterTipo
           syncLog.add('error', 'Erro ao excluir do Firebase', { 
             placa: vehicle.placa, 
             error: error.message,
-            user: authService.getCurrentUser()?.username
+            user: firebaseAuth.currentUser?.email
           });
         }
       }
@@ -6103,8 +6028,8 @@ ${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${ncModule.obterTipo
             rowClass = 'pending';
         }
         
-        const canEdit = authService.hasPermission('edit_own') || authService.hasPermission('edit_all');
-        const canDelete = authService.hasPermission('delete_all');
+        const canEdit = firebaseAuth.hasPermission('edit_own') || firebaseAuth.hasPermission('edit_all');
+        const canDelete = firebaseAuth.hasPermission('delete_all');
         
         return `
           <tr class="${rowClass}">
@@ -6187,13 +6112,13 @@ ${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${ncModule.obterTipo
         btnDarkMode.innerHTML = '<span>☀️</span> Modo Claro';
         localStorage.setItem('rondolog_dark_mode', 'true');
         syncLog.add('system', 'Modo escuro ativado', {
-          user: authService.getCurrentUser()?.username
+          user: firebaseAuth.currentUser?.email
         });
       } else {
         btnDarkMode.innerHTML = '<span>🌙</span> Modo Escuro';
         localStorage.setItem('rondolog_dark_mode', 'false');
         syncLog.add('system', 'Modo claro ativado', {
-          user: authService.getCurrentUser()?.username
+          user: firebaseAuth.currentUser?.email
         });
       }
     }
@@ -6283,7 +6208,7 @@ ${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${ncModule.obterTipo
       XLSX.writeFile(workbook, filename);
       syncLog.add('export', `Exportado para Excel: ${dataToExport.length} registros`, { 
         filename,
-        user: authService.getCurrentUser()?.username
+        user: firebaseAuth.currentUser?.email
       });
       closeSettingsMenu();
     }
@@ -6316,7 +6241,7 @@ ${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${ncModule.obterTipo
         doc.setFontSize(10);
         doc.setTextColor(100, 100, 100);
         doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, 105, 22, { align: 'center' });
-        doc.text(`Usuário: ${authService.getCurrentUser()?.username || 'Não autenticado'}`, 105, 28, { align: 'center' });
+        doc.text(`Usuário: ${firebaseAuth.currentUser?.email || 'Não autenticado'}`, 105, 28, { align: 'center' });
 
         let dataToExport = filteredData;
         let title = 'RELATÓRIO DA FROTA';
@@ -6377,7 +6302,7 @@ ${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${ncModule.obterTipo
 
         doc.save(`rondolog_relatorio_${new Date().toISOString().split('T')[0]}.pdf`);
         syncLog.add('export', `Exportado para PDF: ${dataToExport.length} registros`, {
-          user: authService.getCurrentUser()?.username
+          user: firebaseAuth.currentUser?.email
         });
         closeSettingsMenu();
       } catch (e) {
@@ -6513,7 +6438,7 @@ ${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${ncModule.obterTipo
 
       // Optionally delete from Firebase (destructive) — confirm and require admin
       if (deleteRemote){
-        if (!authService.isAdmin()){
+        if (!firebaseAuth.isAdmin()){
           showNotification('🔒 Remoção remota requer privilégio ADMIN', 'warning');
         } else if (confirm(`Deseja também remover ${toRemoveIds.length} registros duplicados do Firebase? Esta ação é irreversível.`)){
           try{
@@ -6537,10 +6462,21 @@ ${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${ncModule.obterTipo
       return removeDuplicates({ keepLatest: true, deleteRemote: false });
     }
 
-    // Expose global helpers
-    window.findDuplicates = findDuplicates;
-    window.removeDuplicates = () => removeDuplicates({ keepLatest: false, deleteRemote: false });
-    window.removeDuplicatesKeepLatest = removeDuplicatesKeepLatest;
+    // ============================================
+    // 🔐 FUNÇÕES DE RECUPERAÇÃO DE SENHA
+    // ============================================
+
+    async function resetPassword() {
+      const email = prompt('Digite o email para reset de senha:');
+      if (!email) return;
+      
+      try {
+        await firebase.auth().sendPasswordResetEmail(email);
+        alert(`✅ Email de recuperação enviado para ${email}`);
+      } catch (error) {
+        alert(`❌ Erro: ${error.message}`);
+      }
+    }
 
     // ============================================
     // 🎯 INICIALIZAÇÃO DO SISTEMA
@@ -6565,7 +6501,7 @@ ${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${ncModule.obterTipo
 
     document.addEventListener('DOMContentLoaded', function() {
       console.log('🚀 RONDOLOG v15.2 - Sistema de Gestão de Frotas');
-      console.log('🔐 Iniciando sistema de autenticação...');
+      console.log('🔐 Iniciando sistema de autenticação Firebase...');
       
       initAuthentication();
     });
@@ -6603,7 +6539,7 @@ ${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${ncModule.obterTipo
     window.closeUserManager = closeUserManager;
     window.changeUserRole = changeUserRole;
     window.toggleUserStatus = toggleUserStatus;
-    window.resetUserPassword = resetUserPassword;
+    window.resetUserPasswordPrompt = resetUserPasswordPrompt;
     window.generatePassword = generatePassword;
     window.createNewUser = createNewUser;
     window.openRoleManager = openRoleManager;
@@ -6627,6 +6563,9 @@ ${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${ncModule.obterTipo
     window.exportChart = exportChart;
     window.toggleChartType = toggleChartType;
     window.exportDashboardPDF = exportDashboardPDF;
+    
+    // Funções de autenticação
+    window.resetPassword = resetPassword;
   </script>
 </body>
 </html>
