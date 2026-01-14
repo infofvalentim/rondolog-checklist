@@ -2719,7 +2719,7 @@
           this.currentUser = {
             ...this.currentUser,
             role: customData.role || 'VIEWER',
-            displayName: customData.displayName || this.currentUser.email.split('@')[0],
+            displayName: customData.displayName || this.currentUser.email?.split('@')[0] || 'Usuário',
             permissions: this.getPermissions(customData.role || 'VIEWER')
           };
           
@@ -2730,7 +2730,7 @@
           this.currentUser = {
             ...this.currentUser,
             role: 'VIEWER',
-            displayName: this.currentUser.email.split('@')[0],
+            displayName: this.currentUser.email?.split('@')[0] || 'Usuário',
             permissions: this.getPermissions('VIEWER')
           };
           return this.currentUser;
@@ -2814,20 +2814,37 @@
         
         // Mostrar aplicação principal
         document.getElementById('mainContainer').style.display = 'block';
-        document.getElementById('settingsIcon').style.display = 'flex';
+        
+        // Verificar se o ícone existe antes de mostrar
+        const settingsIcon = document.getElementById('settingsIcon');
+        if (settingsIcon) {
+          settingsIcon.style.display = 'flex';
+        }
         
         // Mostrar menu de abas
-        document.getElementById('tabMenu').style.display = 'flex';
+        const tabMenu = document.getElementById('tabMenu');
+        if (tabMenu) {
+          tabMenu.style.display = 'flex';
+        }
         
-        // Atualizar nome do usuário
-        const userDisplay = this.currentUser.displayName || this.currentUser.email;
-        document.getElementById('loggedUser').textContent = userDisplay;
-        document.getElementById('currentUserInfo').textContent = userDisplay;
+        // Atualizar nome do usuário com verificação de segurança
+        const userDisplay = this.currentUser?.email || 'Usuário';
+        const loggedUserEl = document.getElementById('loggedUser');
+        const currentUserInfoEl = document.getElementById('currentUserInfo');
+        
+        if (loggedUserEl) {
+          loggedUserEl.textContent = userDisplay;
+        }
+        
+        if (currentUserInfoEl) {
+          currentUserInfoEl.textContent = userDisplay;
+        }
         
         // Mostrar/ocultar seção admin baseado na role
         const adminSection = document.getElementById('adminSection');
         if (adminSection) {
-          adminSection.style.display = this.currentUser.role === 'ADMIN' ? 'block' : 'none';
+          const userRole = this.currentUser?.role || 'VIEWER';
+          adminSection.style.display = userRole === 'ADMIN' ? 'block' : 'none';
         }
         
         // Carregar dados do sistema
@@ -2892,27 +2909,11 @@
         try {
           showNotification('📥 Carregando não conformidades...', 'info');
           
-          // Obter token de autenticação
-          const token = await this.getFirebaseToken();
+          // Usar o SDK do Firebase diretamente
+          const snapshot = await firebaseService.database.ref('nc_dados/registros').once('value');
           
-          const response = await fetch(
-            'https://rondolog-frotas-default-rtdb.firebaseio.com/nc_dados/registros.json',
-            {
-              method: 'GET',
-              headers: {
-                'Authorization': `Bearer ${token}`
-              }
-            }
-          );
-          
-          if (!response.ok) {
-            throw new Error(`Erro HTTP: ${response.status} - ${response.statusText}`);
-          }
-          
-          const data = await response.json();
-          
-          if (data) {
-            // Converter objeto em array
+          if (snapshot.exists()) {
+            const data = snapshot.val();
             const dadosArray = Object.entries(data).map(([key, value]) => ({
               id: key,
               ...value
@@ -3207,8 +3208,13 @@
         try {
           showNotification('💾 Salvando no Firebase...', 'info');
           
-          // Obter token de autenticação
-          const token = await this.getFirebaseToken();
+          // Verificar permissões
+          const isAdmin = firebaseAuth.isAdmin();
+          const isManager = firebaseAuth.currentUser?.role === 'MANAGER';
+          
+          if (!isAdmin && !isManager) {
+            throw new Error('Sem permissão para salvar NCs no Firebase');
+          }
           
           const updates = {};
           const usuario = firebaseAuth.currentUser?.email || 'Sistema';
@@ -3231,21 +3237,7 @@
           updates['nc_stats/arquivo_ultima_importacao'] = fileName;
           updates['nc_stats/importado_por'] = usuario;
           
-          const response = await fetch(
-            'https://rondolog-frotas-default-rtdb.firebaseio.com/.json',
-            {
-              method: 'PATCH',
-              body: JSON.stringify(updates),
-              headers: { 
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-              }
-            }
-          );
-          
-          if (!response.ok) {
-            throw new Error(`Erro HTTP: ${response.status}`);
-          }
+          await firebaseService.database.ref().update(updates);
           
           syncLog.add('nc_import', `${dados.length} NCs importadas`, {
             arquivo: fileName,
@@ -3597,22 +3589,7 @@
         }
         
         try {
-          // Obter token de autenticação
-          const token = await this.getFirebaseToken();
-          
-          const response = await fetch(
-            `https://rondolog-frotas-default-rtdb.firebaseio.com/nc_dados/registros/${id}.json`,
-            { 
-              method: 'DELETE',
-              headers: {
-                'Authorization': `Bearer ${token}`
-              }
-            }
-          );
-          
-          if (!response.ok) {
-            throw new Error(`Erro HTTP: ${response.status}`);
-          }
+          await firebaseService.database.ref(`nc_dados/registros/${id}`).remove();
           
           this.dados = this.dados.filter(item => item.id !== id);
           this.atualizarEstatisticas();
@@ -6595,6 +6572,261 @@ ${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${ncModule.obterTipo
       } catch (error) {
         alert(`❌ Erro: ${error.message}`);
       }
+    }
+
+    // ============================================
+    // 🎯 FUNÇÕES AUSENTES QUE ESTAVAM FALTANDO
+    // ============================================
+
+    async function diagnoseFirebaseData() {
+      try {
+        showNotification('🔍 Diagnóstico Firebase...', 'info');
+        
+        // Testar conexão
+        const connected = await firebaseService.testConnection();
+        const connectionText = connected ? '✅ Conectado' : '❌ Desconectado';
+        
+        // Verificar contagem
+        const vehicleCount = vehicleData.length;
+        const snapshot = await firebaseService.database.ref('vehicles').once('value');
+        const firebaseCount = snapshot.exists() ? snapshot.numChildren() : 0;
+        
+        // Verificar dados NC
+        let ncCount = 0;
+        try {
+          const ncSnapshot = await firebaseService.database.ref('nc_dados/registros').once('value');
+          ncCount = ncSnapshot.exists() ? ncSnapshot.numChildren() : 0;
+        } catch (e) {
+          console.warn('Erro ao contar NCs:', e);
+        }
+        
+        const message = `
+🎯 DIAGNÓSTICO FIREBASE:
+══════════════════════════════
+• Status: ${connectionText}
+• Veículos Local: ${vehicleCount}
+• Veículos Firebase: ${firebaseCount}
+• NCs Firebase: ${ncCount}
+• Sincronizações: ${appStats.saves || 0}
+• Última Sinc: ${appStats.lastSync ? new Date(appStats.lastSync).toLocaleString('pt-BR') : 'Nunca'}
+
+${firebaseCount !== vehicleCount ? '⚠️ DESCRIPANÇA: Local e Firebase divergem!' : '✅ Contagens OK'}
+══════════════════════════════
+        `.trim();
+        
+        alert(message);
+        syncLog.add('diagnostic', 'Diagnóstico Firebase executado', {
+          connected,
+          local: vehicleCount,
+          firebase: firebaseCount,
+          ncCount,
+          discrepancy: firebaseCount !== vehicleCount
+        });
+        
+      } catch (error) {
+        console.error('❌ Erro no diagnóstico:', error);
+        showNotification('❌ Erro no diagnóstico', 'error');
+      }
+    }
+
+    async function recoverAllData() {
+      if (!confirm('🔄 RECUPERAR TODOS OS DADOS\n══════════════════════════════\n\nEsta ação tentará recuperar dados do Firebase e do IndexedDB local.\n\nDeseja continuar?')) {
+        return;
+      }
+      
+      try {
+        showNotification('🔄 Recuperando dados...', 'info');
+        
+        // 1. Tentar carregar do Firebase
+        await loadInitialData();
+        
+        // 2. Tentar carregar do IndexedDB local
+        try {
+          const localData = await idb.get('vehicleData');
+          if (localData && localData.length > 0) {
+            showNotification(`📦 ${localData.length} registros encontrados localmente`, 'info');
+            
+            if (confirm(`Encontrei ${localData.length} registros locais. Deseja mesclar com os dados atuais?`)) {
+              vehicleData = [...vehicleData, ...localData];
+              applyFiltersAndRender();
+              updateSettingsStats();
+            }
+          }
+        } catch (e) {
+          console.warn('Erro ao carregar dados locais:', e);
+        }
+        
+        showNotification('✅ Recuperação concluída', 'success');
+        syncLog.add('recovery', 'Recuperação de dados executada');
+        
+      } catch (error) {
+        console.error('❌ Erro na recuperação:', error);
+        showNotification('❌ Erro na recuperação', 'error');
+      }
+    }
+
+    function showDetailedStats() {
+      const message = `
+📊 ESTATÍSTICAS DETALHADAS - RONDOLOG
+══════════════════════════════════
+• Veículos Local: ${vehicleData.length}
+• Veículos Firebase: ${appStats.firebaseCount || 0}
+• NCs: ${ncModule.dados.length}
+• Sincronizações: ${appStats.saves || 0}
+• Carregamentos: ${appStats.loads || 0}
+• Logs: ${syncLog.entries.length}
+
+📅 TEMPO:
+• Última Sinc: ${appStats.lastSync ? new Date(appStats.lastSync).toLocaleString('pt-BR') : 'Nunca'}
+• Última Atualização: ${appStats.lastUpdate ? new Date(appStats.lastUpdate).toLocaleString('pt-BR') : 'Nunca'}
+
+👤 USUÁRIO:
+• Email: ${firebaseAuth.currentUser?.email || 'Não autenticado'}
+• Role: ${firebaseAuth.currentUser?.role || 'VIEWER'}
+• Permissões: ${firebaseAuth.currentUser?.permissions?.join(', ') || 'Nenhuma'}
+
+═══ ÚLTIMOS LOGS ═══
+${syncLog.getRecent(5).map(log => 
+  `${new Date(log.timestamp).toLocaleTimeString('pt-BR')} - ${log.message}`
+).join('\n')}
+══════════════════════════════════
+      `.trim();
+      
+      alert(message);
+      syncLog.add('stats', 'Estatísticas detalhadas visualizadas');
+    }
+
+    function checkDataIntegrity() {
+      showNotification('✅ Verificando integridade...', 'info');
+      
+      const issues = [];
+      
+      // Verificar veículos
+      vehicleData.forEach((vehicle, index) => {
+        if (!vehicle.placa || vehicle.placa.trim() === '') {
+          issues.push(`Veículo ${index}: Placa vazia`);
+        }
+        if (!vehicle.statusGeral) {
+          issues.push(`Veículo ${vehicle.placa}: Status geral ausente`);
+        }
+      });
+      
+      // Verificar NCs
+      ncModule.dados.forEach((nc, index) => {
+        if (!nc.veiculo || nc.veiculo.trim() === '') {
+          issues.push(`NC ${index}: Veículo vazio`);
+        }
+        if (!nc.naoConformidade || nc.naoConformidade.trim() === '') {
+          issues.push(`NC ${index}: Descrição vazia`);
+        }
+      });
+      
+      if (issues.length === 0) {
+        showNotification('✅ Dados íntegros', 'success');
+        alert('✅ Verificação concluída: Todos os dados estão íntegros!');
+      } else {
+        const message = `⚠️ FORAM ENCONTRADOS ${issues.length} PROBLEMAS:\n\n${issues.slice(0, 10).join('\n')}${issues.length > 10 ? `\n\n... e mais ${issues.length - 10} problemas` : ''}`;
+        alert(message);
+        showNotification(`⚠️ ${issues.length} problemas encontrados`, 'warning');
+      }
+      
+      syncLog.add('integrity', 'Verificação de integridade executada', {
+        issues: issues.length
+      });
+    }
+
+    function analyzeCountDiscrepancy() {
+      const localCount = vehicleData.length;
+      const firebaseCount = appStats.firebaseCount || 0;
+      
+      if (localCount === firebaseCount) {
+        showNotification('✅ Contagens idênticas', 'success');
+        return;
+      }
+      
+      const diff = Math.abs(localCount - firebaseCount);
+      const direction = localCount > firebaseCount ? 'LOCAL tem mais' : 'FIREBASE tem mais';
+      
+      const message = `
+⚠️ DISCREPÂNCIA DETECTADA
+══════════════════════════════
+• Local: ${localCount} veículos
+• Firebase: ${firebaseCount} veículos
+• Diferença: ${diff} veículos
+• Status: ${direction}
+
+POSSÍVEIS CAUSAS:
+1. Dados não sincronizados
+2. Exclusões em um lado apenas
+3. Problema de conexão durante sync
+
+AÇÕES SUGERIDAS:
+1. Clique em "Salvar no Firebase"
+2. Clique em "Carregar do Firebase"
+3. Use "Diagnosticar" para detalhes
+══════════════════════════════
+      `.trim();
+      
+      alert(message);
+      syncLog.add('discrepancy', 'Análise de discrepância', {
+        local: localCount,
+        firebase: firebaseCount,
+        diff,
+        direction
+      });
+    }
+
+    function clearAllData() {
+      if (!confirm('⚠️ 🗑️ LIMPAR TODOS OS DADOS\n══════════════════════════════\n\nEsta ação irá:\n• Remover TODOS os dados locais\n• Não afeta o Firebase\n\nDeseja continuar?')) {
+        return;
+      }
+      
+      try {
+        vehicleData = [];
+        ncModule.dados = [];
+        filteredData = [];
+        
+        applyFiltersAndRender();
+        ncModule.atualizarEstatisticas();
+        ncModule.aplicarFiltros();
+        ncModule.renderizarTabela();
+        
+        updateSettingsStats();
+        updateDetailedStats();
+        
+        showNotification('🗑️ Todos os dados locais foram limpos', 'success');
+        syncLog.add('clear', 'Dados locais limpos', {
+          user: firebaseAuth.currentUser?.email
+        });
+        
+      } catch (error) {
+        console.error('❌ Erro ao limpar dados:', error);
+        showNotification('❌ Erro ao limpar dados', 'error');
+      }
+    }
+
+    function resetFilters() {
+      statusFilter.value = 'all';
+      dateFilter.value = '';
+      searchInput.value = '';
+      
+      // Resetar filtros NC se estiver na aba
+      if (document.getElementById('tabNaoConformidades')?.classList.contains('active')) {
+        document.getElementById('ncTipoFilter').value = 'all';
+        document.getElementById('ncVeiculoFilter').value = '';
+        document.getElementById('ncMotoristaFilter').value = '';
+        document.getElementById('ncDataFilter').value = '';
+        ncModule.aplicarFiltros();
+        ncModule.renderizarTabela();
+      }
+      
+      applyFiltersAndRender();
+      showNotification('🔄 Filtros resetados', 'success');
+    }
+
+    function clearLogs() {
+      syncLog.clear();
+      updateDetailedStats();
     }
 
     // ============================================
