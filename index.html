@@ -1629,6 +1629,38 @@
       gap: 10px;
     }
 
+    /* Role badge styles */
+    .role-badge {
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: inline-block;
+      margin-left: 8px;
+    }
+    
+    .role-badge.admin {
+      background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+      color: #000;
+    }
+    
+    .role-badge.manager {
+      background: linear-gradient(135deg, #2196f3 0%, #64b5f6 100%);
+      color: white;
+    }
+    
+    .role-badge.operator {
+      background: linear-gradient(135deg, #4caf50 0%, #81c784 100%);
+      color: white;
+    }
+    
+    .role-badge.viewer {
+      background: linear-gradient(135deg, #9e9e9e 0%, #bdbdbd 100%);
+      color: white;
+    }
+
     /* 📱 RESPONSIVIDADE */
     @media (max-width: 768px) {
       .header-content {
@@ -2100,6 +2132,9 @@
                   style="background: var(--green); border: 2px solid white;">
             <span>➕</span> Novo Veículo
           </button>
+          
+          <!-- Badge de Role do Usuário -->
+          <div id="userRoleBadge" class="role-badge viewer" style="display: none;"></div>
           
           <button class="btn btn-dark-mode" id="btnDarkMode">
             <span>🌙</span> Modo Escuro
@@ -2667,7 +2702,7 @@
     // ============================================
     
     // ============================================
-    // 🔥 FIREBASE AUTHENTICATION SERVICE
+    // 🔥 FIREBASE AUTHENTICATION SERVICE - CORRIGIDO
     // ============================================
     const firebaseAuth = {
       currentUser: null,
@@ -2679,9 +2714,9 @@
           this.auth = firebase.auth();
           
           // Observar mudanças de estado
-          this.auth.onAuthStateChanged((user) => {
+          this.auth.onAuthStateChanged(async (user) => {
             if (user) {
-              this.handleUserSignedIn(user);
+              await this.handleUserSignedIn(user);
             } else {
               this.handleUserSignedOut();
             }
@@ -2697,6 +2732,9 @@
         try {
           const userCredential = await this.auth.signInWithEmailAndPassword(email, password);
           this.currentUser = userCredential.user;
+          
+          // Forçar refresh do token
+          await this.currentUser.getIdToken(true);
           
           // Buscar role customizada do Database
           await this.fetchUserRole();
@@ -2715,17 +2753,20 @@
           const userData = await firebaseService.database.ref(`users/${this.currentUser.uid}`).once('value');
           const customData = userData.val() || {};
           
-          // CORREÇÃO: Usar operador de encadeamento opcional e fornecer valor padrão
           const emailPart = this.currentUser.email ? this.currentUser.email.split('@')[0] : 'Usuário';
           const displayName = customData.displayName || this.currentUser.displayName || emailPart;
+          const role = customData.role || 'VIEWER';
           
           // Atualizar currentUser com role
           this.currentUser = {
             ...this.currentUser,
-            role: customData.role || 'VIEWER',
+            role: role,
             displayName: displayName,
-            permissions: this.getPermissions(customData.role || 'VIEWER')
+            permissions: this.getPermissions(role)
           };
+          
+          // Atualizar badge de role
+          this.updateRoleBadge();
           
           return this.currentUser;
         } catch (error) {
@@ -2738,6 +2779,8 @@
             displayName: this.currentUser.displayName || emailPart,
             permissions: this.getPermissions('VIEWER')
           };
+          
+          this.updateRoleBadge();
           return this.currentUser;
         }
       },
@@ -2789,6 +2832,9 @@
         
         // Atualizar UI
         this.updateUIAfterLogin();
+        
+        // Configurar refresh automático de token
+        this.setupTokenRefresh();
       },
       
       // Handler quando usuário faz logout
@@ -2799,13 +2845,14 @@
         document.getElementById('loginModal').style.display = 'flex';
         document.getElementById('mainContainer').style.display = 'none';
         document.getElementById('settingsIcon').style.display = 'none';
+        document.getElementById('userRoleBadge').style.display = 'none';
       },
       
       // Mapear roles para permissões
       getPermissions(role) {
         const permissions = {
           'ADMIN': ['create_users', 'edit_all', 'delete_all', 'system_config', 'nc_admin', 'nc_import'],
-          'MANAGER': ['edit_all', 'view_reports', 'export_data', 'nc_import'],
+          'MANAGER': ['edit_all', 'view_reports', 'export_data', 'nc_import', 'nc_view'],
           'OPERATOR': ['view_only', 'add_vehicles', 'edit_own', 'nc_view'],
           'VIEWER': ['view_only', 'nc_view']
         };
@@ -2833,7 +2880,6 @@
         }
         
         // Atualizar nome do usuário com verificação de segurança
-        // CORREÇÃO: Usar valor padrão seguro
         const userDisplay = this.currentUser?.email || 'Usuário';
         const userName = this.currentUser?.displayName || userDisplay;
         
@@ -2855,8 +2901,38 @@
           adminSection.style.display = userRole === 'ADMIN' ? 'block' : 'none';
         }
         
+        // Mostrar badge de role
+        this.updateRoleBadge();
+        
         // Carregar dados do sistema
         initializeApp();
+      },
+      
+      // Atualizar badge de role
+      updateRoleBadge() {
+        const badge = document.getElementById('userRoleBadge');
+        if (badge && this.currentUser?.role) {
+          badge.textContent = this.currentUser.role;
+          badge.className = `role-badge ${this.currentUser.role.toLowerCase()}`;
+          badge.style.display = 'inline-block';
+        }
+      },
+      
+      // Configurar refresh automático de token
+      setupTokenRefresh() {
+        if (!this.currentUser) return;
+        
+        // Refresh token a cada 30 minutos
+        setInterval(async () => {
+          try {
+            if (this.currentUser) {
+              await this.currentUser.getIdToken(true);
+              console.log('✅ Token atualizado automaticamente');
+            }
+          } catch (error) {
+            console.error('❌ Erro ao atualizar token:', error);
+          }
+        }, 30 * 60 * 1000); // 30 minutos
       },
       
       // Verificar permissões
@@ -2868,23 +2944,60 @@
       // Verificar se é admin
       isAdmin() {
         return this.currentUser && this.currentUser.role === 'ADMIN';
+      },
+      
+      // Verificar se é manager
+      isManager() {
+        return this.currentUser && this.currentUser.role === 'MANAGER';
+      },
+      
+      // Verificar se tem permissão para NCs
+      hasNCPermission() {
+        return this.isAdmin() || this.isManager();
       }
     };
 
-    // 🎯 VARIÁVEIS GLOBAIS
-    let vehicleData = [];
-    let filteredData = [];
-    let currentSort = { column: null, direction: 'asc' };
-    let currentEditIndex = -1;
-    let lastSaveTime = null;
-    let lastSyncSheetsTime = null;
-    let isDarkMode = false;
-    let isOnlineMode = false;
-    let syncInProgress = false;
-    let firebaseRealtimeListener = null;
+    // ============================================
+    // 🔥 VERIFICAÇÃO DE PERMISSÕES PARA NCs
+    // ============================================
+    const ncPermissaoMiddleware = {
+      async verificarAdminOuManager() {
+        try {
+          const user = firebase.auth().currentUser;
+          if (!user) {
+            throw new Error('Não autenticado. Faça login novamente.');
+          }
+          
+          // Forçar refresh do token
+          await user.getIdToken(true);
+          
+          // Buscar role do usuário
+          const snapshot = await firebase.database()
+            .ref(`users/${user.uid}/role`)
+            .once('value');
+          
+          if (!snapshot.exists()) {
+            throw new Error('Role não configurada. Contate o administrador.');
+          }
+          
+          const role = snapshot.val();
+          const permitido = role === 'ADMIN' || role === 'MANAGER';
+          
+          if (!permitido) {
+            throw new Error(`Acesso negado para NCs. Role atual: ${role}. Requer ADMIN ou MANAGER.`);
+          }
+          
+          return { user, role };
+          
+        } catch (error) {
+          console.error('❌ Verificação de permissão falhou:', error);
+          throw error;
+        }
+      }
+    };
 
     // ============================================
-    // 🚨 MÓDULO NÃO CONFORMIDADES
+    // 🚨 MÓDULO NÃO CONFORMIDADES - CORRIGIDO
     // ============================================
     const ncModule = {
       dados: [],
@@ -2898,24 +3011,29 @@
         tipos: {}
       },
       
-      // Função auxiliar para obter token de autenticação
+      // Função auxiliar para obter token de autenticação - CORRIGIDA
       async getFirebaseToken() {
         try {
           const user = firebase.auth().currentUser;
           if (!user) {
-            throw new Error('Usuário não autenticado');
+            throw new Error('Usuário não autenticado. Faça login novamente.');
           }
-          const token = await user.getIdToken();
+          
+          // Forçar refresh do token
+          const token = await user.getIdToken(true);
           return token;
         } catch (error) {
-          console.error('Erro ao obter token:', error);
-          throw error;
+          console.error('❌ Erro ao obter token:', error);
+          throw new Error(`Falha na autenticação: ${error.message}`);
         }
       },
       
       async carregarDoFirebase() {
         try {
           showNotification('📥 Carregando não conformidades...', 'info');
+          
+          // Verificar permissões primeiro
+          await ncPermissaoMiddleware.verificarAdminOuManager();
           
           // Usar o SDK do Firebase diretamente
           const snapshot = await firebaseService.database.ref('nc_dados/registros').once('value');
@@ -2928,10 +3046,6 @@
             }));
             
             this.dados = dadosArray.filter(item => item !== null);
-            // Auto-dedupe on load: keep latest entries when duplicates found
-            try{
-              await this.removerDuplicadosManterMaisRecentes();
-            }catch(e){ console.warn('Auto-dedupe failed', e); }
             this.atualizarEstatisticas();
             this.aplicarFiltros();
             this.renderizarTabela();
@@ -2952,34 +3066,43 @@
           
         } catch (error) {
           console.error('❌ Erro ao carregar NCs:', error);
-          showNotification(`❌ Erro ao carregar NCs: ${error.message}`, 'error');
-          updateNcStatus('❌ Erro ao carregar');
+          
+          if (error.message.includes('Acesso negado') || error.message.includes('Role')) {
+            showNotification('🔒 Apenas ADMIN ou MANAGER podem acessar NCs', 'error');
+            updateNcStatus('🔒 Acesso restrito a ADMIN/MANAGER');
+          } else if (error.message.includes('Não autenticado')) {
+            showNotification('🔒 Faça login novamente', 'error');
+            updateNcStatus('🔒 Erro de autenticação');
+          } else {
+            showNotification(`❌ Erro ao carregar NCs: ${error.message}`, 'error');
+            updateNcStatus('❌ Erro ao carregar');
+          }
+          
           return [];
         }
       },
       
       async importarPlanilha(file = null) {
-        const temPermissao = firebaseAuth.hasPermission('nc_admin') || 
-                           firebaseAuth.hasPermission('nc_import') ||
-                           firebaseAuth.isAdmin();
-        
-        if (!temPermissao) {
-          showNotification('⚠️ Sem permissão para importar NCs', 'warning');
-          return;
-        }
-        
-        if (!file) {
-          const input = document.createElement('input');
-          input.type = 'file';
-          input.accept = '.xlsx,.xls,.csv';
-          input.onchange = (e) => {
-            if (e.target.files.length) {
-              this.processarArquivoNC(e.target.files[0]);
-            }
-          };
-          input.click();
-        } else {
-          this.processarArquivoNC(file);
+        try {
+          // Verificar permissões
+          await ncPermissaoMiddleware.verificarAdminOuManager();
+          
+          if (!file) {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.xlsx,.xls,.csv';
+            input.onchange = (e) => {
+              if (e.target.files.length) {
+                this.processarArquivoNC(e.target.files[0]);
+              }
+            };
+            input.click();
+          } else {
+            await this.processarArquivoNC(file);
+          }
+        } catch (error) {
+          console.error('❌ Erro de permissão na importação:', error);
+          showNotification(`❌ ${error.message}`, 'error');
         }
       },
       
@@ -3114,7 +3237,6 @@
       formatarDataOcorrencia(dataString) {
         if (dataString === null || dataString === undefined) return '';
 
-        // If it's already a Date object
         if (Object.prototype.toString.call(dataString) === '[object Date]') {
           const d = dataString;
           if (isNaN(d.getTime())) return '';
@@ -3128,11 +3250,10 @@
 
         const str = String(dataString).trim();
 
-        // Numeric serial from Excel (e.g. 46031.9388)
         if (/^\d+(?:\.\d+)?$/.test(str)) {
           try {
             const serial = parseFloat(str);
-            const ms = (serial - 25569) * 86400 * 1000; // Excel -> JS epoch
+            const ms = (serial - 25569) * 86400 * 1000;
             const d = new Date(ms);
             if (!isNaN(d.getTime())) {
               const yyyy = d.getFullYear();
@@ -3147,7 +3268,6 @@
           }
         }
 
-        // Handle common Brazilian format DD/MM/YYYY
         if (str.includes('/')) {
           try {
             const partes = str.split(' ');
@@ -3164,7 +3284,6 @@
           }
         }
 
-        // If already ISO-like (YYYY-MM-DD or with time), validate and return
         try {
           const maybeDate = new Date(str);
           if (!isNaN(maybeDate.getTime())) {
@@ -3217,12 +3336,7 @@
           showNotification('💾 Salvando no Firebase...', 'info');
           
           // Verificar permissões
-          const isAdmin = firebaseAuth.isAdmin();
-          const isManager = firebaseAuth.currentUser?.role === 'MANAGER';
-          
-          if (!isAdmin && !isManager) {
-            throw new Error('Sem permissão para salvar NCs no Firebase');
-          }
+          await ncPermissaoMiddleware.verificarAdminOuManager();
           
           const updates = {};
           const usuario = firebaseAuth.currentUser?.email || 'Sistema';
@@ -3257,7 +3371,14 @@
           
         } catch (error) {
           console.error('❌ Erro ao salvar no Firebase:', error);
-          throw new Error(`Erro ao salvar no Firebase: ${error.message}`);
+          
+          if (error.message.includes('Acesso negado') || error.message.includes('Role')) {
+            throw new Error('Apenas ADMIN ou MANAGER podem salvar NCs no Firebase');
+          } else if (error.message.includes('Não autenticado')) {
+            throw new Error('Sessão expirada. Faça login novamente.');
+          } else {
+            throw new Error(`Erro ao salvar no Firebase: ${error.message}`);
+          }
         }
       },
       
@@ -3401,13 +3522,11 @@
         }
         
         tbody.innerHTML = this.filteredData.map(nc => {
-          // Verificar se naoConformidade existe e é uma string
           const naoConformidade = nc.naoConformidade || '-';
           const naoConformidadeTexto = typeof naoConformidade === 'string' 
             ? naoConformidade.substring(0, 60) + (naoConformidade.length > 60 ? '...' : '')
             : '-';
           
-          // Verificar se tipoNC existe
           const tipoNC = nc.tipoNC || 'outros';
           
           return `
@@ -3430,7 +3549,7 @@
                   <button class="btn-edit" onclick="ncVerDetalhes('${nc.id || ''}')" title="Ver detalhes">
                     👁️ Ver
                   </button>
-                  ${firebaseAuth.hasPermission('nc_admin') ? `
+                  ${firebaseAuth.hasNCPermission() ? `
                   <button class="btn-delete" onclick="ncExcluir('${nc.id || ''}')" title="Excluir">
                     🗑️ Excluir
                   </button>
@@ -3448,7 +3567,6 @@
       formatarDataParaExibicao(dataString) {
         if (!dataString) return '-';
 
-        // If numeric serial
         if (/^\d+(?:\.\d+)?$/.test(String(dataString).trim())) {
           const serial = parseFloat(String(dataString).trim());
           const ms = (serial - 25569) * 86400 * 1000;
@@ -3473,7 +3591,6 @@
             return `${dia}/${mes}/${ano}`;
           }
 
-          // Fallback: try to parse with Date
           const maybe = new Date(String(dataString));
           if (!isNaN(maybe.getTime())) {
             const dia = String(maybe.getDate()).padStart(2, '0');
@@ -3516,7 +3633,6 @@
         const modal = document.getElementById('ncViewModal');
         const content = document.getElementById('ncViewContent');
         
-        // Validar dados antes de exibir
         const naoConformidade = nc.naoConformidade || '-';
         const tipoNC = nc.tipoNC || 'outros';
         
@@ -3587,16 +3703,14 @@
       },
       
       async excluir(id) {
-        if (!firebaseAuth.hasPermission('nc_admin')) {
-          showNotification('⚠️ Sem permissão para excluir NCs', 'warning');
-          return;
-        }
-        
-        if (!confirm('🗑️ Tem certeza que deseja excluir esta não conformidade?\n\nEsta ação não pode ser desfeita.')) {
-          return;
-        }
-        
         try {
+          // Verificar permissões
+          await ncPermissaoMiddleware.verificarAdminOuManager();
+          
+          if (!confirm('🗑️ Tem certeza que deseja excluir esta não conformidade?\n\nEsta ação não pode ser desfeita.')) {
+            return;
+          }
+          
           await firebaseService.database.ref(`nc_dados/registros/${id}`).remove();
           
           this.dados = this.dados.filter(item => item.id !== id);
@@ -3617,54 +3731,18 @@
           
         } catch (error) {
           console.error('❌ Erro ao excluir NC:', error);
-          showNotification(`❌ Erro ao excluir NC: ${error.message}`, 'error');
-        }
-      },
-      
-      // Função para remover duplicados mantendo os mais recentes
-      async removerDuplicadosManterMaisRecentes() {
-        if (this.dados.length === 0) return;
-        
-        const map = new Map();
-        const duplicadosRemover = [];
-        
-        // Agrupar por chave normalizada
-        this.dados.forEach(nc => {
-          const key = this._normalizarChaveDuplicado(nc);
-          if (!map.has(key)) {
-            map.set(key, nc);
+          
+          if (error.message.includes('Acesso negado') || error.message.includes('Role')) {
+            showNotification('🔒 Apenas ADMIN ou MANAGER podem excluir NCs', 'error');
           } else {
-            // Manter o mais recente (comparar por data ou timestamp)
-            const existente = map.get(key);
-            const dataExistente = new Date(existente.salvoEm || existente.importadoEm || 0);
-            const dataNovo = new Date(nc.salvoEm || nc.importadoEm || 0);
-            
-            if (dataNovo > dataExistente) {
-              duplicadosRemover.push(existente.id);
-              map.set(key, nc);
-            } else {
-              duplicadosRemover.push(nc.id);
-            }
+            showNotification(`❌ Erro ao excluir NC: ${error.message}`, 'error');
           }
-        });
-        
-        // Remover duplicados localmente
-        if (duplicadosRemover.length > 0) {
-          this.dados = this.dados.filter(nc => !duplicadosRemover.includes(nc.id));
-          console.log(`🧹 Removidos ${duplicadosRemover.length} duplicados`);
         }
-      },
-      
-      _normalizarChaveDuplicado(nc) {
-        const placa = (nc.veiculo || '').toString().toUpperCase().trim();
-        const data = (nc.dataOcorrencia || '').toString().split(' ')[0].trim();
-        const texto = (nc.naoConformidade || '').toString().replace(/\s+/g,' ').toLowerCase().trim();
-        return `${placa}|${data}|${texto}`;
       }
     };
 
     // ============================================
-    // 📊 MÓDULO DASHBOARD DE ANÁLISE (NOVO)
+    // 📊 MÓDULO DASHBOARD DE ANÁLISE
     // ============================================
     const dashboardModule = {
       periodo: '7d',
@@ -3892,19 +3970,15 @@
         document.getElementById('dashboardPeriodo').textContent = periodoText;
       },
 
-      // Parse robusto para data de NC (aceita ISO, DD/MM/YYYY, número serial Excel, timestamp ms, Date)
       parseNcDate(value) {
         if (!value && value !== 0) return null;
         try {
-          // Date object
           if (Object.prototype.toString.call(value) === '[object Date]') {
             return isNaN(value.getTime()) ? null : new Date(value.getTime());
           }
 
-          // number -> could be ms timestamp or Excel serial
           if (typeof value === 'number') {
-            if (value > 1e12) return new Date(value); // milliseconds
-            // Excel serial
+            if (value > 1e12) return new Date(value);
             const ms = (value - 25569) * 86400 * 1000;
             const d = new Date(ms);
             return isNaN(d.getTime()) ? null : d;
@@ -3913,7 +3987,6 @@
           const s = String(value).trim();
           if (!s) return null;
 
-          // numeric string
           if (/^\d+(?:\.\d+)?$/.test(s)) {
             const v = parseFloat(s);
             if (v > 1e12) return new Date(v);
@@ -3922,7 +3995,6 @@
             if (!isNaN(d.getTime())) return d;
           }
 
-          // DD/MM/YYYY or DD/MM/YYYY HH:MM
           if (s.includes('/')) {
             const parts = s.split(' ');
             const datePart = parts[0];
@@ -3943,7 +4015,6 @@
             }
           }
 
-          // ISO / RFC parsable
           const iso = new Date(s);
           if (!isNaN(iso.getTime())) return iso;
         } catch (e) {
@@ -3970,10 +4041,9 @@
             dataLimite.setDate(agora.getDate() - 90);
             break;
           case 'all':
-            return dados; // Retorna todos os dados
+            return dados;
         }
 
-        // Resetar horas para início do dia
         dataLimite.setHours(0,0,0,0);
 
         console.log(`📅 Filtrando ${dados.length} registros por período: ${this.periodo}`);
@@ -4001,7 +4071,6 @@
           case '60d': return 60;
           case '90d': return 90;
           case 'all': 
-            // Calcular diferença entre primeira e última data
             if (ncModule.dados.length === 0) return 1;
             const datas = ncModule.dados
               .map(nc => this.parseNcDate(nc.dataOcorrencia))
@@ -4039,7 +4108,7 @@
         // Ordenar por quantidade
         const tiposOrdenados = Object.entries(tiposCount)
           .sort((a, b) => b[1] - a[1])
-          .slice(0, 10); // Top 10
+          .slice(0, 10);
         
         const labels = tiposOrdenados.map(([tipo, _]) => ncModule.obterTipoNC(tipo));
         const data = tiposOrdenados.map(([_, count]) => count);
@@ -4073,7 +4142,7 @@
         // Ordenar por data
         const diasOrdenados = Array.from(diasMap.entries()).sort((a, b) => a[0].localeCompare(b[0]));
 
-        // Determinar quantos dias mostrar com base no período selecionado
+        // Determinar quantos dias mostrar
         const diasDisponiveis = diasOrdenados.length;
         const diasSolicitados = (typeof this.getDiasNoPeriodo === 'function') ? Math.max(1, this.getDiasNoPeriodo()) : 30;
         const diasParaMostrar = Math.min(diasSolicitados, diasDisponiveis);
@@ -4155,7 +4224,7 @@
           
           try {
             const date = new Date(nc.dataOcorrencia.split(' ')[0]);
-            const diaSemana = date.getDay(); // 0 = Domingo, 1 = Segunda, etc.
+            const diaSemana = date.getDay();
             counts[diaSemana]++;
           } catch {
             // Ignora datas inválidas
@@ -4349,7 +4418,8 @@
     const currentUserInfo = document.getElementById('currentUserInfo');
     const adminSection = document.getElementById('adminSection');
     const btnDarkMode = document.getElementById('btnDarkMode');
-    // Elementos adicionais referenciados globalmente - inicialização segura
+    
+    // Elementos adicionais referenciados globalmente
     try {
       window.statusFilter = document.getElementById('statusFilter');
       window.dateFilter = document.getElementById('dateFilter');
@@ -4363,6 +4433,19 @@
       window.importProgressText = document.getElementById('importProgressText');
       window.editModal = document.getElementById('editModal');
       window.editForm = document.getElementById('editForm');
+      window.btnCancelModal = document.getElementById('btnCancelModal');
+      window.modalTitle = document.getElementById('modalTitle');
+      window.totalVehicles = document.getElementById('totalVehicles');
+      window.validVehicles = document.getElementById('validVehicles');
+      window.warningVehicles = document.getElementById('warningVehicles');
+      window.expiredVehicles = document.getElementById('expiredVehicles');
+      window.totalCount = document.getElementById('totalCount');
+      window.filteredCount = document.getElementById('filteredCount');
+      window.lastSaveInfo = document.getElementById('lastSaveInfo');
+      window.onlineStatus = document.getElementById('onlineStatus');
+      window.syncInfo = document.getElementById('syncInfo');
+      window.syncStatusMini = document.getElementById('syncStatusMini');
+      window.saveStatus = document.getElementById('saveStatus');
     } catch (e) {
       console.warn('Erro ao inicializar referências DOM adicionais', e);
     }
@@ -5276,31 +5359,15 @@
     }
 
     // ============================================
-    // 🚨 FUNÇÕES DE NÃO CONFORMIDADES
+    // 🚨 FUNÇÕES DE NÃO CONFORMIDADES - CORRIGIDAS
     // ============================================
 
-    function ncImportarPlanilha(file = null) {
-      const temPermissao = firebaseAuth.hasPermission('nc_admin') || 
-                         firebaseAuth.hasPermission('nc_import') ||
-                         firebaseAuth.isAdmin();
-      
-      if (!temPermissao) {
-        showNotification('⚠️ Sem permissão para importar NCs', 'warning');
-        return;
-      }
-      
-      if (!file) {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = '.xlsx,.xls,.csv';
-        input.onchange = (e) => {
-          if (e.target.files.length) {
-            ncModule.importarPlanilha(e.target.files[0]);
-          }
-        };
-        input.click();
-      } else {
-        ncModule.importarPlanilha(file);
+    async function ncImportarPlanilha(file = null) {
+      try {
+        await ncModule.importarPlanilha(file);
+      } catch (error) {
+        console.error('❌ Erro na importação:', error);
+        showNotification(`❌ ${error.message}`, 'error');
       }
       
       closeSettingsMenu();
@@ -5312,95 +5379,85 @@
     }
 
     async function ncLimparHistorico() {
-      if (!firebaseAuth.hasPermission('nc_admin')) {
-        showNotification('⚠️ Apenas administradores podem limpar histórico', 'warning');
-        return;
-      }
-
-      if (!confirm('🗑️ LIMPAR HISTÓRICO DE NÃO CONFORMIDADES\n\nEsta ação removerá TODOS os registros de NCs localmente.\n\nDeseja continuar?')) {
-        return;
-      }
-
-      showNotification('🔄 Limpando histórico localmente...', 'info');
-
-      // Backup local copy (download JSON & store in IndexedDB)
-      try{
-        const localCopy = Array.isArray(ncModule.dados) ? ncModule.dados.slice() : [];
-        if (localCopy.length > 0) {
-          const ts = new Date().toISOString().replace(/[:\.]/g,'-');
-          const filename = `nc_backup_local_${ts}.json`;
-          const blob = new Blob([JSON.stringify(localCopy, null, 2)], { type: 'application/json' });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
-          try{ idb.set(`nc_backup_local_${ts}`, localCopy); }catch(e){ console.warn('IndexedDB backup failed', e); }
+      try {
+        showNotification('🔄 Verificando permissões...', 'info');
+        
+        // 1. Verificar se o usuário tem permissão
+        const { user, role } = await ncPermissaoMiddleware.verificarAdminOuManager();
+        
+        if (!confirm(`🗑️ LIMPAR HISTÓRICO DE NÃO CONFORMIDADES\n\nEsta ação removerá TODOS os registros de NCs do Firebase.\n\nUsuário: ${user.email}\nRole: ${role}\n\nDeseja continuar?`)) {
+          return;
         }
-      }catch(e){ console.warn('Backup local falhou', e); }
-
-      // Clear local data
-      try{
+        
+        showNotification('🔄 Gerando backup e limpando Firebase...', 'info');
+        
+        // 2. Obter token atualizado
+        const token = await user.getIdToken(true);
+        
+        // 3. Primeiro fazer backup
+        const backupUrl = 'https://rondolog-frotas-default-rtdb.firebaseio.com/nc_dados/registros.json';
+        const resp = await fetch(`${backupUrl}?auth=${token}`);
+        
+        if (!resp.ok) {
+          if (resp.status === 401) {
+            throw new Error('Token inválido ou expirado. Faça login novamente.');
+          }
+          throw new Error(`HTTP ${resp.status}: ${await resp.text()}`);
+        }
+        
+        const remoteData = await resp.json();
+        
+        // Fazer download do backup
+        const ts = new Date().toISOString().replace(/[:\.]/g,'-');
+        const backupFilename = `nc_backup_${ts}.json`;
+        const blob = new Blob([JSON.stringify(remoteData, null, 2)], { type: 'application/json' });
+        const backupUrlObj = URL.createObjectURL(blob);
+        const a = document.createElement('a'); 
+        a.href = backupUrlObj; 
+        a.download = backupFilename; 
+        document.body.appendChild(a); 
+        a.click(); 
+        a.remove();
+        
+        // 4. Limpar dados
+        const deleteResp = await fetch(`${backupUrl}?auth=${token}`, { 
+          method: 'DELETE'
+        });
+        
+        if (!deleteResp.ok) {
+          throw new Error(`Falha ao limpar: HTTP ${deleteResp.status}`);
+        }
+        
+        // 5. Limpar localmente também
         ncModule.dados = [];
         ncModule.atualizarEstatisticas();
         ncModule.aplicarFiltros();
         ncModule.renderizarTabela();
-        showNotification('✅ Histórico de NCs limpo localmente', 'success');
-      }catch(e){ console.error('Erro limpando localmente', e); showNotification('❌ Erro limpando localmente', 'error'); }
-
-      // Ask about remote cleanup
-      if (!confirm('📡 Deseja também remover TODOS os registros de NCs no Firebase?\n\nIsto é irreversível — será gerado um backup remoto antes da remoção.')){
-        closeSettingsMenu();
-        return;
-      }
-
-      // Remote deletion: fetch remote data, backup, then delete node
-      showNotification('🔄 Gerando backup remoto e limpando Firebase...', 'info');
-      try{
-        // Obter token de autenticação
-        const token = await ncModule.getFirebaseToken();
         
-        const url = 'https://rondolog-frotas-default-rtdb.firebaseio.com/nc_dados/registros.json';
-        const resp = await fetch(url, {
-          headers: {
-            'Authorization': `Bearer ${token}`
+        showNotification('✅ Histórico de NCs removido com sucesso! Backup criado.', 'success');
+        updateNcStatus('✅ Histórico limpo');
+        
+      } catch (error) {
+        console.error('❌ Erro ao limpar Firebase:', error);
+        
+        if (error.message.includes('Acesso negado') || error.message.includes('Role')) {
+          showNotification('🔒 Apenas ADMIN ou MANAGER podem limpar NCs', 'error');
+          updateNcStatus('🔒 Permissão negada');
+        } else if (error.message.includes('Token') || error.message.includes('401')) {
+          showNotification('🔒 Erro de autenticação. Faça login novamente.', 'error');
+          updateNcStatus('🔒 Erro de autenticação');
+          
+          // Forçar logout e relogin
+          if (confirm('Sessão expirada. Deseja fazer login novamente?')) {
+            await firebaseAuth.logout();
+            location.reload();
           }
-        });
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        const remoteData = await resp.json();
-
-        // Backup remote JSON download
-        const ts2 = new Date().toISOString().replace(/[:\.]/g,'-');
-        const backupFilename = `nc_backup_remote_${ts2}.json`;
-        const blob2 = new Blob([JSON.stringify(remoteData, null, 2)], { type: 'application/json' });
-        const backupUrl = URL.createObjectURL(blob2);
-        const a2 = document.createElement('a'); a2.href = backupUrl; a2.download = backupFilename; document.body.appendChild(a2); a2.click(); a2.remove();
-        try{ idb.set(`nc_backup_remote_${ts2}`, remoteData); }catch(e){ console.warn('IndexedDB remote backup failed', e); }
-
-        // Delete the whole node remotely (DELETE request)
-        const delResp = await fetch(url, { 
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        if (!delResp.ok) throw new Error(`Delete failed HTTP ${delResp.status}`);
-
-        // also reset stats under nc_stats
-        try{
-          await fetch('https://rondolog-frotas-default-rtdb.firebaseio.com/nc_stats.json', {
-            method: 'PATCH',
-            headers: { 
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({ total: 0, ultima_importacao: null })
-          });
-        }catch(e){ console.warn('Failed to reset nc_stats', e); }
-
-        showNotification('✅ Histórico de NCs removido do Firebase (backup criado)', 'success');
-      }catch(error){
-        console.error('Erro ao limpar Firebase:', error);
-        showNotification('❌ Erro ao limpar dados no Firebase. Veja console.', 'error');
+        } else {
+          showNotification(`❌ Erro: ${error.message}`, 'error');
+          updateNcStatus('❌ Erro ao limpar');
+        }
       }
-
+      
       closeSettingsMenu();
     }
 
@@ -5456,7 +5513,7 @@ ${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${ncModule.obterTipo
       console.log('🔄 Atualizando dashboard...');
       
       if (ncModule.dados.length === 0) {
-        showNotification('📭 Carregue dados de NCs primeiro', 'warning');
+        showNotification('📭 Carregue dados de NCs primeiro para ver o dashboard', 'warning');
         return;
       }
       
@@ -5469,13 +5526,11 @@ ${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${ncModule.obterTipo
       const buttons = document.querySelectorAll('.time-btn');
       buttons.forEach(btn => btn.classList.remove('active'));
 
-      // Ativar botão clicado (evt pode ser o elemento 'this' ou um event)
       if (evt && evt.classList && typeof evt.classList.add === 'function') {
         evt.classList.add('active');
       } else if (evt && evt.target && evt.target.classList) {
         evt.target.classList.add('active');
       } else {
-        // tentar encontrar botão pelo texto ou dataset (cuidar da precedência lógica)
         for (const btn of buttons) {
           const textMatches = btn.textContent && btn.textContent.trim().startsWith(periodo.replace('d',''));
           const dataMatches = btn.dataset && btn.dataset.period === periodo;
@@ -5486,7 +5541,6 @@ ${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${ncModule.obterTipo
         }
       }
 
-      // Definir período e atualizar
       dashboardModule.periodo = periodo;
       dashboardModule.atualizarDashboard();
     }
@@ -5581,7 +5635,7 @@ ${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${ncModule.obterTipo
       const tabEl = document.getElementById(tabId);
       if (tabEl) tabEl.classList.add('active');
 
-      // Ativar botão correspondente por ordem conhecida (frota=0, naoConformidades=1, dashboard=2)
+      // Ativar botão correspondente por ordem conhecida
       const tabOrder = { frota: 0, naoConformidades: 1, dashboard: 2 };
       const idx = tabOrder[tabName] !== undefined ? tabOrder[tabName] : null;
       const btns = document.querySelectorAll('.tab-btn');
@@ -5591,7 +5645,15 @@ ${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${ncModule.obterTipo
       if (tabName === 'naoConformidades') {
         setupNcTableSorting();
         setupNcFilters();
-        if (ncModule.dados.length === 0) ncModule.carregarDoFirebase();
+        if (ncModule.dados.length === 0) {
+          // Verificar se o usuário tem permissão antes de carregar
+          if (firebaseAuth.hasNCPermission()) {
+            ncModule.carregarDoFirebase();
+          } else {
+            showNotification('🔒 Apenas ADMIN ou MANAGER podem acessar NCs', 'warning');
+            updateNcStatus('🔒 Acesso restrito a ADMIN/MANAGER');
+          }
+        }
       }
 
       // Se for a aba de dashboard, inicializar
@@ -5818,6 +5880,17 @@ ${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${ncModule.obterTipo
     // ============================================
     // 🎯 FUNÇÕES DO SISTEMA (EXISTENTES)
     // ============================================
+
+    let vehicleData = [];
+    let filteredData = [];
+    let currentSort = { column: null, direction: 'asc' };
+    let currentEditIndex = -1;
+    let lastSaveTime = null;
+    let lastSyncSheetsTime = null;
+    let isDarkMode = false;
+    let isOnlineMode = false;
+    let syncInProgress = false;
+    let firebaseRealtimeListener = null;
 
     function openAddModal() {
       if (!firebaseAuth.hasPermission('add_vehicles')) {
@@ -6296,7 +6369,6 @@ ${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${ncModule.obterTipo
         'STATUS GERAL': vehicle.statusGeral || ''
       }));
 
-      // lazy-load XLSX if not present
       const xlsxSrc = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
       const ensureXLSX = window.XLSX ? Promise.resolve() : loadScriptOnce(xlsxSrc);
       await ensureXLSX;
@@ -6327,12 +6399,10 @@ ${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${ncModule.obterTipo
           if (window.jsPDF && !window.jspdf) window.jspdf = { jsPDF: window.jsPDF };
         }
         if (!window.jspdf || !window.jspdf.jsPDF) {
-          // If still not present, attempt to use global jsPDF
           if (!window.jsPDF) await loadScriptOnce(jsPDFsrc);
           if (window.jsPDF && !window.jspdf) window.jspdf = { jsPDF: window.jsPDF };
         }
 
-        // Load autotable plugin if needed
         if (!('autoTable' in (window.jspdf || window))) await loadScriptOnce(autoTableSrc);
 
         const { jsPDF } = window.jspdf || window;
@@ -6386,7 +6456,6 @@ ${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${ncModule.obterTipo
               styles: { fontSize: 8 }
             });
           } else {
-            // Fallback: simple text table
             let y = 45;
             tableData.forEach(row => {
               doc.text(row.join(' | '), 20, y);
@@ -6474,7 +6543,6 @@ ${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${ncModule.obterTipo
         if (arr.length > 1) groups.push({ key, items: arr });
       }
 
-      // Atualizar UI resumo de duplicados se existir
       try{
         const el = document.getElementById('duplicatesInfo');
         if (el){
@@ -6496,13 +6564,11 @@ ${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${ncModule.obterTipo
       let removedCount = 0;
       const toRemoveIds = [];
 
-      // Build a set of items to keep
       const keepSet = new Set();
 
       groups.forEach(group => {
         let keep = null;
         if (keepLatest){
-          // Prefer by salvoEm, then importadoEm, then by id (timestamp in id)
           keep = group.items.reduce((best, cur) => {
             const bestTime = (best.salvoEm || best.importadoEm || best.id || '').toString();
             const curTime = (cur.salvoEm || cur.importadoEm || cur.id || '').toString();
@@ -6512,7 +6578,6 @@ ${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${ncModule.obterTipo
           keep = group.items[0];
         }
 
-        // Mark keep and mark others for removal
         keepSet.add(keep.id || JSON.stringify(keep));
         group.items.forEach(it => {
           const id = it.id || JSON.stringify(it);
@@ -6527,12 +6592,10 @@ ${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${ncModule.obterTipo
         return { removed: 0 };
       }
 
-      // Filter local dataset
       const before = ncModule.dados.length;
       ncModule.dados = (ncModule.dados || []).filter(item => !toRemoveIds.includes(item.id));
       removedCount = before - ncModule.dados.length;
 
-      // Update UI and stats
       ncModule.atualizarEstatisticas();
       ncModule.aplicarFiltros();
       ncModule.renderizarTabela();
@@ -6540,7 +6603,6 @@ ${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${ncModule.obterTipo
 
       showNotification(`🧹 Removidos ${removedCount} registros duplicados (local)`, 'success');
 
-      // Optionally delete from Firebase (destructive) — confirm and require admin
       if (deleteRemote){
         if (!firebaseAuth.isAdmin()){
           showNotification('🔒 Remoção remota requer privilégio ADMIN', 'warning');
@@ -6561,7 +6623,6 @@ ${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${ncModule.obterTipo
       return { removed: removedCount, groupsFound: groups.length };
     }
 
-    // Convenience wrapper to keep latest and offer remote delete
     async function removeDuplicatesKeepLatest(){
       return removeDuplicates({ keepLatest: true, deleteRemote: false });
     }
@@ -6583,23 +6644,20 @@ ${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${ncModule.obterTipo
     }
 
     // ============================================
-    // 🔍 FUNÇÃO DIAGNOSE FIREBASE DATA - DEFINIDA AGORA
+    // 🔍 FUNÇÃO DIAGNOSE FIREBASE DATA
     // ============================================
 
     async function diagnoseFirebaseData() {
       try {
         showNotification('🔍 Diagnóstico Firebase...', 'info');
         
-        // Testar conexão
         const connected = await firebaseService.testConnection();
         const connectionText = connected ? '✅ Conectado' : '❌ Desconectado';
         
-        // Verificar contagem
         const vehicleCount = vehicleData.length;
         const snapshot = await firebaseService.database.ref('vehicles').once('value');
         const firebaseCount = snapshot.exists() ? snapshot.numChildren() : 0;
         
-        // Verificar dados NC
         let ncCount = 0;
         try {
           const ncSnapshot = await firebaseService.database.ref('nc_dados/registros').once('value');
@@ -6645,10 +6703,8 @@ ${firebaseCount !== vehicleCount ? '⚠️ DESCRIPANÇA: Local e Firebase diverg
       try {
         showNotification('🔄 Recuperando dados...', 'info');
         
-        // 1. Tentar carregar do Firebase
         await loadInitialData();
         
-        // 2. Tentar carregar do IndexedDB local
         try {
           const localData = await idb.get('vehicleData');
           if (localData && localData.length > 0) {
@@ -6709,7 +6765,6 @@ ${syncLog.getRecent(5).map(log =>
       
       const issues = [];
       
-      // Verificar veículos
       vehicleData.forEach((vehicle, index) => {
         if (!vehicle.placa || vehicle.placa.trim() === '') {
           issues.push(`Veículo ${index}: Placa vazia`);
@@ -6719,7 +6774,6 @@ ${syncLog.getRecent(5).map(log =>
         }
       });
       
-      // Verificar NCs
       ncModule.dados.forEach((nc, index) => {
         if (!nc.veiculo || nc.veiculo.trim() === '') {
           issues.push(`NC ${index}: Veículo vazio`);
@@ -6818,7 +6872,6 @@ AÇÕES SUGERIDAS:
       dateFilter.value = '';
       searchInput.value = '';
       
-      // Resetar filtros NC se estiver na aba
       if (document.getElementById('tabNaoConformidades')?.classList.contains('active')) {
         document.getElementById('ncTipoFilter').value = 'all';
         document.getElementById('ncVeiculoFilter').value = '';
@@ -6841,7 +6894,6 @@ AÇÕES SUGERIDAS:
     // 🎯 INICIALIZAÇÃO DO SISTEMA
     // ============================================
     
-    // Wrapper para testar conexão ao Firebase (exposta globalmente)
     async function testFirebaseConnection() {
       try {
         if (!firebaseService) {
