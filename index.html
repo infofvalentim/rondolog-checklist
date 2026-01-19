@@ -7,7 +7,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
-  <!-- Note: heavy libs will be lazy-loaded on demand -->
   <!-- Chart.js para gráficos do dashboard -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <!-- 🔥 SCRIPTS DO FIREBASE - VERSÃO 8.10.1 -->
@@ -5474,7 +5473,7 @@
 
 📈 DISTRIBUIÇÃO POR TIPO:
 ${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${ncModule.obterTipoNC(tipo)}: ${count}`).join('\n')}
-      `;
+      `.trim();
       
       alert(mensagem);
       closeSettingsMenu();
