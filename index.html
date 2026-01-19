@@ -2715,11 +2715,15 @@
           const userData = await firebaseService.database.ref(`users/${this.currentUser.uid}`).once('value');
           const customData = userData.val() || {};
           
+          // CORREÇÃO: Usar operador de encadeamento opcional e fornecer valor padrão
+          const emailPart = this.currentUser.email ? this.currentUser.email.split('@')[0] : 'Usuário';
+          const displayName = customData.displayName || this.currentUser.displayName || emailPart;
+          
           // Atualizar currentUser com role
           this.currentUser = {
             ...this.currentUser,
             role: customData.role || 'VIEWER',
-            displayName: customData.displayName || this.currentUser.email?.split('@')[0] || 'Usuário',
+            displayName: displayName,
             permissions: this.getPermissions(customData.role || 'VIEWER')
           };
           
@@ -2727,10 +2731,11 @@
         } catch (error) {
           console.error('Erro ao buscar role do usuário:', error);
           // Se não encontrar, definir como VIEWER
+          const emailPart = this.currentUser.email ? this.currentUser.email.split('@')[0] : 'Usuário';
           this.currentUser = {
             ...this.currentUser,
             role: 'VIEWER',
-            displayName: this.currentUser.email?.split('@')[0] || 'Usuário',
+            displayName: this.currentUser.displayName || emailPart,
             permissions: this.getPermissions('VIEWER')
           };
           return this.currentUser;
@@ -2807,7 +2812,7 @@
         return permissions[role] || permissions['VIEWER'];
       },
       
-      // Atualizar interface após login
+      // Atualizar interface após login - CORRIGIDA
       updateUIAfterLogin() {
         // Esconder modal de login
         document.getElementById('loginModal').style.display = 'none';
@@ -2828,12 +2833,15 @@
         }
         
         // Atualizar nome do usuário com verificação de segurança
+        // CORREÇÃO: Usar valor padrão seguro
         const userDisplay = this.currentUser?.email || 'Usuário';
+        const userName = this.currentUser?.displayName || userDisplay;
+        
         const loggedUserEl = document.getElementById('loggedUser');
         const currentUserInfoEl = document.getElementById('currentUserInfo');
         
         if (loggedUserEl) {
-          loggedUserEl.textContent = userDisplay;
+          loggedUserEl.textContent = userName;
         }
         
         if (currentUserInfoEl) {
@@ -6575,7 +6583,7 @@ ${Object.entries(stats.tipos).map(([tipo, count]) => `  • ${ncModule.obterTipo
     }
 
     // ============================================
-    // 🎯 FUNÇÕES AUSENTES QUE ESTAVAM FALTANDO
+    // 🔍 FUNÇÃO DIAGNOSE FIREBASE DATA - DEFINIDA AGORA
     // ============================================
 
     async function diagnoseFirebaseData() {
